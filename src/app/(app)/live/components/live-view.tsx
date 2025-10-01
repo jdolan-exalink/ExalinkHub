@@ -14,18 +14,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CameraFeed from './camera-feed';
-import { LayoutGrid, Save, Maximize2, Minimize2 } from 'lucide-react';
+import { LayoutGrid, Maximize2, Minimize2, Settings2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import SaveViewDialog from '@/components/ui/save-view-dialog';
+import SimpleViewEditor from '@/components/ui/simple-view-editor';
 
 const gridLayouts = {
-  '1x1': 'grid-cols-1 grid-rows-1',
-  '2x2': 'grid-cols-2 grid-rows-2',
-  '2x3': 'grid-cols-2 grid-rows-3',
-  '3x3': 'grid-cols-3 grid-rows-3',
-  '4x4': 'grid-cols-4 grid-rows-4',
+  '1x1': 'grid-cols-1 grid-rows-1',        // Single/Full screen
+  '2x2': 'grid-cols-2 grid-rows-2',        // Quad - 4 divisiones
+  '3x3': 'grid-cols-3 grid-rows-3',        // 9 divisiones
+  '4x4': 'grid-cols-4 grid-rows-4',        // 16 divisiones
+  '5x5': 'grid-cols-5 grid-rows-5',        // 25 divisiones  
+  '6x6': 'grid-cols-6 grid-rows-6',        // 36 divisiones
 };
 
 type GridCell = {
@@ -434,11 +435,12 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
 
   const getGridSize = (layout: keyof typeof gridLayouts): number => {
     switch (layout) {
-      case '1x1': return 1;
-      case '2x2': return 4;
-      case '2x3': return 6;
-      case '3x3': return 9;
-      case '4x4': return 16;
+      case '1x1': return 1;   // Single/Full screen
+      case '2x2': return 4;   // Quad
+      case '3x3': return 9;   // 9 divisiones
+      case '4x4': return 16;  // 16 divisiones
+      case '5x5': return 25;  // 25 divisiones
+      case '6x6': return 36;  // 36 divisiones
       default: return 4;
     }
   };
@@ -657,13 +659,17 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
               <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">Live View</h1>
               <div className="flex items-center gap-1 sm:gap-2">
-                  <SaveViewDialog onSave={handleSaveView}>
+                  <SimpleViewEditor
+                    currentLayout={layout}
+                    currentCameras={gridCells}
+                    onSaveView={handleSaveView}
+                  >
                     <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                        <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                        <span className="hidden sm:inline">Guardar Vista</span>
-                        <span className="sm:hidden">Guardar</span>
+                        <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">Layout Manager</span>
+                        <span className="sm:hidden">Layouts</span>
                     </Button>
-                  </SaveViewDialog>
+                  </SimpleViewEditor>
                   <div className="flex items-center gap-1 sm:gap-2">
                       <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Select value={layout} onValueChange={(value) => handleLayoutChange(value as keyof typeof gridLayouts)}>

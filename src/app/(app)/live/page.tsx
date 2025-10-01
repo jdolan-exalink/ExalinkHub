@@ -42,10 +42,10 @@ export default function LivePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full w-full">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Conectando con Frigate...</span>
+          <span>Conectando con Exalink...</span>
         </div>
       </div>
     );
@@ -53,16 +53,20 @@ export default function LivePage() {
 
   if (error) {
     return (
-      <div className="p-4">
+      <div className="p-2 w-full">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Error al conectar con Frigate: {error}
+            Error al conectar con Exalink: {error}
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  return <LiveView cameras={cameras} />;
+  return (
+    <div className="h-full w-full">
+      <LiveView cameras={cameras} />
+    </div>
+  );
 }

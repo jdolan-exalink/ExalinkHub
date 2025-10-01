@@ -1,4 +1,4 @@
-# **App Name**: Frigate Hub
+# **App Name**: Exalink Hub
 
 ## Core Features:
 

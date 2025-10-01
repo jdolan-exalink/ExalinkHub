@@ -21,7 +21,7 @@ const Header: FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
-      <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
+      <div className="flex h-16 items-center px-1 sm:px-2 lg:px-4 w-full">
         <div className="flex items-center gap-2 mr-6">
           <Button
             variant="ghost"
@@ -34,7 +34,7 @@ const Header: FC = () => {
           <Link href="/events" className="flex items-center gap-2">
             <ShieldCheck className="h-7 w-7 text-primary" />
             <span className="font-headline text-xl font-semibold tracking-tight">
-              Frigate Hub
+              Exalink Hub
             </span>
           </Link>
         </div>

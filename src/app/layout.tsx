@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Frigate Hub',
-  description: 'Centralized NVR for Frigate servers',
+  title: 'Exalink Hub',
+  description: 'Centralized NVR for Exalink servers',
 };
 
 export default function RootLayout({

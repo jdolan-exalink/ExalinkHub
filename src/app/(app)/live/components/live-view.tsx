@@ -653,8 +653,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-full w-full">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-2 py-2">
+      <div className="flex flex-col h-full w-full overflow-hidden">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
               <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">Live View</h1>
               <div className="flex items-center gap-1 sm:gap-2">
                   <SaveViewDialog onSave={handleSaveView}>
@@ -682,10 +682,10 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
 
         <div className="flex-1 w-full overflow-hidden">
           <motion.div 
-            className={cn('grid gap-2 w-full p-2 content-start', gridLayouts[layout])}
+            className={cn('grid gap-0.5 w-full h-full p-0.5 content-start', gridLayouts[layout])}
             style={{
-              height: 'fit-content', // Ajustar altura al contenido
-              minHeight: '100%' // Pero ocupar mínimo toda la altura disponible
+              height: '100%', // Usar toda la altura disponible
+              maxHeight: '100%' // No exceder la altura del contenedor
             }}
             layout
             transition={{ duration: 0.3, ease: "easeInOut" }}

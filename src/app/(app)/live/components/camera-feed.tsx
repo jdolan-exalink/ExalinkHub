@@ -492,7 +492,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
       <Dialog open={isFullscreen} onOpenChange={handleCloseFullscreen}>
         <DialogContent className="p-0 sm:max-w-[95vw] md:max-w-[98vw] lg:max-w-[99vw] border-0 bg-black max-h-[95vh] w-full">
           <DialogHeader className="absolute top-2 left-2 z-10">
-            <DialogTitle className="text-white text-lg font-semibold">CASA \ {camera.name}</DialogTitle>
+            <DialogTitle className="text-white text-lg font-semibold">EXALINK \ {camera.name}</DialogTitle>
           </DialogHeader>
           
           {/* Controles superiores derechos */}

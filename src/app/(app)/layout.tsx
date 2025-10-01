@@ -23,11 +23,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <DndContext>
       <SidebarProvider>
-        <div className="flex h-screen flex-col bg-background text-foreground">
+        <div className="flex h-screen w-full flex-col bg-background text-foreground">
           <Header />
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 w-full overflow-hidden">
             <AppSidebar onCameraDoubleClick={handleCameraDoubleClick} />
-            <main className="flex-1 overflow-hidden">
+            <main className="flex-1 w-full overflow-hidden">
               {children}
             </main>
           </div>

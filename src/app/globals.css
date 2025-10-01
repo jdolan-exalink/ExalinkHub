@@ -86,3 +86,36 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Estilos personalizados para aspect ratio 16:9 forzado */
+@layer components {
+  .camera-container {
+    aspect-ratio: 16/9;
+    width: 100%;
+    position: relative;
+  }
+  
+  .camera-container img,
+  .camera-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+  
+  /* Garantizar que grid cells mantengan 16:9 */
+  .grid-cell-16x9 {
+    aspect-ratio: 16/9 !important;
+    min-height: unset !important;
+  }
+  
+  /* Optimización para diferentes resoluciones */
+  @media (max-width: 640px) {
+    .camera-container {
+      aspect-ratio: 16/9;
+    }
+  }
+}

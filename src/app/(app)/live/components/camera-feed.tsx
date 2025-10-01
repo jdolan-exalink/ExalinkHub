@@ -330,6 +330,10 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               "absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-500",
               snapshotLoaded && !isLoading && streamStarted ? "opacity-0" : "opacity-100"
             )}
+            style={{
+              objectFit: 'cover', // Estirar para llenar el contenedor 16:9
+              objectPosition: 'center'
+            }}
             onLoad={handleSnapshotLoad}
             onError={handleSnapshotError}
           />
@@ -367,6 +371,10 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               "absolute inset-0 transition-opacity duration-500",
               isLoading ? "opacity-0" : "opacity-100"
             )}
+            style={{
+              aspectRatio: '16/9',
+              objectFit: 'cover'
+            }}
             onLoad={handleHlsLoad}
             onError={handleHlsError}
             onFpsChange={onFpsChange}
@@ -380,9 +388,13 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     <>
       <Card 
         className={cn(
-            "overflow-hidden group w-full h-full relative",
+            "overflow-hidden group w-full relative",
+            "aspect-video", // Forzar aspect ratio 16:9
             isDragging && "opacity-50 z-50"
         )}
+        style={{
+          aspectRatio: '16/9' // Garantizar 16:9 en todos los navegadores
+        }}
       >
         {/* Controls permanentes en la esquina superior izquierda */}
         <div className="absolute top-2 left-2 z-10">
@@ -427,8 +439,12 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
         <div 
           className={cn(
             "w-full h-full bg-secondary relative cursor-pointer select-none",
+            "aspect-video", // Mantener 16:9
             isHdCamera && "ring-2 ring-green-500" // Indicador visual para cámara HD
           )}
+          style={{
+            aspectRatio: '16/9' // Garantizar proporción
+          }}
           onDoubleClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

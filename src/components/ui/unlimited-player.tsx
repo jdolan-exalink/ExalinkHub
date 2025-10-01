@@ -295,8 +295,11 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-full ${className}`} 
-      style={style}
+      className={`relative w-full camera-container ${className}`} 
+      style={{
+        aspectRatio: '16/9',
+        ...style
+      }}
     >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">

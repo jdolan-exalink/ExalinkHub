@@ -58,10 +58,14 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
       <Card
         ref={setNodeRef}
         className={cn(
-          "bg-secondary/20 flex items-center justify-center relative transition-all duration-200 border-2 border-dashed w-full h-full min-h-[200px]",
+          "bg-secondary/20 flex items-center justify-center relative transition-all duration-200 border-2 border-dashed w-full",
+          "grid-cell-16x9 camera-container", // Clases CSS personalizadas para 16:9
           isOver && "ring-2 ring-primary ring-inset bg-primary/10 border-primary scale-[1.01]",
           cell.camera ? "border-border bg-card" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-secondary/40"
         )}
+        style={{
+          aspectRatio: '16/9' // Garantizar 16:9 en todos los navegadores
+        }}
       >
         <AnimatePresence mode="wait">
           {cell.camera ? (
@@ -676,9 +680,13 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
               </div>
         </div>
 
-        <div className="flex-1 w-full h-full overflow-hidden">
+        <div className="flex-1 w-full overflow-hidden">
           <motion.div 
-            className={cn('grid gap-2 h-full w-full p-2', gridLayouts[layout])}
+            className={cn('grid gap-2 w-full p-2 content-start', gridLayouts[layout])}
+            style={{
+              height: 'fit-content', // Ajustar altura al contenido
+              minHeight: '100%' // Pero ocupar mínimo toda la altura disponible
+            }}
             layout
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >

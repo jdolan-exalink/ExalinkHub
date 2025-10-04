@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { useState } from 'react';
-import { format, subHours, startOfDay, endOfDay } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Select,
   SelectContent,
@@ -13,9 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
+import {
+  Calendar as CalendarIcon,
+  Clock,
   Camera as CameraIcon,
   Filter,
   X
@@ -23,7 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export interface TimeRange {
-  label: string;
+  translation_key: string;
   hours: number;
   value: string;
 }
@@ -37,34 +37,33 @@ export interface EventFilters {
 }
 
 interface EventControlsProps {
-  // Time controls
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   timeRange: TimeRange;
   onTimeRangeChange: (range: TimeRange) => void;
-  
-  // Filter controls  
   filters: EventFilters;
   onFiltersChange: (filters: EventFilters) => void;
-  
-  // Available options
   availableCameras: string[];
   availableLabels: string[];
   availableZones: string[];
-  
-  // Stats
   totalEvents: number;
-  
   className?: string;
 }
 
 const TIME_RANGES: TimeRange[] = [
-  { label: 'Last Hour', hours: 1, value: '1h' },
-  { label: 'Last 6 Hours', hours: 6, value: '6h' },
-  { label: 'Last 12 Hours', hours: 12, value: '12h' },
-  { label: 'Last 24 Hours', hours: 24, value: '24h' },
-  { label: 'Today', hours: 0, value: 'today' }, // Special case
+  { translation_key: 'last_hour', hours: 1, value: '1h' },
+  { translation_key: 'last_6_hours', hours: 6, value: '6h' },
+  { translation_key: 'last_12_hours', hours: 12, value: '12h' },
+  { translation_key: 'last_24_hours', hours: 24, value: '24h' },
+  { translation_key: 'today', hours: 0, value: 'today' }
 ];
+
+/**
+ * Finds the time range definition that matches the provided value.
+ */
+function get_time_range_by_value(value: string): TimeRange | undefined {
+  return TIME_RANGES.find((range) => range.value === value);
+}
 
 export default function EventControls({
   selectedDate,
@@ -80,36 +79,51 @@ export default function EventControls({
   className
 }: EventControlsProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const locale_code = useLocale();
+  const translate_controls = useTranslations('events.controls');
 
-  const activeFilterCount = 
-    filters.cameras.length + 
-    filters.labels.length + 
+  const date_formatter = useMemo(
+    () => new Intl.DateTimeFormat(locale_code, { dateStyle: 'medium' }),
+    [locale_code]
+  );
+
+  const time_range_options = useMemo(
+    () => TIME_RANGES.map((range) => ({
+      ...range,
+      label: translate_controls(`time_ranges.${range.translation_key}`)
+    })),
+    [translate_controls]
+  );
+
+  const active_filter_count =
+    filters.cameras.length +
+    filters.labels.length +
     filters.zones.length +
     (filters.hasClip ? 1 : 0) +
     (filters.hasSnapshot ? 1 : 0);
 
-  const toggleCamera = (camera: string) => {
-    const newCameras = filters.cameras.includes(camera)
-      ? filters.cameras.filter(c => c !== camera)
+  const toggle_camera = (camera: string) => {
+    const new_cameras = filters.cameras.includes(camera)
+      ? filters.cameras.filter((item) => item !== camera)
       : [...filters.cameras, camera];
-    onFiltersChange({ ...filters, cameras: newCameras });
+    onFiltersChange({ ...filters, cameras: new_cameras });
   };
 
-  const toggleLabel = (label: string) => {
-    const newLabels = filters.labels.includes(label)
-      ? filters.labels.filter(l => l !== label)
+  const toggle_label = (label: string) => {
+    const new_labels = filters.labels.includes(label)
+      ? filters.labels.filter((item) => item !== label)
       : [...filters.labels, label];
-    onFiltersChange({ ...filters, labels: newLabels });
+    onFiltersChange({ ...filters, labels: new_labels });
   };
 
-  const toggleZone = (zone: string) => {
-    const newZones = filters.zones.includes(zone)
-      ? filters.zones.filter(z => z !== zone)
+  const toggle_zone = (zone: string) => {
+    const new_zones = filters.zones.includes(zone)
+      ? filters.zones.filter((item) => item !== zone)
       : [...filters.zones, zone];
-    onFiltersChange({ ...filters, zones: newZones });
+    onFiltersChange({ ...filters, zones: new_zones });
   };
 
-  const clearAllFilters = () => {
+  const clear_all_filters = () => {
     onFiltersChange({
       cameras: [],
       labels: [],
@@ -120,11 +134,9 @@ export default function EventControls({
   };
 
   return (
-    <div className={`bg-card border rounded-lg p-4 ${className}`}>
+    <div className={cn('bg-card border rounded-lg p-4', className)}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-        {/* Left side - Time controls */}
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Date Picker */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -132,7 +144,7 @@ export default function EventControls({
                 className="w-full sm:w-[200px] justify-start text-left font-normal"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedDate, "PPP")}
+                {date_formatter.format(selectedDate)}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -145,20 +157,21 @@ export default function EventControls({
             </PopoverContent>
           </Popover>
 
-          {/* Time Range Selector */}
-          <Select 
-            value={timeRange.value} 
+          <Select
+            value={timeRange.value}
             onValueChange={(value) => {
-              const range = TIME_RANGES.find(r => r.value === value);
-              if (range) onTimeRangeChange(range);
+              const range = get_time_range_by_value(value);
+              if (range) {
+                onTimeRangeChange(range);
+              }
             }}
           >
             <SelectTrigger className="w-full sm:w-[150px]">
               <Clock className="mr-2 h-4 w-4" />
-              <SelectValue />
+              <SelectValue placeholder={translate_controls('time_range_placeholder')} />
             </SelectTrigger>
             <SelectContent>
-              {TIME_RANGES.map(range => (
+              {time_range_options.map((range) => (
                 <SelectItem key={range.value} value={range.value}>
                   {range.label}
                 </SelectItem>
@@ -167,29 +180,25 @@ export default function EventControls({
           </Select>
         </div>
 
-        {/* Center - Stats */}
         <div className="flex items-center gap-4">
           <Badge variant="secondary" className="gap-1">
-            <span className="font-semibold">{totalEvents}</span>
-            events
+            {translate_controls('total_events', { count: totalEvents })}
           </Badge>
-          
-          {activeFilterCount > 0 && (
+
+          {active_filter_count > 0 && (
             <Badge variant="outline" className="gap-1">
               <Filter className="h-3 w-3" />
-              {activeFilterCount} filters
+              {translate_controls('active_filters', { count: active_filter_count })}
             </Badge>
           )}
         </div>
 
-        {/* Right side - Filter controls */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Quick Camera Filter */}
           {availableCameras.length > 0 && (
-            <Select 
-              value={filters.cameras.length === 1 ? filters.cameras[0] : "all"}
+            <Select
+              value={filters.cameras.length === 1 ? filters.cameras[0] : 'all'}
               onValueChange={(value) => {
-                if (value === "all") {
+                if (value === 'all') {
                   onFiltersChange({ ...filters, cameras: [] });
                 } else {
                   onFiltersChange({ ...filters, cameras: [value] });
@@ -198,11 +207,11 @@ export default function EventControls({
             >
               <SelectTrigger className="w-[140px]">
                 <CameraIcon className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="All Cameras" />
+                <SelectValue placeholder={translate_controls('all_cameras')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Cameras</SelectItem>
-                {availableCameras.map(camera => (
+                <SelectItem value="all">{translate_controls('all_cameras')}</SelectItem>
+                {availableCameras.map((camera) => (
                   <SelectItem key={camera} value={camera}>
                     {camera}
                   </SelectItem>
@@ -211,15 +220,14 @@ export default function EventControls({
             </Select>
           )}
 
-          {/* Advanced Filters */}
           <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Filter className="h-4 w-4" />
-                Filters
-                {activeFilterCount > 0 && (
+                {translate_controls('filters_button')}
+                {active_filter_count > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 text-xs">
-                    {activeFilterCount}
+                    {active_filter_count}
                   </Badge>
                 )}
               </Button>
@@ -227,30 +235,29 @@ export default function EventControls({
             <PopoverContent className="w-80" align="end">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Advanced Filters</h4>
-                  {activeFilterCount > 0 && (
+                  <h4 className="font-medium">{translate_controls('filters_title')}</h4>
+                  {active_filter_count > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={clearAllFilters}
+                      onClick={clear_all_filters}
                       className="h-auto p-1 text-xs"
                     >
-                      Clear All
+                      {translate_controls('clear_all')}
                     </Button>
                   )}
                 </div>
 
-                {/* Object Types */}
                 {availableLabels.length > 0 && (
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Object Types</label>
+                    <label className="text-sm font-medium mb-2 block">{translate_controls('object_types')}</label>
                     <div className="flex flex-wrap gap-1">
-                      {availableLabels.map(label => (
+                      {availableLabels.map((label) => (
                         <Badge
                           key={label}
-                          variant={filters.labels.includes(label) ? "default" : "outline"}
+                          variant={filters.labels.includes(label) ? 'default' : 'outline'}
                           className="cursor-pointer text-xs"
-                          onClick={() => toggleLabel(label)}
+                          onClick={() => toggle_label(label)}
                         >
                           {label}
                           {filters.labels.includes(label) && (
@@ -262,17 +269,16 @@ export default function EventControls({
                   </div>
                 )}
 
-                {/* Cameras */}
                 {availableCameras.length > 1 && (
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Cameras</label>
+                    <label className="text-sm font-medium mb-2 block">{translate_controls('cameras')}</label>
                     <div className="flex flex-wrap gap-1">
-                      {availableCameras.map(camera => (
+                      {availableCameras.map((camera) => (
                         <Badge
                           key={camera}
-                          variant={filters.cameras.includes(camera) ? "default" : "outline"}
+                          variant={filters.cameras.includes(camera) ? 'default' : 'outline'}
                           className="cursor-pointer text-xs"
-                          onClick={() => toggleCamera(camera)}
+                          onClick={() => toggle_camera(camera)}
                         >
                           {camera}
                           {filters.cameras.includes(camera) && (
@@ -284,17 +290,16 @@ export default function EventControls({
                   </div>
                 )}
 
-                {/* Zones */}
                 {availableZones.length > 0 && (
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Zones</label>
+                    <label className="text-sm font-medium mb-2 block">{translate_controls('zones')}</label>
                     <div className="flex flex-wrap gap-1">
-                      {availableZones.map(zone => (
+                      {availableZones.map((zone) => (
                         <Badge
                           key={zone}
-                          variant={filters.zones.includes(zone) ? "default" : "outline"}
+                          variant={filters.zones.includes(zone) ? 'default' : 'outline'}
                           className="cursor-pointer text-xs"
-                          onClick={() => toggleZone(zone)}
+                          onClick={() => toggle_zone(zone)}
                         >
                           {zone}
                           {filters.zones.includes(zone) && (
@@ -306,30 +311,29 @@ export default function EventControls({
                   </div>
                 )}
 
-                {/* Content Type */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Content</label>
+                  <label className="text-sm font-medium mb-2 block">{translate_controls('content')}</label>
                   <div className="flex gap-2">
                     <Badge
-                      variant={filters.hasClip ? "default" : "outline"}
+                      variant={filters.hasClip ? 'default' : 'outline'}
                       className="cursor-pointer text-xs"
                       onClick={() => onFiltersChange({
                         ...filters,
                         hasClip: filters.hasClip ? undefined : true
                       })}
                     >
-                      Has Clip
+                      {translate_controls('has_clip')}
                       {filters.hasClip && <X className="ml-1 h-3 w-3" />}
                     </Badge>
                     <Badge
-                      variant={filters.hasSnapshot ? "default" : "outline"}
+                      variant={filters.hasSnapshot ? 'default' : 'outline'}
                       className="cursor-pointer text-xs"
                       onClick={() => onFiltersChange({
                         ...filters,
                         hasSnapshot: filters.hasSnapshot ? undefined : true
                       })}
                     >
-                      Has Snapshot
+                      {translate_controls('has_snapshot')}
                       {filters.hasSnapshot && <X className="ml-1 h-3 w-3" />}
                     </Badge>
                   </div>

@@ -2,6 +2,7 @@
 
 import type { Camera } from '@/lib/types';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Maximize, Rss, X, AlertCircle, Minimize, Volume2, VolumeX } from 'lucide-react';
@@ -22,6 +23,7 @@ type CameraFeedProps = {
 };
 
 export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay = 0, onQualitySwitch, isHdCamera = false, onFpsChange }: CameraFeedProps) {
+  const translate_live_camera = useTranslations('live.camera');
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStreamQuality, setCurrentStreamQuality] = useState<'sub' | 'main' | 'proxy'>('sub');
@@ -414,7 +416,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <div className="text-sm">
-                {!streamStarted ? "Preparando stream..." : "Conectando HLS..."}
+                {!streamStarted ? "{translate_live_camera('loading.preparing')}" : "{translate_live_camera('loading.connecting_hls')}"}
               </div>
             </div>
           </div>
@@ -477,9 +479,9 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
                 setLoadingTimeout(null);
               }
               // Cerrar el stream - limpiar la celda
-              onRemove(getUniqueId());
+              onRemove(camera.id);
             }}
-            title="Cerrar stream"
+            title="{translate_live_camera('actions.close_stream')}"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -494,7 +496,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
             <Badge 
               variant="destructive" 
               className="text-[10px] px-1 py-0 h-4 font-normal animate-pulse"
-              title="Stream desconectado por más de 45 segundos"
+              title="{translate_live_camera('alerts.stream_disconnected')}"
             >
               DESCONECTADO
             </Badge>
@@ -512,7 +514,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               e.stopPropagation();
               setIsFullscreen(true);
             }}
-            title="Maximizar cámara"
+            title="{translate_live_camera('actions.maximize_camera')}"
           >
             <Maximize className="h-4 w-4" />
           </Button>
@@ -590,7 +592,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
                       sharpness: prev.sharpness === 1.5 ? 1.0 : 1.5
                     }));
                   }}
-                  title="Toggle Sharpness"
+                  title="{translate_live_camera('actions.toggle_sharpness')}"
                 >
                   <span className="text-xs">S</span>
                 </Button>
@@ -604,7 +606,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
                       contrast: prev.contrast === 1.2 ? 1.0 : 1.2
                     }));
                   }}
-                  title="Toggle Contrast"
+                  title="{translate_live_camera('actions.toggle_contrast')}"
                 >
                   <span className="text-xs">C</span>
                 </Button>
@@ -640,7 +642,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
                   console.log(`🔊 [${timestamp}] Audio toggle: ${isMuted ? 'OFF' : 'ON'} → ${!isMuted ? 'OFF' : 'ON'} (main stream only)`);
                   setIsMuted(!isMuted);
                 }}
-                title={isMuted ? "Activar audio (solo main)" : "Silenciar audio"}
+                title={isMuted ? "{translate_live_camera('actions.unmute_audio')}" : "{translate_live_camera('actions.mute_audio')}"}
               >
                 {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </Button>

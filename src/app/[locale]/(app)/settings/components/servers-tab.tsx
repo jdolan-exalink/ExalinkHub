@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ interface TestStep {
 }
 
 export default function ServersTab() {
+  const translate_servers = useTranslations('SettingsPage');
   const [servers, setServers] = useState<ServerWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -810,7 +812,7 @@ export default function ServersTab() {
                                     <span className="text-sm font-medium">API</span>
                                   </div>
                                   <Badge variant="outline" className="text-green-600 border-green-600">
-                                    Online
+                                    {translate_servers('status_online')}
                                   </Badge>
                                 </div>
                               </div>
@@ -844,3 +846,4 @@ export default function ServersTab() {
     </div>
   );
 }
+

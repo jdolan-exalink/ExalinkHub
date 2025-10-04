@@ -1,19 +1,26 @@
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import { getLocale } from 'next-intl/server';
+
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: 'Exalink Hub',
   description: 'Centralized NVR for Exalink servers',
 };
 
-export default function RootLayout({
+/**
+ * Layout raoz encargado de configurar las etiquetas HTML base.
+ */
+export default async function root_layout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en" className="dark">
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -21,7 +28,6 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased m-0 p-0 h-screen overflow-hidden">
         {children}
-        <Toaster />
       </body>
     </html>
   );

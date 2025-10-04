@@ -51,7 +51,7 @@ export async function PUT(
     }
     
     const body = await request.json();
-    const { name, layout, cameras } = body;
+    const { name, layout, cameras, icon } = body;
     
     if (!name || !layout || !Array.isArray(cameras)) {
       return NextResponse.json(

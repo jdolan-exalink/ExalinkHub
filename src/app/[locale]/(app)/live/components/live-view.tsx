@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import type { Camera } from '@/lib/types';
 import { DndContext, useDroppable, type DragEndEvent } from '@dnd-kit/core';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,14 +21,100 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import LayoutManager from '@/components/ui/layout-manager';
 
-const gridLayouts = {
-  '1x1': 'grid-cols-1 grid-rows-1',        // Single/Full screen
-  '2x2': 'grid-cols-2 grid-rows-2',        // Quad - 4 divisiones
-  '3x3': 'grid-cols-3 grid-rows-3',        // 9 divisiones
-  '4x4': 'grid-cols-4 grid-rows-4',        // 16 divisiones
-  '5x5': 'grid-cols-5 grid-rows-5',        // 25 divisiones  
-  '6x6': 'grid-cols-6 grid-rows-6',        // 36 divisiones
-};
+const layoutDefinitions = {
+  '1x1': {
+    label: '1×1',
+    template: 'grid-cols-1 grid-rows-1 auto-rows-fr',
+    cells: 1
+  },
+  '2x2': {
+    label: '2×2',
+    template: 'grid-cols-2 grid-rows-2 auto-rows-fr',
+    cells: 4
+  },
+  '3x3': {
+    label: '3×3',
+    template: 'grid-cols-3 grid-rows-3 auto-rows-fr',
+    cells: 9
+  },
+  '4x4': {
+    label: '4×4',
+    template: 'grid-cols-4 grid-rows-4 auto-rows-fr',
+    cells: 16
+  },
+  '5x5': {
+    label: '5×5',
+    template: 'grid-cols-5 grid-rows-5 auto-rows-fr',
+    cells: 25
+  },
+  '6x6': {
+    label: '6×6',
+    template: 'grid-cols-6 grid-rows-6 auto-rows-fr',
+    cells: 36
+  },
+  '1+5': {
+    label: '1+5',
+    template: 'grid-cols-3 grid-rows-3 auto-rows-fr',
+    cells: 6,
+    cellClass: (index: number) => {
+      switch (index) {
+        case 0:
+          return 'col-span-2 row-span-2 col-start-1 row-start-1';
+        case 1:
+          return 'col-start-3 row-start-1';
+        case 2:
+          return 'col-start-3 row-start-2';
+        case 3:
+          return 'col-start-1 row-start-3';
+        case 4:
+          return 'col-start-2 row-start-3';
+        case 5:
+          return 'col-start-3 row-start-3';
+        default:
+          return '';
+      }
+    }
+  },
+  '1+12': {
+    label: '1+12',
+    template: 'grid-cols-4 grid-rows-4 auto-rows-fr',
+    cells: 13,
+    cellClass: (index: number) => {
+      switch (index) {
+        case 0:
+          return 'col-span-2 row-span-2 col-start-1 row-start-1';
+        case 1:
+          return 'col-start-3 row-start-1';
+        case 2:
+          return 'col-start-4 row-start-1';
+        case 3:
+          return 'col-start-3 row-start-2';
+        case 4:
+          return 'col-start-4 row-start-2';
+        case 5:
+          return 'col-start-1 row-start-3';
+        case 6:
+          return 'col-start-2 row-start-3';
+        case 7:
+          return 'col-start-3 row-start-3';
+        case 8:
+          return 'col-start-4 row-start-3';
+        case 9:
+          return 'col-start-1 row-start-4';
+        case 10:
+          return 'col-start-2 row-start-4';
+        case 11:
+          return 'col-start-3 row-start-4';
+        case 12:
+          return 'col-start-4 row-start-4';
+        default:
+          return '';
+      }
+    }
+  }
+} as const;
+
+type LayoutKey = keyof typeof layoutDefinitions;
 
 type GridCell = {
   id: number;
@@ -39,12 +126,14 @@ type LiveViewProps = {
   onCameraDoubleClick: (camera: Camera) => void;
 };
 
-function DroppableCell({ cell, onRemove, onFpsChange, children }: { 
-  cell: GridCell, 
-  onRemove: (cameraId: string) => void, 
-  onFpsChange?: (cameraId: string, fps: number) => void,
-  children: React.ReactNode 
+function DroppableCell({ cell, onRemove, onFpsChange, children, className }: {
+  cell: GridCell;
+  onRemove: (cameraId: string) => void;
+  onFpsChange?: (cameraId: string, fps: number) => void;
+  children: React.ReactNode;
+  className?: string;
 }) {
+  const translate_live = useTranslations('live');
   const { isOver, setNodeRef } = useDroppable({
     id: `cell-${cell.id}`,
   });
@@ -99,7 +188,7 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
                 "text-sm font-medium transition-colors",
                 isOver ? "text-primary" : "text-muted-foreground"
               )}>
-                {isOver ? "Soltar cámara aquí" : "Arrastra una cámara"}
+                {isOver ? translate_live('grid.drop_here') : translate_live('grid.drag_prompt')}
               </span>
             </motion.div>
           )}
@@ -111,8 +200,9 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
 
 
 export default function LiveView({ cameras }: { cameras: Camera[] }) {
+  const translate_live = useTranslations('live');
   const { toast } = useToast();
-  const [layout, setLayout] = useState<keyof typeof gridLayouts>('2x2'); // Cambiar por defecto a 2x2
+  const [layout, setLayout] = useState<LayoutKey>('2x2'); // Cambiar por defecto a 2x2
   const [gridCells, setGridCells] = useState<GridCell[]>([]);
   const [isLoadingView, setIsLoadingView] = useState(false); // Para vistas guardadas
   const [streamDelays, setStreamDelays] = useState<Record<number, number>>({}); // Delays por celda
@@ -199,8 +289,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
           }
           
           toast({
-            title: "Vista restaurada",
-            description: `Configuración recuperada: ${restoredCells.filter(c => c.camera !== null).length} cámaras en layout ${viewState.layout}`,
+            title: translate_live('toast.view_restored.title'),
+            description: translate_live('toast.view_restored.description', { count: restoredCells.filter(c => c.camera !== null).length, layout: viewState.layout }),
             duration: 4000,
           });
         }, 100); // Small delay para asegurar que el layout se actualice
@@ -226,8 +316,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
           // Programar toast para después del render
           setTimeout(() => {
             toast({ 
-              title: "Cámara ya en vista", 
-              description: `${camera.name} ya está en el grid.`, 
+              title: translate_live('toast.camera_exists.title'), 
+              description: translate_live('toast.camera_exists.description', { camera: camera.name }), 
               variant: 'default' 
             });
           }, 0);
@@ -239,8 +329,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         // Programar toast para después del render
         setTimeout(() => {
           toast({ 
-            title: "Grid lleno", 
-            description: "No hay celdas vacías disponibles para añadir la cámara.", 
+            title: translate_live('toast.grid_full.title'), 
+            description: translate_live('toast.grid_full.description'), 
             variant: 'destructive' 
           });
         }, 0);
@@ -397,8 +487,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         }, loadingTimeout);
         
         toast({
-          title: "Vista cargada",
-          description: `${delayIndex} cámaras cargándose. Tiempo estimado: ${delayIndex} segundos.`,
+          title: translate_live('toast.view_loaded.title'),
+          description: translate_live('toast.view_loaded.description', { count: delayIndex }),
           duration: 3000,
           variant: "default"
         });
@@ -406,8 +496,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         console.error('Error loading saved view:', error);
         setIsLoadingView(false);
         toast({
-          title: "Error",
-          description: "No se pudo cargar la vista guardada.",
+          title: translate_live('toast.error.title'),
+          description: translate_live('toast.load_saved_error'),
           variant: "destructive"
         });
       }
@@ -433,7 +523,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     };
   }, [toast]);
 
-  const getGridSize = (layout: keyof typeof gridLayouts): number => {
+  const getGridSize = (layout: LayoutKey): number => {
     switch (layout) {
       case '1x1': return 1;   // Single/Full screen
       case '2x2': return 4;   // Quad
@@ -492,7 +582,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     }
   }, [activeFpsMap, lastTotalFps, lastBandwidth]);
   
-  const handleLayoutChange = (newLayout: keyof typeof gridLayouts) => {
+  const handleLayoutChange = (newLayout: LayoutKey) => {
     setLayout(newLayout);
   };
 
@@ -514,8 +604,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       // Si queremos HD, verificar que no haya otra cámara en HD
       if (hdCameraId && hdCameraId !== cameraId) {
         toast({
-          title: "Solo 1 cámara en HD",
-          description: "Solo puedes tener una cámara en HD a la vez. La anterior se cambió a SD.",
+          title: translate_live('toast.hd_limit.title'),
+          description: translate_live('toast.hd_limit.description'),
           variant: "default"
         });
         // Notificar a la cámara anterior que debe cambiar a SD
@@ -632,8 +722,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       const savedView = await response.json();
       
       toast({
-        title: "Vista Guardada",
-        description: `La vista "${viewName}" ha sido guardada exitosamente.`,
+        title: translate_live('toast.view_saved.title'),
+        description: translate_live('toast.view_saved.description', { name: viewName }),
       });
       
       console.log("View saved:", savedView);
@@ -645,8 +735,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       window.dispatchEvent(saveViewEvent);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "No se pudo guardar la vista. Inténtalo de nuevo.",
+        title: translate_live('toast.error.title'),
+        description: translate_live('toast.view_saved_error'),
         variant: "destructive",
       });
       console.error("Error saving view:", error);
@@ -691,14 +781,14 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       saveViewToLocalStorage();
 
       toast({
-        title: "Vista cargada",
-        description: `Se cargó la vista "${view.name}" correctamente.`,
+        title: translate_live('toast.view_loaded.title'),
+        description: translate_live('toast.view_loaded_confirm', { name: view.name }),
       });
     } catch (error) {
       console.error('Error loading view:', error);
       toast({
-        title: "Error",
-        description: "No se pudo cargar la vista.",
+        title: translate_live('toast.error.title'),
+        description: translate_live('toast.view_load_error'),
         variant: "destructive"
       });
     }
@@ -708,12 +798,12 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     <DndContext onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
-              <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">Live View</h1>
+              <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">{translate_live('heading')}</h1>
               <div className="flex items-center gap-1 sm:gap-2">
                   <LayoutManager
                     current_layout={layout}
                     current_cameras={gridCells}
-                    on_layout_change={(new_layout) => handleLayoutChange(new_layout as keyof typeof gridLayouts)}
+                    on_layout_change={(new_layout) => handleLayoutChange(new_layout as LayoutKey)}
                     on_save_view={handleSaveView}
                     on_load_view={handleLoadView}
                   >
@@ -725,14 +815,14 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                   </LayoutManager>
                   <div className="flex items-center gap-1 sm:gap-2">
                       <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                      <Select value={layout} onValueChange={(value) => handleLayoutChange(value as keyof typeof gridLayouts)}>
+                      <Select value={layout} onValueChange={(value) => handleLayoutChange(value as LayoutKey)}>
                           <SelectTrigger className="w-[80px] sm:w-[100px] h-7 sm:h-8 text-xs sm:text-sm">
                               <SelectValue placeholder="Grid" />
                           </SelectTrigger>
                           <SelectContent>
-                              {Object.keys(gridLayouts).map(key => (
+                              {Object.keys(layoutDefinitions).map(key => (
                                   <SelectItem key={key} value={key} className="text-xs sm:text-sm">{key.replace('x', '×')}</SelectItem>
-                              ))}
+                              ))} 
                           </SelectContent>
                       </Select>
                   </div>
@@ -741,7 +831,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
 
         <div className="flex-1 w-full overflow-hidden">
           <motion.div 
-            className={cn('grid gap-0.5 w-full h-full p-0.5 content-start', gridLayouts[layout])}
+            className={cn('grid gap-0.5 w-full h-full p-0.5 content-start', layoutDefinitions[layout].template)}
             style={{
               height: '100%', // Usar toda la altura disponible
               maxHeight: '100%' // No exceder la altura del contenedor
@@ -778,7 +868,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
             size="icon" 
             className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-green-600 text-white"
             onClick={() => setIsGridFullscreen(true)}
-            title="Maximizar grilla completa"
+            title={translate_live('fullscreen.maximize_grid')}
           >
             <Maximize2 className="h-6 w-6" />
           </Button>
@@ -789,7 +879,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       <Dialog open={isGridFullscreen} onOpenChange={setIsGridFullscreen}>
         <DialogContent className="p-0 sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] border-0 bg-black max-h-[100vh] w-full h-full">
           <DialogHeader className="absolute top-2 left-2 z-10 bg-black/70 p-3 rounded-lg">
-            <DialogTitle className="text-white text-lg">Vista Completa - Todas las Cámaras</DialogTitle>
+            <DialogTitle className="text-white text-lg">{translate_live('fullscreen.title')}</DialogTitle>
           </DialogHeader>
           
           {/* Botón de salir en pantalla completa */}
@@ -799,7 +889,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
               size="icon" 
               className="h-8 w-8 bg-black/70 hover:bg-red-600 text-white hover:text-white backdrop-blur-sm rounded" 
               onClick={() => setIsGridFullscreen(false)}
-              title="Salir de pantalla completa"
+              title={translate_live('fullscreen.exit')}
             >
               <Minimize2 className="h-4 w-4" />
             </Button>
@@ -808,7 +898,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
           {/* Grilla completa en fullscreen */}
           <div className="w-full h-full bg-black p-4">
             <motion.div 
-              className={cn('grid gap-4 h-full w-full', gridLayouts[layout])}
+              className={cn('grid gap-4 h-full w-full', layoutDefinitions[layout].template)}
               layout
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
@@ -826,7 +916,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                     />
                   ) : (
                     <div className="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                      Celda vacía
+                      {translate_live('grid.empty_cell')}
                     </div>
                   )}
                 </div>
@@ -840,7 +930,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                 size="icon" 
                 className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-red-600 text-white"
                 onClick={() => setIsGridFullscreen(false)}
-                title="Salir de pantalla completa"
+                title={translate_live('fullscreen.exit')}
               >
                 <Minimize2 className="h-6 w-6" />
               </Button>
@@ -851,3 +941,6 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     </DndContext>
   );
 }
+
+
+

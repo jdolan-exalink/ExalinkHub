@@ -48,22 +48,6 @@ const OBJECT_ICONS: Record<string, any> = {
 };
 
 // Emoji mapping for object types - More professional icons
-const OBJECT_EMOJIS: Record<string, string> = {
-  person: '�',
-  car: '🚗',
-  truck: '�',
-  bicycle: '🚲',
-  motorcycle: '🏍️',
-  bus: '🚌',
-  cat: '🐱',
-  dog: '🐕',
-  bird: '🐦',
-  package: '📦',
-  license_plate: '🚙', // LPR - License Plate Recognition
-  lpr: '🚙', // Alternative name for LPR
-  vehicle: '🚗', // Generic vehicle
-  unknown: '❓' // Changed to question mark for unknown detections
-};
 
 export default function FrigateTimeline({ 
   data, 
@@ -294,7 +278,7 @@ export default function FrigateTimeline({
     <div className={`w-full ${className}`}>
       {/* Modern Audio Waveform Style Timeline */}
       <div className="relative">
-        {/* Time labels above timeline - más compacto y fino */}
+        {/* Time labels above timeline - ms compacto y fino */}
         <div className="relative h-3 mb-2">
           {getMinuteMarkers().map(marker => {
             // Solo mostrar etiquetas para marcadores principales (cada 15m)
@@ -425,13 +409,13 @@ export default function FrigateTimeline({
             />
           )}
 
-          {/* Marcadores de tiempo más precisos y finos */}
+          {/* Marcadores de tiempo ms precisos y finos */}
           {getMinuteMarkers().map(marker => {
             let lineClass = '';
             let heightClass = '';
             
             if (marker.type === 'major') {
-              // Líneas principales cada 15 minutos
+              // Lneas principales cada 15 minutos
               lineClass = 'bg-gray-400/80 w-0.5';
               heightClass = 'h-full';
             } else if (marker.type === 'minor') {
@@ -465,7 +449,7 @@ export default function FrigateTimeline({
           )}
         </div>
 
-        {/* Bottom stats - más compacto */}
+        {/* Bottom stats - ms compacto */}
         <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
           <div className="flex gap-4">
             <div className="flex items-center gap-1">

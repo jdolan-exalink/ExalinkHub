@@ -6,6 +6,7 @@ export interface SavedView {
   name: string;
   layout: string;
   cameras: string; // JSON string
+  icon: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,10 +33,17 @@ export class ViewsDatabase {
         name TEXT NOT NULL UNIQUE,
         layout TEXT NOT NULL,
         cameras TEXT NOT NULL,
+        icon TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+      this.db.exec(`ALTER TABLE saved_views ADD COLUMN icon TEXT`);
+    } catch (error) {
+      // ignore si ya existe
+    }
 
     // Crear tabla de configuración de la aplicación
     this.db.exec(`
@@ -63,13 +71,13 @@ export class ViewsDatabase {
   }
 
   // Métodos para vistas guardadas
-  saveView(name: string, layout: string, cameras: ViewCamera[]): SavedView {
+  saveView(name: string, layout: string, cameras: ViewCamera[], icon: string | null = null): SavedView {
     const stmt = this.db.prepare(`
-      INSERT OR REPLACE INTO saved_views (name, layout, cameras, updated_at)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT OR REPLACE INTO saved_views (name, layout, cameras, icon, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
     
-    const result = stmt.run(name, layout, JSON.stringify(cameras));
+    const result = stmt.run(name, layout, JSON.stringify(cameras), icon);
     return this.getViewById(result.lastInsertRowid as number)!;
   }
 
@@ -102,14 +110,14 @@ export class ViewsDatabase {
     return result.changes > 0;
   }
 
-  updateView(id: number, name: string, layout: string, cameras: ViewCamera[]): SavedView | null {
+  updateView(id: number, name: string, layout: string, cameras: ViewCamera[], icon: string | null = null): SavedView | null {
     const stmt = this.db.prepare(`
       UPDATE saved_views 
-      SET name = ?, layout = ?, cameras = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, layout = ?, cameras = ?, icon = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
     
-    const result = stmt.run(name, layout, JSON.stringify(cameras), id);
+    const result = stmt.run(name, layout, JSON.stringify(cameras), icon, id);
     return result.changes > 0 ? this.getViewById(id) : null;
   }
 

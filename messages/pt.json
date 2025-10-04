@@ -1,0 +1,158 @@
+{
+  "navigation": {
+    "live": "Ao vivo",
+    "recordings": "Gravacoes",
+    "events": "Eventos",
+    "plates_lpr": "Placas",
+    "counting": "Contagem",
+    "settings": "Configuracoes"
+  },
+  "SettingsPage": {
+    "title": "Preferencias da aplicacao",
+    "appearance": "Aparencia",
+    "appearance_desc": "Configure o idioma e o tema padrao da plataforma.",
+    "language": "Idioma",
+    "language_desc": "Escolha o idioma padrao que sua equipe vera ao entrar.",
+    "theme": "Tema",
+    "theme_desc": "Selecione o modo de cor aplicado em toda a interface.",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Automatico",
+    "save_button": "Salvar alteracoes",
+    "success_message": "Preferencias salvas com sucesso",
+    "language_label_es": "Espanhol",
+    "language_label_en": "Ingles",
+    "language_label_pt": "Portugues",
+    "saving_label": "Salvando...",
+    "error_title": "Nao foi possivel salvar",
+    "error_description": "Verifique a conexao e tente novamente.",
+    "heading": "Configuracao do Sistema",
+    "heading_description": "Gerencie servidores, usuarios e servicos de backend.",
+    "tab_servers": "Servidores",
+    "tab_users": "Usuarios e Grupos",
+    "tab_backend": "Servicos de Backend",
+    "servers_card_title": "Gestao de Servidores Frigate",
+    "servers_card_description": "Configure e administre as conexoes com seus servidores Frigate. Suporta HTTP/HTTPS com autenticacao opcional.",
+    "users_card_title": "Usuarios e Grupos",
+    "users_card_description": "Gerencie usuarios do sistema e organize o acesso por grupos. Defina papeis e permissoes conforme a necessidade da equipe.",
+    "backend_card_title": "Servicos de Backend",
+    "backend_card_description": "Configure servicos automatizados como processamento de placas, contagem de pessoas e notificacoes em tempo real.",
+    "status_online": "Online",
+    "tab_appearance": "Aparência"
+  },
+  "notFound": {
+    "title": "404 - Pagina nao encontrada",
+    "description": "Nao conseguimos localizar a pagina solicitada.",
+    "cta": "Voltar ao painel"
+  },
+  "events": {
+    "page": {
+      "loading": "Carregando eventos...",
+      "error_generic": "Nao foi possivel carregar os eventos recentes. Tente novamente mais tarde."
+    },
+    "controls": {
+      "date_placeholder": "Escolher data",
+      "time_range_placeholder": "Selecione um intervalo",
+      "time_ranges": {
+        "last_hour": "Ultima hora",
+        "last_6_hours": "Ultimas 6 horas",
+        "last_12_hours": "Ultimas 12 horas",
+        "last_24_hours": "Ultimas 24 horas",
+        "today": "Hoje"
+      },
+      "total_events": "{count, plural, one {# evento} other {# eventos}}",
+      "active_filters": "{count, plural, one {# filtro} other {# filtros}}",
+      "all_cameras": "Todas as cameras",
+      "filters_button": "Filtros",
+      "filters_title": "Filtros avancados",
+      "clear_all": "Limpar tudo",
+      "object_types": "Tipos de objeto",
+      "cameras": "Cameras",
+      "zones": "Zonas",
+      "content": "Conteudo",
+      "has_clip": "Com clip",
+      "has_snapshot": "Com captura"
+    }
+  },
+  "recordings": {
+    "page": {
+      "loading_title": "Carregando cameras...",
+      "loading_description": "Conectando aos servidores Frigate",
+      "error_message": "Nao foi possivel conectar aos servidores Frigate: {details}",
+      "unknown_error": "Erro desconhecido",
+      "empty_title": "Nenhuma camera encontrada",
+      "empty_description": "Verifique a configuracao dos servidores Frigate."
+    },
+    "browser": {
+      "no_camera_title": "Nenhuma camera disponivel",
+      "no_camera_message": "Verifique a configuracao das cameras e tente novamente."
+    }
+  },
+  "live": {
+    "heading": "Visualizacao ao vivo",
+    "fullscreen": {
+      "title": "Tela inteira - Todas as câmeras",
+      "maximize_grid": "Maximizar grade completa",
+      "exit": "Sair da tela cheia"
+    },
+    "grid": {
+      "drop_here": "Solte a câmera aqui",
+      "drag_prompt": "Arraste uma câmera",
+      "empty_cell": "Célula vazia"
+    },
+    "toast": {
+      "view_restored": {
+        "title": "Visualização restaurada",
+        "description": "Configuração recuperada: {count} câmeras no layout {layout}"
+      },
+      "camera_exists": {
+        "title": "Câmera já adicionada",
+        "description": "{camera} já está na grade."
+      },
+      "grid_full": {
+        "title": "Grade cheia",
+        "description": "Não há células disponíveis para adicionar a câmera."
+      },
+      "view_loaded": {
+        "title": "Carregando visualização",
+        "description": "{count, plural, one {# câmera carregando.} other {# câmeras carregando.}}"
+      },
+      "load_saved_error": "Não foi possível carregar a visualização salva.",
+      "hd_limit": {
+        "title": "Apenas uma câmera em HD",
+        "description": "Apenas uma câmera pode ficar em HD por vez."
+      },
+      "view_saved": {
+        "title": "Visualização salva",
+        "description": "A visualização “{name}” foi salva com sucesso."
+      },
+      "view_saved_error": "Não foi possível salvar a visualização. Tente novamente.",
+      "view_loaded_confirm": "Visualização “{name}” carregada com sucesso.",
+      "view_load_error": "Não foi possível carregar a visualização.",
+      "error": {
+        "title": "Erro"
+      }
+    },
+    "page": {
+      "loading": "Conectando aos servidores...",
+      "error": "Falha ao conectar aos servidores: {error}"
+    },
+    "camera": {
+      "loading": {
+        "preparing": "Preparando streaming...",
+        "connecting_hls": "Conectando HLS..."
+      },
+      "alerts": {
+        "stream_disconnected": "Stream desconectado por mais de 45 segundos"
+      },
+      "actions": {
+        "close_stream": "Fechar stream",
+        "maximize_camera": "Maximizar câmera",
+        "mute_audio": "Silenciar áudio",
+        "unmute_audio": "Ativar áudio (apenas main)",
+        "toggle_sharpness": "Ajustar nitidez",
+        "toggle_contrast": "Ajustar contraste"
+      }
+    }
+  }
+}

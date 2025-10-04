@@ -1,0 +1,158 @@
+{
+  "navigation": {
+    "live": "Live",
+    "recordings": "Recordings",
+    "events": "Events",
+    "plates_lpr": "License Plates",
+    "counting": "Counting",
+    "settings": "Settings"
+  },
+  "SettingsPage": {
+    "title": "Application Preferences",
+    "appearance": "Appearance",
+    "appearance_desc": "Configure the default language and theme for the platform.",
+    "language": "Language",
+    "language_desc": "Choose the default language your team will see after signing in.",
+    "theme": "Theme",
+    "theme_desc": "Select the color mode applied across the interface.",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Automatic",
+    "save_button": "Save changes",
+    "success_message": "Preferences saved successfully",
+    "language_label_es": "Spanish",
+    "language_label_en": "English",
+    "language_label_pt": "Portuguese",
+    "saving_label": "Saving...",
+    "error_title": "Unable to save",
+    "error_description": "Check your connection and try again.",
+    "heading": "System Configuration",
+    "heading_description": "Manage servers, users, and backend services.",
+    "tab_servers": "Servers",
+    "tab_users": "Users and Groups",
+    "tab_backend": "Backend Services",
+    "servers_card_title": "Frigate Server Management",
+    "servers_card_description": "Configure and manage your Frigate server connections. Supports HTTP/HTTPS with optional authentication.",
+    "users_card_title": "Users and Groups",
+    "users_card_description": "Manage system users and organize access through groups. Assign roles and permissions tailored to your team.",
+    "backend_card_title": "Backend Services",
+    "backend_card_description": "Configure automated services such as license plate processing, people counting, and real-time notifications.",
+    "status_online": "Online",
+    "tab_appearance": "Appearance"
+  },
+  "notFound": {
+    "title": "404 - Page not found",
+    "description": "We couldn't find the requested page.",
+    "cta": "Return to dashboard"
+  },
+  "events": {
+    "page": {
+      "loading": "Loading events...",
+      "error_generic": "We could not load recent events. Please try again later."
+    },
+    "controls": {
+      "date_placeholder": "Choose date",
+      "time_range_placeholder": "Select a time range",
+      "time_ranges": {
+        "last_hour": "Last hour",
+        "last_6_hours": "Last 6 hours",
+        "last_12_hours": "Last 12 hours",
+        "last_24_hours": "Last 24 hours",
+        "today": "Today"
+      },
+      "total_events": "{count, plural, one {# event} other {# events}}",
+      "active_filters": "{count, plural, one {# filter} other {# filters}}",
+      "all_cameras": "All cameras",
+      "filters_button": "Filters",
+      "filters_title": "Advanced filters",
+      "clear_all": "Clear all",
+      "object_types": "Object types",
+      "cameras": "Cameras",
+      "zones": "Zones",
+      "content": "Content",
+      "has_clip": "Has clip",
+      "has_snapshot": "Has snapshot"
+    }
+  },
+  "recordings": {
+    "page": {
+      "loading_title": "Loading cameras...",
+      "loading_description": "Connecting to Frigate servers",
+      "error_message": "Failed to connect to the Frigate servers: {details}",
+      "unknown_error": "Unknown error",
+      "empty_title": "No cameras found",
+      "empty_description": "Verify your Frigate server configuration."
+    },
+    "browser": {
+      "no_camera_title": "No cameras available",
+      "no_camera_message": "Check your camera configuration and try again."
+    }
+  },
+  "live": {
+    "heading": "Live view",
+    "fullscreen": {
+      "title": "Fullscreen view - All cameras",
+      "maximize_grid": "Maximize grid view",
+      "exit": "Exit fullscreen"
+    },
+    "grid": {
+      "drop_here": "Drop camera here",
+      "drag_prompt": "Drag a camera",
+      "empty_cell": "Empty cell"
+    },
+    "toast": {
+      "view_restored": {
+        "title": "View restored",
+        "description": "Recovered configuration: {count} cameras in {layout} layout"
+      },
+      "camera_exists": {
+        "title": "Camera already on grid",
+        "description": "{camera} is already on the grid."
+      },
+      "grid_full": {
+        "title": "Grid is full",
+        "description": "No free cells available to add the camera."
+      },
+      "view_loaded": {
+        "title": "View loading",
+        "description": "{count, plural, one {# camera loading.} other {# cameras loading.}}"
+      },
+      "load_saved_error": "Could not load saved view.",
+      "hd_limit": {
+        "title": "Only one HD camera",
+        "description": "Only one camera can be in HD at a time. The previous one switched to SD."
+      },
+      "view_saved": {
+        "title": "View saved",
+        "description": "View “{name}” saved successfully."
+      },
+      "view_saved_error": "Could not save the view. Try again.",
+      "view_loaded_confirm": "View “{name}” loaded successfully.",
+      "view_load_error": "Could not load the view.",
+      "error": {
+        "title": "Error"
+      }
+    },
+    "page": {
+      "loading": "Connecting to servers...",
+      "error": "Failed to connect to servers: {error}"
+    },
+    "camera": {
+      "loading": {
+        "preparing": "Preparing stream...",
+        "connecting_hls": "Connecting HLS..."
+      },
+      "alerts": {
+        "stream_disconnected": "Stream disconnected for more than 45 seconds"
+      },
+      "actions": {
+        "close_stream": "Close stream",
+        "maximize_camera": "Maximize camera",
+        "mute_audio": "Mute audio",
+        "unmute_audio": "Enable audio (main only)",
+        "toggle_sharpness": "Toggle sharpness",
+        "toggle_contrast": "Toggle contrast"
+      }
+    }
+  }
+}

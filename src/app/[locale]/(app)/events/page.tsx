@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { subHours, startOfDay, endOfDay } from 'date-fns';
+import { useTranslations } from 'next-intl';
+import { startOfDay, endOfDay } from 'date-fns';
 import type { FrigateEvent } from '@/lib/frigate-api';
 import EventTimeline from '@/components/ui/event-timeline';
 import EventSidebar from '@/components/ui/event-sidebar';
@@ -11,6 +12,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 export default function EventsPage() {
+
+  const translate_events_page = useTranslations('events.page');
   const [events, setEvents] = useState<FrigateEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<FrigateEvent | null>(null);
   const [selectedTime, setSelectedTime] = useState<number>(Math.floor(Date.now() / 1000));
@@ -19,11 +22,8 @@ export default function EventsPage() {
 
   // Time and filter controls
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [timeRange, setTimeRange] = useState<TimeRange>({ 
-    label: 'Last Hour', 
-    hours: 1, 
-    value: '1h' 
-  });
+  const default_time_range: TimeRange = { translation_key: 'last_hour', hours: 1, value: '1h' };
+  const [timeRange, setTimeRange] = useState<TimeRange>(default_time_range);
   const [filters, setFilters] = useState<EventFilters>({
     cameras: [],
     labels: [],
@@ -124,10 +124,11 @@ export default function EventsPage() {
           setSelectedTime(mostRecent.start_time);
         }
       } else {
-        throw new Error('Failed to fetch events');
+        throw new Error('events_fetch_failed');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setError(translate_events_page('error_generic'));
       setEvents([]);
     } finally {
       setIsLoading(false);
@@ -268,7 +269,7 @@ export default function EventsPage() {
           <div className="flex-shrink-0 mb-6">
             {isLoading ? (
               <div className="h-32 bg-card rounded-lg border flex items-center justify-center">
-                <div className="text-muted-foreground">Loading events...</div>
+                <div className="text-muted-foreground">{translate_events_page('loading')}</div>
               </div>
             ) : (
               <EventTimeline

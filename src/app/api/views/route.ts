@@ -25,7 +25,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, layout, cameras } = body;
+    const { name, layout, cameras, icon } = body;
     
     if (!name || !layout || !Array.isArray(cameras)) {
       return NextResponse.json(
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
     
     const db = getDatabase();
-    const savedView = db.saveView(name, layout, cameras);
+    const savedView = db.saveView(name, layout, cameras, icon ?? null);
     
     return NextResponse.json({
       ...savedView,

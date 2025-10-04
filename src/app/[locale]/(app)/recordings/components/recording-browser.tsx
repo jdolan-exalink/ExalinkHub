@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -18,20 +19,25 @@ interface RecordingBrowserProps {
 }
 
 export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
+  const translate_recordings_browser = useTranslations('recordings.browser');
+  const locale_code = useLocale();
+  const date_button_formatter = useMemo(() => new Intl.DateTimeFormat(locale_code, { day: '2-digit', month: '2-digit', year: 'numeric' }), [locale_code]);
+  const detailed_datetime_formatter = useMemo(() => new Intl.DateTimeFormat(locale_code, { dateStyle: 'medium', timeStyle: 'short' }), [locale_code]);
+  const time_formatter = useMemo(() => new Intl.DateTimeFormat(locale_code, { hour: '2-digit', minute: '2-digit', second: '2-digit' }), [locale_code]);
   // Validate cameras prop
   if (!cameras || !Array.isArray(cameras)) {
     return (
       <div className="h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <div className="text-lg font-medium mb-2">No cameras available</div>
-          <div className="text-sm text-gray-400">Please check your camera configuration</div>
+          <div className="text-lg font-medium mb-2">{translate_recordings_browser('no_camera_title')}</div>
+          <div className="text-sm text-gray-400">{translate_recordings_browser('no_camera_message')}</div>
         </div>
       </div>
     );
   }
 
   const [selectedCamera, setSelectedCamera] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date('2025-10-01')); // Set to a date that has recordings
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // Set to a date that has recordings
   const [selectedHour, setSelectedHour] = useState<number>(12); // Start at noon
   const [recordingData, setRecordingData] = useState<RecordingTimelineData | null>(null);
   const [selectedTime, setSelectedTime] = useState<number | undefined>();
@@ -549,7 +555,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                       className="w-40 h-9 bg-purple-600 border-purple-500 text-white hover:bg-purple-700 justify-start text-left font-medium"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(selectedDate, "dd/MM/yyyy")}
+                      {date_button_formatter.format(selectedDate)}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-600" align="start">
@@ -683,7 +689,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
                     <span className="text-white font-semibold">{selectedCamera}</span>
                     <span className="text-gray-300 text-sm">
-                      {selectedTime && format(new Date(selectedTime * 1000), 'PPP p')}
+                      {selectedTime ? detailed_datetime_formatter.format(new Date(selectedTime * 1000)) : ''}
                     </span>
                   </div>
                   
@@ -719,7 +725,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
             {/* Overlay para preview time */}
             {timelineSelectionMode && previewTime && (
               <div className="absolute top-4 left-4 bg-black/80 text-white px-2 py-1 rounded text-xs z-10">
-                Vista previa: {format(new Date(previewTime * 1000), 'HH:mm:ss')}
+                Vista previa: {time_formatter.format(new Date(previewTime * 1000))}
               </div>
             )}
             
@@ -731,7 +737,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                   <span className="text-white font-medium text-xs">Modo Selección</span>
                   {selectionRange && (
                     <span className="text-blue-100 text-xs">
-                      {format(new Date(selectionRange.start * 1000), 'HH:mm:ss')} - {format(new Date(selectionRange.end * 1000), 'HH:mm:ss')}
+                      {time_formatter.format(new Date(selectionRange.start * 1000))} - {time_formatter.format(new Date(selectionRange.end * 1000))}
                     </span>
                   )}
                 </div>
@@ -794,3 +800,6 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
     </div>
   );
 }
+
+
+

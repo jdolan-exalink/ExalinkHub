@@ -123,7 +123,7 @@ export default function RecordingPlayer({
   };
 
   const loadRecording = async (time: number) => {
-    if (!videoRef.current || !time) return;
+    if (!videoRef.current || !time || !camera) return;
     
     // Generate unique request ID to prevent race conditions
     const requestId = ++currentLoadRequestRef.current;
@@ -194,6 +194,11 @@ export default function RecordingPlayer({
         // First try HLS streaming (preferred for Frigate 0.16+)
         const hlsUrl = getHLSUrl(time);
         console.log('RecordingPlayer: Trying HLS stream:', hlsUrl);
+        
+        if (!hlsUrl) {
+          console.warn('RecordingPlayer: No HLS URL generated');
+          throw new Error('no_hls_url');
+        }
         
         const hlsResponse = await fetch(hlsUrl);
         
@@ -381,6 +386,10 @@ export default function RecordingPlayer({
     try {
       const url = getRecordingUrl(time);
       console.log('RecordingPlayer: Loading legacy recording from:', url);
+      
+      if (!url) {
+        throw new Error('invalid_recording_url');
+      }
       
       const response = await fetch(url);
       console.log('RecordingPlayer: Legacy response status:', response.status);

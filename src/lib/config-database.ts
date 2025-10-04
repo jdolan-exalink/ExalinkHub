@@ -66,6 +66,8 @@ export interface ServerStatus {
   last_check: string;
 }
 
+type ApplicationSettings = Record<string, string>;
+
 class ConfigDatabase {
   private db: Database.Database;
 
@@ -167,6 +169,22 @@ class ConfigDatabase {
       )
     `);
 
+    // Tabla de configuración de la aplicación (tema, idioma, etc.)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
+
+    // Tabla de configuración de la aplicación (tema, idioma, etc.)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
+
     console.log('✅ Tablas de configuración inicializadas');
   }
 
@@ -246,6 +264,39 @@ class ConfigDatabase {
       
       console.log('⚙️ Configuraciones de backend por defecto creadas');
     }
+
+    // Insertar configuraciones de aplicación por defecto
+    const settingsCount = this.db.prepare('SELECT COUNT(*) as count FROM app_settings').get() as { count: number };
+    if (settingsCount.count === 0) {
+      const stmt = this.db.prepare(`INSERT INTO app_settings (key, value) VALUES (?, ?)`);
+      stmt.run('theme', 'system');
+      stmt.run('language', 'es');
+      console.log('🔧 Configuraciones de aplicación por defecto creadas');
+    }
+
+  }
+
+  /**
+   * Obtiene todas las preferencias globales de la aplicación.
+   */
+  get_application_settings(): ApplicationSettings {
+    const rows = this.db.prepare('SELECT key, value FROM app_settings').all() as { key: string; value: string }[];
+
+    return rows.reduce((accumulator, row) => {
+      accumulator[row.key] = row.value;
+      return accumulator;
+    }, {} as ApplicationSettings);
+  }
+
+  /**
+   * Actualiza o crea una preferencia global.
+   */
+  set_application_setting(setting_key: string, setting_value: string): void {
+    this.db.prepare(`
+      INSERT INTO app_settings (key, value)
+      VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run(setting_key, setting_value);
   }
 
   // === MÉTODOS PARA SERVIDORES ===

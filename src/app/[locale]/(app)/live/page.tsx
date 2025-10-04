@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import LiveView from './components/live-view';
 import { fetchMultiServerData } from '@/lib/frigate-data';
 import { Camera } from '@/lib/types';
@@ -8,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function LivePage() {
+  const translate_live_page = useTranslations('live.page');
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export default function LivePage() {
       <div className="flex items-center justify-center h-full w-full">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Conectando con servidores...</span>
+          <span>{translate_live_page('loading')}</span>
         </div>
       </div>
     );
@@ -57,7 +59,7 @@ export default function LivePage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Error al conectar con servidores: {error}
+{translate_live_page('error', { error })}
           </AlertDescription>
         </Alert>
       </div>

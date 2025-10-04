@@ -4,7 +4,7 @@ import type { Camera } from '@/lib/types';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Minimize2, Rss, X, AlertCircle, Minimize, Volume2, VolumeX } from 'lucide-react';
+import { Maximize, Rss, X, AlertCircle, Minimize, Volume2, VolumeX } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,10 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
   const [snapshotLoaded, setSnapshotLoaded] = useState(false);
   const [snapshotError, setSnapshotError] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  // Stream monitoring states - temporarily disabled
+  // const [streamConnected, setStreamConnected] = useState(true);
+  // const [lastStreamUpdate, setLastStreamUpdate] = useState<Date>(new Date());
+  // const [streamMonitorInterval, setStreamMonitorInterval] = useState<NodeJS.Timeout | null>(null);
   const [streamStarted, setStreamStarted] = useState(streamDelay === 0);
   const [isMuted, setIsMuted] = useState(true); // Audio muted por defecto
   const [manualQuality, setManualQuality] = useState<'sub' | 'main'>('sub'); // Control manual de calidad
@@ -46,9 +50,21 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
   const snapshotRef = useRef<HTMLImageElement>(null);
   const fullscreenVideoRef = useRef<HTMLDivElement>(null);
   
+  // Función para obtener el nombre completo de la cámara con servidor
+  const getDisplayName = () => {
+    if (camera.server_name && camera.server_name !== 'Casa') {
+      return `${camera.server_name}-${camera.name}`;
+    }
+    return camera.name;
+  };
+
+  // Función para obtener el identificador único de la cámara
+  const getUniqueId = () => `${camera.server_id || 'default'}-${camera.id}`;
+  
   // Función para cambiar calidad con logging robusto
   const handleQualityChange = useCallback(() => {
     console.log(`🔄 BEFORE: manualQuality = ${manualQuality}`);
+    const displayName = getDisplayName();
     const newQuality = manualQuality === 'sub' ? 'main' : 'sub';
     console.log(`🔄 CHANGING: ${manualQuality} -> ${newQuality}`);
     
@@ -153,6 +169,43 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     });
   }, []);
   
+  // Stream monitoring functions - temporarily disabled
+  /*
+  const updateStreamStatus = useCallback(() => {
+    setLastStreamUpdate(new Date());
+    if (!streamConnected) {
+      setStreamConnected(true);
+      console.log(`Stream ${camera.id}: Reconnected`);
+    }
+  }, [streamConnected, camera.id]);
+
+  const startStreamMonitoring = useCallback(() => {
+    if (streamMonitorInterval) {
+      clearInterval(streamMonitorInterval);
+    }
+
+    const monitor = setInterval(() => {
+      const now = new Date();
+      const timeSinceLastUpdate = now.getTime() - lastStreamUpdate.getTime();
+      const CONNECTION_TIMEOUT = 45000; // 45 seconds
+
+      if (timeSinceLastUpdate > CONNECTION_TIMEOUT && streamConnected) {
+        setStreamConnected(false);
+        console.warn(`Stream ${camera.id}: Disconnected (no updates for ${timeSinceLastUpdate}ms)`);
+      }
+    }, 5000); // Check every 5 seconds
+
+    setStreamMonitorInterval(monitor);
+  }, [lastStreamUpdate, streamConnected, camera.id, streamMonitorInterval]);
+
+  const stopStreamMonitoring = useCallback(() => {
+    if (streamMonitorInterval) {
+      clearInterval(streamMonitorInterval);
+      setStreamMonitorInterval(null);
+    }
+  }, [streamMonitorInterval]);
+  */
+  
   // Determinar calidad inicial - siempre SD para optimizar
   const getOptimalQuality = (): 'sub' | 'main' | 'proxy' => {
     // Por defecto siempre SD para optimizar vistas
@@ -160,7 +213,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
   };
   
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `grid-camera-${camera.id}`,
+    id: `grid-camera-${getUniqueId()}`,
     data: { camera, from: 'grid', gridCellId },
   });
 
@@ -223,14 +276,23 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     }
   }, [camera.id]);
 
+  // Cleanup monitoring on unmount - temporarily disabled
+  /*
+  useEffect(() => {
+    return () => {
+      stopStreamMonitoring();
+    };
+  }, [stopStreamMonitoring]);
+  */
+
   // useEffect para logging cambios de calidad manual (solo cambios importantes)
   useEffect(() => {
-    console.log(`🎛️ Manual quality: ${camera.name} → ${manualQuality === 'main' ? 'HD' : 'SD'}`);
+    console.log(`🎛️ Manual quality: ${getDisplayName()} → ${manualQuality === 'main' ? 'HD' : 'SD'}`);
   }, [manualQuality, camera.name]);
 
   // Log inicial del componente  
   useEffect(() => {
-    console.log(`🏁 CameraFeed mounted: ${camera.name} (initial: ${manualQuality})`);
+    console.log(`🏁 CameraFeed mounted: ${getDisplayName()} (initial: ${manualQuality})`);
   }, [camera.name]); // Solo al montar o cambiar cámara
 
   // Escuchar cambios de calidad forzados
@@ -255,7 +317,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
   }, [currentStreamQuality, camera.id, streamStarted]);
 
   const handleDoubleClick = () => {
-    console.log(`Opening fullscreen for ${camera.name} with HD quality`);
+    console.log(`Opening fullscreen for ${getDisplayName()} with HD quality`);
     // Notificar que vamos a pantalla completa (forzar HD temporal)
     if (onQualitySwitch) {
       onQualitySwitch(camera.id, 'main');
@@ -271,7 +333,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     }
     // Si cerramos pantalla completa y no estaba en HD antes, volver a SD
     if (!open && !isHdCamera && onQualitySwitch) {
-      console.log(`Closing fullscreen for ${camera.name}, returning to SD`);
+      console.log(`Closing fullscreen for ${getDisplayName()}, returning to SD`);
       onQualitySwitch(camera.id, 'sub');
     }
   };
@@ -292,6 +354,10 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     setIsLoading(false);
     setHasError(false);
     
+    // Update stream status for monitoring (temporarily disabled)
+    // updateStreamStatus();
+    // startStreamMonitoring();
+    
     // Clear loading timeout
     if (loadingTimeout) {
       clearTimeout(loadingTimeout);
@@ -303,6 +369,9 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     console.warn(`❌ HLS stream failed for ${camera.id} with quality ${currentStreamQuality}`);
     setIsLoading(false);
     setHasError(true);
+    // Temporarily disable stream monitoring
+    // setStreamConnected(false);
+    // stopStreamMonitoring();
   };
 
   const renderVideoContent = () => {
@@ -312,7 +381,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
           <div className="text-center">
             <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
             <div className="text-sm font-medium">Stream no disponible</div>
-            <div className="text-xs text-muted-foreground mt-1">{camera.name}</div>
+            <div className="text-xs text-muted-foreground mt-1">{getDisplayName()}</div>
           </div>
         </div>
       );
@@ -325,13 +394,13 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
           <img
             ref={snapshotRef}
             src={getSnapshotUrl()}
-            alt={`Snapshot from ${camera.name}`}
+            alt={`Snapshot from ${getDisplayName()}`}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-500",
+              "absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-500",
               snapshotLoaded && !isLoading && streamStarted ? "opacity-0" : "opacity-100"
             )}
             style={{
-              objectFit: 'cover', // Estirar para llenar el contenedor 16:9
+              objectFit: 'contain', // Mantener proporción sin recortar
               objectPosition: 'center'
             }}
             onLoad={handleSnapshotLoad}
@@ -372,8 +441,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               isLoading ? "opacity-0" : "opacity-100"
             )}
             style={{
-              aspectRatio: '16/9',
-              objectFit: 'cover'
+              objectFit: 'contain'
             }}
             onLoad={handleHlsLoad}
             onError={handleHlsError}
@@ -387,17 +455,16 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
   return (
     <>
       <Card 
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
         className={cn(
-            "overflow-hidden group w-full relative",
-            "aspect-video", // Forzar aspect ratio 16:9
+            "overflow-hidden group w-full h-full relative cursor-grab active:cursor-grabbing",
             isDragging && "opacity-50 z-50"
         )}
-        style={{
-          aspectRatio: '16/9' // Garantizar 16:9 en todos los navegadores
-        }}
       >
         {/* Controls permanentes en la esquina superior izquierda */}
-        <div className="absolute top-2 left-2 z-10">
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -410,16 +477,32 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
                 setLoadingTimeout(null);
               }
               // Cerrar el stream - limpiar la celda
-              onRemove(camera.id);
+              onRemove(getUniqueId());
             }}
             title="Cerrar stream"
           >
             <X className="h-4 w-4" />
           </Button>
+          
+          {/* Badge sutil del nombre servidor-cámara */}
+          <Badge className="bg-black/50 text-white/80 border-white/10 text-[10px] px-1 py-0 h-4 font-normal">
+            {getDisplayName()}
+          </Badge>
+          
+          {/* Stream status indicator - temporarily disabled */}
+          {false && (
+            <Badge 
+              variant="destructive" 
+              className="text-[10px] px-1 py-0 h-4 font-normal animate-pulse"
+              title="Stream desconectado por más de 45 segundos"
+            >
+              DESCONECTADO
+            </Badge>
+          )}
         </div>
 
         {/* Botón de expandir en la esquina superior derecha */}
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2 z-10" onPointerDown={(e) => e.stopPropagation()}>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -431,20 +514,16 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
             }}
             title="Maximizar cámara"
           >
-            <Minimize2 className="h-4 w-4" />
+            <Maximize className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Área de video */}
         <div 
           className={cn(
-            "w-full h-full bg-secondary relative cursor-pointer select-none",
-            "aspect-video", // Mantener 16:9
+            "w-full h-full bg-secondary relative cursor-pointer select-none flex items-center justify-center",
             isHdCamera && "ring-2 ring-green-500" // Indicador visual para cámara HD
           )}
-          style={{
-            aspectRatio: '16/9' // Garantizar proporción
-          }}
           onDoubleClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -454,7 +533,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
           {renderVideoContent()}
           
           {/* Badge de estado y calidad */}
-          <div className="absolute bottom-2 right-2 flex items-center gap-2">
+          <div className="absolute bottom-2 right-2 flex items-center gap-2" onPointerDown={(e) => e.stopPropagation()}>
             <Badge variant={hasError ? "destructive" : camera.enabled ? "default" : "secondary"} className="gap-1 text-xs">
               <Rss className="h-3 w-3" />
               {hasError ? 'ERROR' : 
@@ -492,7 +571,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
       <Dialog open={isFullscreen} onOpenChange={handleCloseFullscreen}>
         <DialogContent className="p-0 sm:max-w-[95vw] md:max-w-[98vw] lg:max-w-[99vw] border-0 bg-black max-h-[95vh] w-full">
           <DialogHeader className="absolute top-2 left-2 z-10">
-            <DialogTitle className="text-white text-lg font-semibold">EXALINK \ {camera.name}</DialogTitle>
+            <DialogTitle className="text-white text-lg font-semibold">EXALINK \\ {getDisplayName()}</DialogTitle>
           </DialogHeader>
           
           {/* Controles superiores derechos */}

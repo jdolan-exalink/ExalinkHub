@@ -18,7 +18,7 @@ import { LayoutGrid, Maximize2, Minimize2, Settings2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import SimpleViewEditor from '@/components/ui/simple-view-editor';
+import LayoutManager from '@/components/ui/layout-manager';
 
 const gridLayouts = {
   '1x1': 'grid-cols-1 grid-rows-1',        // Single/Full screen
@@ -653,23 +653,76 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     }
   };
 
+  /**
+   * Manejar la carga de vista desde Layout Manager
+   */
+  const handleLoadView = (view: any) => {
+    try {
+      // Cambiar layout si es diferente
+      if (view.layout !== layout) {
+        setLayout(view.layout);
+      }
+
+      // Preparar las cámaras guardadas
+      let saved_cameras = view.cameras;
+      if (typeof saved_cameras === 'string') {
+        saved_cameras = JSON.parse(saved_cameras);
+      }
+
+      // Aplicar configuración de cámaras
+      const view_grid_size = getGridSize(view.layout);
+      const new_grid_cells = Array.from({ length: view_grid_size }, (_, index) => {
+        const saved_cell = saved_cameras.find((c: any) => c.id === index || c.position === index);
+        
+        // Buscar la cámara por ID si existe
+        let camera = null;
+        if (saved_cell && (saved_cell.camera?.id || saved_cell.camera_id)) {
+          const camera_id = saved_cell.camera?.id || saved_cell.camera_id;
+          camera = cameras.find(cam => cam.id === camera_id) || null;
+        }
+        
+        return {
+          id: index,
+          camera: camera
+        };
+      });
+
+      setGridCells(new_grid_cells);
+      saveViewToLocalStorage();
+
+      toast({
+        title: "Vista cargada",
+        description: `Se cargó la vista "${view.name}" correctamente.`,
+      });
+    } catch (error) {
+      console.error('Error loading view:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la vista.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
               <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">Live View</h1>
               <div className="flex items-center gap-1 sm:gap-2">
-                  <SimpleViewEditor
-                    currentLayout={layout}
-                    currentCameras={gridCells}
-                    onSaveView={handleSaveView}
+                  <LayoutManager
+                    current_layout={layout}
+                    current_cameras={gridCells}
+                    on_layout_change={(new_layout) => handleLayoutChange(new_layout as keyof typeof gridLayouts)}
+                    on_save_view={handleSaveView}
+                    on_load_view={handleLoadView}
                   >
                     <Button variant="outline" size="sm" className="text-xs sm:text-sm">
                         <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         <span className="hidden sm:inline">Layout Manager</span>
                         <span className="sm:hidden">Layouts</span>
                     </Button>
-                  </SimpleViewEditor>
+                  </LayoutManager>
                   <div className="flex items-center gap-1 sm:gap-2">
                       <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Select value={layout} onValueChange={(value) => handleLayoutChange(value as keyof typeof gridLayouts)}>

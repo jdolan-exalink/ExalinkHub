@@ -295,9 +295,8 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full camera-container ${className}`} 
+      className={`relative w-full h-full camera-container ${className}`} 
       style={{
-        aspectRatio: '16/9',
         ...style
       }}
     >
@@ -305,6 +304,9 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
           <div className="text-white text-sm text-center">
             🔄 Conectando Stream
+            <div className="text-xs mt-1 opacity-75">
+              {camera} ({quality})
+            </div>
           </div>
         </div>
       )}

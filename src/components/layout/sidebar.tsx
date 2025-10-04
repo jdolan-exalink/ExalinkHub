@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInput, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Server, Video, Search, Grid, Circle, AlertTriangle, MoreHorizontal, Edit, Trash2, Plus } from 'lucide-react';
-import { fetchFrigateData, DEFAULT_SERVER } from '@/lib/frigate-data';
+import { fetchMultiServerData, DEFAULT_SERVER } from '@/lib/frigate-data';
 import type { FrigateServer, Camera } from '@/lib/types';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
@@ -82,7 +82,7 @@ function DraggableCameraItem({ camera, onDoubleClick }: { camera: Camera, onDoub
 }
 
 export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClick: (camera: Camera) => void }) {
-  const [server, setServer] = useState<FrigateServer>(DEFAULT_SERVER);
+  const [servers, setServers] = useState<FrigateServer[]>([]);
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [savedViews, setSavedViews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,23 +94,19 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await fetchFrigateData();
+        const data = await fetchMultiServerData();
         
         if (data.error) {
           setError(data.error);
-          setServer(prev => ({ ...prev, status: 'offline' }));
+          setServers(data.servers || []);
         } else {
-          setCameras(data.cameras);
-          setServer(prev => ({ 
-            ...prev, 
-            status: 'online',
-            version: data.server?.version 
-          }));
+          setServers(data.servers || []);
+          setCameras(data.cameras || []);
           setError(null);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
-        setServer(prev => ({ ...prev, status: 'offline' }));
+        setServers([]);
       } finally {
         setLoading(false);
       }
@@ -279,44 +275,55 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                   </div>
                 )}
                 
-                <Accordion type="multiple" defaultValue={[server.id]} className="w-full">
-                    <AccordionItem value={server.id} className="border-none">
-                        <AccordionTrigger className="py-2 px-2 hover:bg-sidebar-accent rounded-md">
-                            <div className="flex items-center gap-2 text-sm font-medium w-full">
-                                <div className="flex items-center gap-2 flex-1">
-                                    <Server className="h-4 w-4" />
-                                    <span>{server.name}</span>
-                                    <Circle className={cn("h-2 w-2", 
-                                        server.status === 'online' 
-                                            ? "fill-green-500 text-green-500" 
-                                            : "fill-red-500 text-red-500"
-                                    )} />
-                                </div>
-                                <Badge variant="secondary">
-                                    {loading ? '...' : filteredCameras.length}
-                                </Badge>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pl-4">
-                            <SidebarMenu>
-                                {loading ? (
-                                    <p className="px-2 py-1 text-xs text-muted-foreground">Cargando cámaras...</p>
-                                ) : filteredCameras.length === 0 ? (
-                                    <p className="px-2 py-1 text-xs text-muted-foreground">
-                                        {searchTerm ? 'No se encontraron cámaras.' : 'No hay cámaras disponibles.'}
-                                    </p>
-                                ) : (
-                                    filteredCameras.map(camera => (
-                                        <DraggableCameraItem 
-                                            key={camera.id} 
-                                            camera={camera} 
-                                            onDoubleClick={() => onCameraDoubleClick(camera)}
-                                        />
-                                    ))
-                                )}
-                            </SidebarMenu>
-                        </AccordionContent>
-                    </AccordionItem>
+                <Accordion type="multiple" defaultValue={servers.map(s => s.id)} className="w-full">
+                    {servers.map(server => {
+                        const serverCameras = cameras.filter(camera => 
+                            String(camera.server_id) === String(server.id) || camera.server === server.id
+                        );
+                        const serverFilteredCameras = serverCameras.filter(camera =>
+                            camera.name.toLowerCase().includes(searchTerm.toLowerCase())
+                        );
+                        
+                        return (
+                            <AccordionItem key={server.id} value={server.id} className="border-none">
+                                <AccordionTrigger className="py-2 px-2 hover:bg-sidebar-accent rounded-md">
+                                    <div className="flex items-center gap-2 text-sm font-medium w-full">
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <Server className="h-4 w-4" />
+                                            <span>{server.name}</span>
+                                            <Circle className={cn("h-2 w-2", 
+                                                ((server.status as any)?.api_status === 'online' || server.status === 'online')
+                                                    ? "fill-green-500 text-green-500" 
+                                                    : "fill-red-500 text-red-500"
+                                            )} />
+                                        </div>
+                                        <Badge variant="secondary">
+                                            {loading ? '...' : serverFilteredCameras.length}
+                                        </Badge>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pl-4">
+                                    <SidebarMenu>
+                                        {loading ? (
+                                            <p className="px-2 py-1 text-xs text-muted-foreground">Cargando cámaras...</p>
+                                        ) : serverFilteredCameras.length === 0 ? (
+                                            <p className="px-2 py-1 text-xs text-muted-foreground">
+                                                {searchTerm ? 'No se encontraron cámaras.' : 'No hay cámaras disponibles.'}
+                                            </p>
+                                        ) : (
+                                            serverFilteredCameras.map(camera => (
+                                                <DraggableCameraItem 
+                                                    key={camera.id} 
+                                                    camera={camera} 
+                                                    onDoubleClick={() => onCameraDoubleClick(camera)}
+                                                />
+                                            ))
+                                        )}
+                                    </SidebarMenu>
+                                </AccordionContent>
+                            </AccordionItem>
+                        );
+                    })}
                 </Accordion>
             </SidebarGroup>
 

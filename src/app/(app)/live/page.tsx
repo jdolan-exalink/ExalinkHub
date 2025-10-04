@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import LiveView from './components/live-view';
-import { fetchFrigateData } from '@/lib/frigate-data';
+import { fetchMultiServerData } from '@/lib/frigate-data';
 import { Camera } from '@/lib/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
@@ -16,13 +16,13 @@ export default function LivePage() {
     async function loadData() {
       try {
         setLoading(true);
-        console.log('Loading Frigate data...'); // Debug log
+        console.log('Loading multi-server data...'); // Debug log
         
-        const data = await fetchFrigateData();
-        console.log('Frigate data received:', data); // Debug log
+        const data = await fetchMultiServerData();
+        console.log('Multi-server data received:', data); // Debug log
         
         if (data.error) {
-          console.error('Frigate error:', data.error); // Debug log
+          console.error('Multi-server error:', data.error); // Debug log
           setError(data.error);
         } else {
           console.log('Cameras loaded:', data.cameras.length); // Debug log
@@ -45,7 +45,7 @@ export default function LivePage() {
       <div className="flex items-center justify-center h-full w-full">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Conectando con Exalink...</span>
+          <span>Conectando con servidores...</span>
         </div>
       </div>
     );
@@ -57,7 +57,7 @@ export default function LivePage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Error al conectar con Exalink: {error}
+            Error al conectar con servidores: {error}
           </AlertDescription>
         </Alert>
       </div>

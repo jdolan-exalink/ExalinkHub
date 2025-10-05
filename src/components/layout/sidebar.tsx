@@ -401,7 +401,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
           body: JSON.stringify({ 
             name: newName.trim(),
             layout: view.layout,
-            cameras: JSON.parse(view.cameras)
+            cameras: typeof view.cameras === 'string' ? JSON.parse(view.cameras) : view.cameras
           })
         });
         

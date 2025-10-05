@@ -129,6 +129,14 @@
       "view_saved_error": "Não foi possível salvar a visualização. Tente novamente.",
       "view_loaded_confirm": "Visualização “{name}” carregada com sucesso.",
       "view_load_error": "Não foi possível carregar a visualização.",
+      "no_cameras": {
+        "title": "Nenhuma câmera ativa",
+        "description": "Não há câmeras para fechar."
+      },
+      "all_cameras_closed": {
+        "title": "Câmeras fechadas",
+        "description": "{count, plural, one {Fechou # câmera.} other {Fechou # câmeras.}}"
+      },
       "error": {
         "title": "Erro"
       }

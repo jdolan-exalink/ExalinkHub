@@ -57,6 +57,32 @@ export default function HlsPlayer({
 
         console.log(`📺 HLS URL: ${hlsUrl}`);
 
+        // Verificar conectividad antes de cargar el stream
+        const checkConnectivity = async () => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(`http://10.1.1.252:5000/api/config`, {
+              method: 'HEAD',
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            return response.ok;
+          } catch (error) {
+            console.warn(`⚠️ Frigate connectivity check failed for ${camera}:`, error);
+            return false;
+          }
+        };
+
+        // Realizar verificación de conectividad (no bloquear si falla)
+        checkConnectivity().then(isConnected => {
+          if (!isConnected) {
+            console.warn(`⚠️ Frigate server may be unreachable for ${camera}`);
+          }
+        });
+
         // Check if HLS is supported natively
         if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
           // Native HLS support (Safari)
@@ -88,15 +114,26 @@ export default function HlsPlayer({
             maxMaxBufferLength: 600, // Allow up to 10 minutes for recordings
             levelLoadingMaxRetry: 4,
             levelLoadingMaxRetryTimeout: 4000,
+            levelLoadingRetryDelay: 1000,
             fragLoadingMaxRetry: 6,
             fragLoadingMaxRetryTimeout: 4000,
+            fragLoadingRetryDelay: 1000,
+            manifestLoadingMaxRetry: 3,
+            manifestLoadingMaxRetryTimeout: 2000,
+            manifestLoadingRetryDelay: 500,
             startLevel: -1, // Auto quality
             autoStartLoad: true,
-            debug: false
+            debug: false,
+            // Configuración adicional para mejor manejo de errores
+            capLevelToPlayerSize: true,
+            ignoreDevicePixelRatio: false
           });
 
           hlsRef.current = hls;
 
+          // Agregar logging adicional para debugging
+          console.log(`📺 Loading HLS source: ${hlsUrl}`);
+          
           hls.loadSource(hlsUrl);
           hls.attachMedia(videoRef.current);
 
@@ -111,7 +148,21 @@ export default function HlsPlayer({
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (!mounted) return;
 
-            console.error(`❌ HLS error for ${camera}:`, data);
+            // Mejorar el logging de errores para debugging
+            console.group(`❌ HLS error for ${camera}`);
+            console.log('Event:', event);
+            console.log('Error data:', {
+              type: data.type,
+              details: data.details,
+              fatal: data.fatal,
+              level: data.level,
+              frag: data.frag,
+              reason: data.reason,
+              response: data.response,
+              url: data.url,
+              networkDetails: data.networkDetails
+            });
+            console.groupEnd();
 
             if (data.fatal) {
               setIsLoading(false);
@@ -120,31 +171,64 @@ export default function HlsPlayer({
               let errorMsg = 'HLS stream error';
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  errorMsg = 'Network error - check connection';
+                  errorMsg = `Network error: ${data.details || 'Connection failed'}`;
+                  // Intentar recuperar automáticamente de errores de red
+                  setTimeout(() => {
+                    if (mounted && hlsRef.current) {
+                      console.log(`🔄 Attempting HLS recovery for ${camera}`);
+                      hlsRef.current.startLoad();
+                    }
+                  }, 2000);
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
-                  errorMsg = 'Media error - codec issue';
+                  errorMsg = `Media error: ${data.details || 'Codec issue'}`;
+                  // Intentar recuperar de errores de media
+                  if (hlsRef.current) {
+                    try {
+                      console.log(`🔄 Attempting media recovery for ${camera}`);
+                      hlsRef.current.recoverMediaError();
+                    } catch (recoverError) {
+                      console.error('Media recovery failed:', recoverError);
+                    }
+                  }
                   break;
                 case Hls.ErrorTypes.MUX_ERROR:
-                  errorMsg = 'Mux error - stream format issue';
+                  errorMsg = `Mux error: ${data.details || 'Stream format issue'}`;
                   break;
                 default:
-                  errorMsg = `HLS error: ${data.details || 'Unknown'}`;
+                  errorMsg = `HLS error: ${data.details || data.type || 'Unknown error'}`;
               }
 
               setErrorMessage(errorMsg);
               onError?.(new Error(errorMsg));
+            } else {
+              // Error no fatal, intentar continuar
+              console.log(`⚠️ Non-fatal HLS error for ${camera}, continuing...`);
             }
           });
 
           hls.on(Hls.Events.FRAG_LOADED, () => {
             // Fragment loaded successfully
             if (mounted && hasError) {
+              console.log(`✅ HLS recovered for ${camera}`);
               setHasError(false);
               setErrorMessage('');
             }
             // Mark progress on fragment load
             onProgress?.();
+          });
+
+          // Manejo adicional de eventos de red
+          hls.on(Hls.Events.MANIFEST_LOADING, () => {
+            console.log(`📋 Loading manifest for ${camera}...`);
+          });
+
+          hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
+            console.log(`📈 Level loaded for ${camera}:`, data.level);
+          });
+
+          hls.on(Hls.Events.FRAG_LOADING, (event, data) => {
+            console.log(`⬇️ Loading fragment for ${camera}:`, data.frag?.sn);
           });
 
         } else {

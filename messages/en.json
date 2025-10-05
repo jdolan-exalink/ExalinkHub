@@ -129,6 +129,14 @@
       "view_saved_error": "Could not save the view. Try again.",
       "view_loaded_confirm": "View “{name}” loaded successfully.",
       "view_load_error": "Could not load the view.",
+      "no_cameras": {
+        "title": "No active cameras",
+        "description": "No cameras to close."
+      },
+      "all_cameras_closed": {
+        "title": "Cameras closed",
+        "description": "{count, plural, one {Closed # camera.} other {Closed # cameras.}}"
+      },
       "error": {
         "title": "Error"
       }

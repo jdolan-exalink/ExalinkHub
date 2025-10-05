@@ -129,6 +129,14 @@
       "view_saved_error": "No se pudo guardar la vista. Inténtalo nuevamente.",
       "view_loaded_confirm": "Se cargó la vista “{name}” correctamente.",
       "view_load_error": "No se pudo cargar la vista.",
+      "no_cameras": {
+        "title": "Sin cámaras activas",
+        "description": "No hay cámaras para cerrar."
+      },
+      "all_cameras_closed": {
+        "title": "Cámaras cerradas",
+        "description": "{count, plural, one {Se cerró # cámara.} other {Se cerraron # cámaras.}}"
+      },
       "error": {
         "title": "Error"
       }

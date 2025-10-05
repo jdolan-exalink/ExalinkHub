@@ -15,11 +15,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CameraFeed from './camera-feed';
-import { LayoutGrid, Maximize2, Minimize2, Settings2 } from 'lucide-react';
+import { LayoutGrid, Maximize2, Minimize2, Settings2, X, Save } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import LayoutManager from '@/components/ui/layout-manager';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const layoutDefinitions = {
   '1x1': {
@@ -202,6 +204,9 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
   const [currentPage, setCurrentPage] = useState(0); // Current page for pagination
   const [camerasPerPage, setCamerasPerPage] = useState(0); // Will be set based on layout
   const [primaryCameraId, setPrimaryCameraId] = useState<string | null>(null); // Primary camera for 1+5/1+12 layouts
+  const [showSaveDialog, setShowSaveDialog] = useState(false); // Dialog para guardar vista
+  const [newViewName, setNewViewName] = useState(''); // Nombre de la nueva vista
+  const [isSavingView, setIsSavingView] = useState(false); // Estado de guardado
 
   // Funciones para persistencia de vista
   const saveViewToLocalStorage = () => {
@@ -694,6 +699,123 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       setHdCameraId(null);
     }
   };
+
+  /**
+   * Cerrar todas las cámaras activas en el grid actual
+   * @description Establece camera: null en todas las celdas del grid, 
+   * limpia delays de stream y resetea el estado de cámara HD
+   */
+  const close_all_cameras = () => {
+    const active_cameras_count = gridCells.filter(cell => cell.camera !== null).length;
+    
+    if (active_cameras_count === 0) {
+      toast({
+        title: translate_live('toast.no_cameras.title') || 'Sin cámaras activas',
+        description: translate_live('toast.no_cameras.description') || 'No hay cámaras para cerrar.',
+        variant: "default"
+      });
+      return;
+    }
+
+    setGridCells(currentCells => currentCells.map(cell => ({
+      ...cell,
+      camera: null
+    })));
+    
+    // Limpiar todos los delays de stream
+    setStreamDelays({});
+    
+    // Resetear cámara HD
+    setHdCameraId(null);
+    
+    // Resetear primary camera para layouts VMS
+    setPrimaryCameraId(null);
+    
+    toast({
+      title: translate_live('toast.all_cameras_closed.title') || 'Cámaras cerradas',
+      description: translate_live('toast.all_cameras_closed.description', { count: active_cameras_count }) || `Se cerraron ${active_cameras_count} cámaras.`,
+      variant: "default"
+    });
+  };
+
+  /**
+   * Guardar la vista actual con el layout y disposición de cámaras
+   * @description Captura el estado actual del grid y lo guarda via API
+   */
+  const save_current_view = async (view_name: string) => {
+    if (!view_name.trim()) {
+      toast({
+        title: "Nombre requerido",
+        description: "Por favor ingresa un nombre para la vista.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const active_cameras = gridCells.filter(cell => cell.camera !== null);
+    
+    if (active_cameras.length === 0) {
+      toast({
+        title: "Vista vacía",
+        description: "No hay cámaras en el grid para guardar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSavingView(true);
+    
+    try {
+      const view_data = {
+        name: view_name.trim(),
+        layout: layout,
+        cameras: gridCells.map((cell, index) => ({
+          position: index,
+          camera_id: cell.camera?.id || null
+        })).filter(c => c.camera_id !== null)
+      };
+
+      const response = await fetch('/api/views', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(view_data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save view');
+      }
+
+      const saved_view = await response.json();
+      
+      toast({
+        title: translate_live('toast.view_saved.title') || 'Vista guardada',
+        description: translate_live('toast.view_saved.description', { name: view_name }) || `La vista "${view_name}" se guardó correctamente.`,
+        variant: "default"
+      });
+
+      // Notificar al sidebar que se guardó una nueva vista
+      const save_view_event = new CustomEvent('viewSaved', { 
+        detail: saved_view
+      });
+      window.dispatchEvent(save_view_event);
+
+      // Cerrar dialog y limpiar nombre
+      setShowSaveDialog(false);
+      setNewViewName('');
+      
+    } catch (error) {
+      console.error('Error saving view:', error);
+      toast({
+        title: translate_live('toast.error.title') || 'Error',
+        description: translate_live('toast.view_saved_error') || 'No se pudo guardar la vista. Inténtalo nuevamente.',
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingView(false);
+    }
+  };
   
   // Función para cambiar calidad de una cámara
   const handleQualitySwitch = (cameraId: string, newQuality: 'sub' | 'main') => {
@@ -909,6 +1031,28 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
               <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">{translate_live('heading')}</h1>
               <div className="flex items-center gap-1 sm:gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs sm:text-sm bg-orange-600 hover:bg-orange-700 text-white border-orange-600"
+                    onClick={close_all_cameras}
+                    title="Cerrar todas las cámaras"
+                  >
+                    <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Cerrar Todo</span>
+                    <span className="sm:hidden">Cerrar</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    onClick={() => setShowSaveDialog(true)}
+                    title="Guardar vista actual"
+                  >
+                    <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Guardar Vista</span>
+                    <span className="sm:hidden">Guardar</span>
+                  </Button>
                   <LayoutManager
                     current_layout={layout}
                     current_cameras={gridCells}
@@ -916,7 +1060,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                     on_save_view={handleSaveView}
                     on_load_view={handleLoadView}
                   >
-                    <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm bg-purple-600 hover:bg-purple-700 text-white border-purple-600">
                         <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         <span className="hidden sm:inline">Layout Manager</span>
                         <span className="sm:hidden">Layouts</span>
@@ -930,7 +1074,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                   <div className="flex items-center gap-1 sm:gap-2">
                       <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Select value={layout} onValueChange={(value) => handleLayoutChange(value as LayoutKey)}>
-                          <SelectTrigger className="w-[80px] sm:w-[100px] h-7 sm:h-8 text-xs sm:text-sm">
+                          <SelectTrigger className="w-[80px] sm:w-[100px] h-7 sm:h-8 text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white border-green-600">
                               <SelectValue placeholder="Grid" />
                           </SelectTrigger>
                           <SelectContent>
@@ -996,7 +1140,13 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       
 
       {/* Modal de grilla en pantalla completa */}
-      <Dialog open={isGridFullscreen} onOpenChange={setIsGridFullscreen}>
+      <Dialog open={isGridFullscreen} onOpenChange={(open) => {
+        setIsGridFullscreen(open);
+        // Si se cierra el modal, también salir de F11
+        if (!open && document.fullscreenElement) {
+          document.exitFullscreen();
+        }
+      }}>
         <DialogContent className="p-0 sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] border-0 bg-black max-h-[100vh] w-full h-full">
           <DialogHeader className="absolute top-2 left-2 z-10 bg-black/70 p-3 rounded-lg">
             <DialogTitle className="text-white text-lg">{translate_live('fullscreen.title')}</DialogTitle>
@@ -1008,7 +1158,13 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 bg-black/70 hover:bg-red-600 text-white hover:text-white backdrop-blur-sm rounded" 
-              onClick={() => setIsGridFullscreen(false)}
+              onClick={() => {
+                setIsGridFullscreen(false);
+                // Salir de F11 también
+                if (document.fullscreenElement) {
+                  document.exitFullscreen();
+                }
+              }}
               title={translate_live('fullscreen.exit')}
             >
               <Minimize2 className="h-4 w-4" />
@@ -1050,10 +1206,78 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                 variant="default" 
                 size="icon" 
                 className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-red-600 text-white"
-                onClick={() => setIsGridFullscreen(false)}
+                onClick={() => {
+                  setIsGridFullscreen(false);
+                  // Salir de F11 también
+                  if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                  }
+                }}
                 title={translate_live('fullscreen.exit')}
               >
                 <Minimize2 className="h-6 w-6" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para guardar vista */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="h-5 w-5" />
+              Guardar Vista
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="view-name">Nombre de la vista</Label>
+              <Input
+                id="view-name"
+                placeholder="Ej: Vista Principal, Entrada y Parking..."
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newViewName.trim() && !isSavingView) {
+                    save_current_view(newViewName);
+                  }
+                }}
+                maxLength={50}
+                className="mt-1"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Layout actual: <span className="font-medium">{layout}</span><br />
+              Cámaras activas: <span className="font-medium">{gridCells.filter(cell => cell.camera !== null).length}</span>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowSaveDialog(false);
+                  setNewViewName('');
+                }}
+                disabled={isSavingView}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => save_current_view(newViewName)}
+                disabled={!newViewName.trim() || isSavingView}
+              >
+                {isSavingView ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar
+                  </>
+                )}
               </Button>
             </div>
           </div>

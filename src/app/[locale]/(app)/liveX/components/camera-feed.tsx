@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Maximize, Rss, X, AlertCircle, Minimize, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { Maximize2, Rss, X, AlertCircle, Minimize2, Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -524,7 +524,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
             }}
             title="{translate_live_camera('actions.maximize_camera')}"
           >
-            <Maximize className="h-4 w-4" />
+            <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
 
@@ -622,7 +622,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               onClick={() => setIsFullscreen(false)}
               title="Salir de pantalla completa"
             >
-              <Minimize className="h-4 w-4" />
+              <Minimize2 className="h-4 w-4" />
             </Button>
           </div>
           

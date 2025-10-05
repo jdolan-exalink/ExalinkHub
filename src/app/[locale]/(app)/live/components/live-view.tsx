@@ -491,6 +491,17 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
   const [lastBandwidth, setLastBandwidth] = useState<string>('0 KB/s'); // Para evitar actualizaciones innecesarias
   const [isGridFullscreen, setIsGridFullscreen] = useState(false); // Estado para pantalla completa de grilla
 
+  /**
+   * Activa el modo pantalla completa del navegador (equivalente a presionar F11).
+   * Esta función utiliza la Fullscreen API del navegador para maximizar la ventana completa.
+   * Compatible con navegadores modernos que soportan requestFullscreen().
+   */
+  const request_fullscreen = () => {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    }
+  };
+
   // Funciones para persistencia de vista
   const saveViewToLocalStorage = () => {
     try {
@@ -1109,7 +1120,10 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
             variant="default" 
             size="icon" 
             className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-green-600 text-white"
-            onClick={() => setIsGridFullscreen(true)}
+            onClick={() => {
+              setIsGridFullscreen(true);
+              request_fullscreen();
+            }}
             title="Maximizar grilla completa"
           >
             <Maximize2 className="h-6 w-6" />

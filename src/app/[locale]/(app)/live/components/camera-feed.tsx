@@ -331,7 +331,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               snapshotLoaded && !isLoading && streamStarted ? "opacity-0" : "opacity-100"
             )}
             style={{
-              objectFit: 'cover', // Estirar para llenar el contenedor 16:9
+              objectFit: 'contain', // Cambiar a 'contain' para consistencia
               objectPosition: 'center'
             }}
             onLoad={handleSnapshotLoad}
@@ -372,8 +372,8 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               isLoading ? "opacity-0" : "opacity-100"
             )}
             style={{
-              aspectRatio: '16/9',
-              objectFit: 'cover'
+              objectFit: 'contain', // Mantener contain para ver video completo
+              objectPosition: 'center'
             }}
             onLoad={handleHlsLoad}
             onError={handleHlsError}
@@ -388,13 +388,9 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     <>
       <Card 
         className={cn(
-            "overflow-hidden group w-full relative",
-            "aspect-video", // Forzar aspect ratio 16:9
+            "overflow-hidden group w-full h-full relative",
             isDragging && "opacity-50 z-50"
         )}
-        style={{
-          aspectRatio: '16/9' // Garantizar 16:9 en todos los navegadores
-        }}
       >
         {/* Controls permanentes en la esquina superior izquierda */}
         <div className="absolute top-2 left-2 z-10">
@@ -439,12 +435,8 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
         <div 
           className={cn(
             "w-full h-full bg-secondary relative cursor-pointer select-none",
-            "aspect-video", // Mantener 16:9
             isHdCamera && "ring-2 ring-green-500" // Indicador visual para cámara HD
           )}
-          style={{
-            aspectRatio: '16/9' // Garantizar proporción
-          }}
           onDoubleClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

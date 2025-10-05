@@ -10,6 +10,7 @@ type SimpleViewEditorProps = {
   children: React.ReactNode;
   currentLayout: string;
   currentCameras: Array<{ id: number; camera: any | null }>;
+  onSaveView?: (viewName: string) => Promise<void>;
 };
 
 // Presets de grilla estándar VMS

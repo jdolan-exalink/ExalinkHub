@@ -37,7 +37,7 @@ export default function RecordingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center w-screen h-screen">
         <div className="text-center">
           <div className="text-lg font-medium">{translate_recordings_page('loading_title')}</div>
           <div className="text-sm text-muted-foreground mt-2">
@@ -50,7 +50,7 @@ export default function RecordingsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="w-screen h-screen flex items-center justify-center">
         <Alert variant="destructive" className="max-w-md">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -63,7 +63,7 @@ export default function RecordingsPage() {
 
   if (cameras.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="w-screen h-screen flex items-center justify-center">
         <Alert className="max-w-md">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -74,7 +74,11 @@ export default function RecordingsPage() {
     );
   }
 
-  return <RecordingBrowser cameras={cameras} />;
+  return (
+    <div className="w-screen h-screen overflow-hidden flex flex-col">
+      <RecordingBrowser cameras={cameras} />
+    </div>
+  );
 }
 
 

@@ -51,6 +51,28 @@
       "error_generic": "Nao foi possivel carregar os eventos recentes. Tente novamente mais tarde."
     },
     "controls": {
+      "specific_date": "Data especifica:",
+      "time_range": "Horario:",
+      "camera": "Camera:",
+      "all_cameras": "Todas",
+      "filters": "Filtros",
+      "clear": "Limpar",
+      "object_types": "Tipos de objeto",
+      "content": "Conteudo",
+      "has_video": "Com video",
+      "has_snapshot": "Com captura",
+      "full_day": "Dia inteiro",
+      "morning": "Manha",
+      "afternoon": "Tarde",
+      "evening": "Noite",
+      "custom": "Personalizado",
+      "predefined_ranges": "Intervalos predefinidos",
+      "custom_time": "Horario personalizado",
+      "start_time": "Hora inicio",
+      "end_time": "Hora fim",
+      "tip_next_day": "💡 Dica: Se a hora final for anterior a inicial, o proximo dia e assumido",
+      "select_specific_day": "📅 Selecione uma data especifica para buscar eventos",
+      "select_time_range": "🕐 Selecione o intervalo de horas dentro do dia escolhido",
       "date_placeholder": "Escolher data",
       "time_range_placeholder": "Selecione um intervalo",
       "time_ranges": {
@@ -62,16 +84,30 @@
       },
       "total_events": "{count, plural, one {# evento} other {# eventos}}",
       "active_filters": "{count, plural, one {# filtro} other {# filtros}}",
-      "all_cameras": "Todas as cameras",
       "filters_button": "Filtros",
       "filters_title": "Filtros avancados",
       "clear_all": "Limpar tudo",
-      "object_types": "Tipos de objeto",
       "cameras": "Cameras",
       "zones": "Zonas",
-      "content": "Conteudo",
-      "has_clip": "Com clip",
-      "has_snapshot": "Com captura"
+      "has_clip": "Com clip"
+    },
+    "sidebar": {
+      "title": "Eventos",
+      "play_video": "Reproduzir video",
+      "view_snapshot": "Ver snapshot",
+      "download_clip": "Baixar clip",
+      "open_new_tab": "Abrir em nova aba",
+      "no_events_found": "Nenhum evento encontrado",
+      "adjust_filters_hint": "Tente ajustar o intervalo de tempo ou os filtros",
+      "no_snapshot": "Sem snapshot",
+      "duration": "Duracao: {duration}s",
+      "snapshot_only": "Apenas snapshot",
+      "total": "Total",
+      "videos": "Videos"
+    },
+    "timeline": {
+      "title": "Cronograma",
+      "no_events_in_range": "Nenhum evento neste intervalo de tempo"
     }
   },
   "recordings": {

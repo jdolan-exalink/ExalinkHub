@@ -530,15 +530,26 @@ export default function RecordingPlayer({
     };
   }, []);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!videoRef.current) return;
     
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
+    try {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        await videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    } catch (playError: any) {
+      console.error('RecordingPlayer: Play error:', playError);
+      
+      if (playError.name === 'NotAllowedError') {
+        console.warn('RecordingPlayer: Autoplay blocked - user interaction required');
+        setError('Haz clic en el botón de reproducción para iniciar el video');
+      } else {
+        setError(`Error al reproducir: ${playError.message}`);
+      }
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleSeek = (value: number[]) => {

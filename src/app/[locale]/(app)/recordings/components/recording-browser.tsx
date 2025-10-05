@@ -27,10 +27,10 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   // Validate cameras prop
   if (!cameras || !Array.isArray(cameras)) {
     return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground text-center">
           <div className="text-lg font-medium mb-2">{translate_recordings_browser('no_camera_title')}</div>
-          <div className="text-sm text-gray-400">{translate_recordings_browser('no_camera_message')}</div>
+          <div className="text-sm text-muted-foreground">{translate_recordings_browser('no_camera_message')}</div>
         </div>
       </div>
     );
@@ -147,11 +147,21 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         time: format(new Date(selectedTime * 1000), 'HH:mm:ss')
       });
       
-      // Auto-play the video
+      // Auto-play the video with proper error handling
       const videoElement = document.querySelector('video');
       if (videoElement) {
-        setTimeout(() => {
-          videoElement.play().catch(console.error);
+        setTimeout(async () => {
+          try {
+            await videoElement.play();
+            console.log('RecordingBrowser: Video auto-played successfully');
+          } catch (playError: any) {
+            if (playError.name === 'NotAllowedError') {
+              console.warn('RecordingBrowser: Autoplay blocked - user interaction required');
+              // Don't show error to user, just log it since this is auto-play
+            } else {
+              console.error('RecordingBrowser: Auto-play error:', playError);
+            }
+          }
         }, 500);
       }
     }
@@ -209,7 +219,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
     // Mostrar progreso
     setDownloadProgress(prev => ({
       ...prev,
-      [downloadKey]: { progress: 0, status: 'Iniciando descarga...' }
+      [downloadKey]: { progress: 0, status: translate_recordings_browser('download_starting') }
     }));
 
     try {
@@ -229,7 +239,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       // Actualizar progreso
       setDownloadProgress(prev => ({
         ...prev,
-        [downloadKey]: { progress: 25, status: 'Conectando con Frigate...' }
+        [downloadKey]: { progress: 25, status: translate_recordings_browser('connecting_frigate') }
       }));
 
       // Hacer petición directa a Frigate
@@ -246,7 +256,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       // Actualizar progreso
       setDownloadProgress(prev => ({
         ...prev,
-        [downloadKey]: { progress: 75, status: 'Procesando stream...' }
+        [downloadKey]: { progress: 75, status: translate_recordings_browser('processing_stream') }
       }));
 
       // Crear un blob con el contenido M3U8
@@ -264,11 +274,11 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       // Completar progreso
       setDownloadProgress(prev => ({
         ...prev,
-        [downloadKey]: { progress: 100, status: 'M3U8 descargado! (Usar con VLC o similar)' }
+        [downloadKey]: { progress: 100, status: translate_recordings_browser('m3u8_downloaded') }
       }));
 
       // Mostrar información al usuario
-      alert(`Se ha descargado el archivo M3U8.\n\nPara ver el video:\n1. Abre VLC Media Player\n2. Arrastra el archivo .m3u8 a VLC\n3. El video se reproducirá desde Frigate\n\nNota: Necesitas acceso a ${frigateBaseUrl} para que funcione.`);
+      alert(translate_recordings_browser('download_instructions', { baseUrl: frigateBaseUrl }));
 
       // Limpiar progreso después de 5 segundos
       setTimeout(() => {
@@ -350,18 +360,18 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
             startTime = Math.floor(startDateTime.getTime() / 1000);
             endTime = Math.floor(endDateTime.getTime() / 1000);
           } else {
-            alert('Error: Rango de fecha personalizado no especificado');
+            alert(translate_recordings_browser('custom_range_error'));
             return;
           }
           break;
         default:
-          alert('Error: Tipo de exportación inválido');
+          alert(translate_recordings_browser('invalid_export_type'));
           return;
       }
 
       // Ensure we have valid timestamps
       if (!startTime || !endTime || startTime >= endTime) {
-        alert('Error: Rango de tiempo inválido para exportación');
+        alert(translate_recordings_browser('invalid_time_range'));
         return;
       }
       
@@ -380,7 +390,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       
     } catch (error) {
       console.error('Error en handleExport:', error);
-      alert(`Error al procesar exportación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      alert(`${translate_recordings_browser('export_processing_error')} ${error instanceof Error ? error.message : translate_recordings_browser('unknown_error')}`);
     }
   };
 
@@ -489,35 +499,35 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col">
+    <div className="h-screen bg-background flex flex-col">
       {/* Barra de Controles Superiores */}
-      <div className="bg-gray-900 border-b border-gray-700 flex-shrink-0">
+      <div className="bg-card border-b border-border flex-shrink-0">
         {/* Controles */}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Controles Izquierda: Cámara, Hora, Fecha */}
             <div className="flex items-center gap-6">
-              <h1 className="text-white font-semibold text-lg mr-4">Grabaciones</h1>
+              <h1 className="text-foreground font-semibold text-lg mr-4">{translate_recordings_browser('recordings_title')}</h1>
               
               {/* Selector de Cámara */}
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Cámara:</span>
+                <span className="text-foreground font-medium text-sm">{translate_recordings_browser('camera_label')}</span>
                 <Select value={selectedCamera} onValueChange={setSelectedCamera}>
-                  <SelectTrigger className="w-48 h-9 bg-blue-600 border-blue-500 text-white font-medium hover:bg-blue-700">
-                    <SelectValue placeholder="Seleccionar cámara" />
+                  <SelectTrigger className="w-48 h-9 bg-primary border-primary text-primary-foreground font-medium hover:bg-primary/90">
+                    <SelectValue placeholder={translate_recordings_browser('select_camera')} />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectContent className="bg-popover border-border">
                     {cameras && cameras.length > 0 ? cameras.map(camera => (
                       <SelectItem 
                         key={camera.id || camera.name} 
                         value={camera.id || camera.name}
-                        className="text-white hover:bg-blue-600"
+                        className="text-foreground hover:bg-accent"
                       >
                         {camera.name}
                       </SelectItem>
                     )) : (
-                      <SelectItem value="no-cameras" disabled className="text-gray-400">
-                        No hay cámaras disponibles
+                      <SelectItem value="no-cameras" disabled className="text-muted-foreground">
+                        {translate_recordings_browser('no_cameras_available')}
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -526,17 +536,17 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
               {/* Selector de Hora */}
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Hora:</span>
+                <span className="text-foreground font-medium text-sm">{translate_recordings_browser('hour_label')}</span>
                 <Select value={selectedHour.toString()} onValueChange={(value) => setSelectedHour(parseInt(value))}>
-                  <SelectTrigger className="w-24 h-9 bg-green-600 border-green-500 text-white font-medium hover:bg-green-700">
+                  <SelectTrigger className="w-24 h-9 bg-secondary border-secondary text-secondary-foreground font-medium hover:bg-secondary/80">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectContent className="bg-popover border-border">
                     {Array.from({ length: 24 }, (_, i) => (
                       <SelectItem 
                         key={i} 
                         value={i.toString()}
-                        className="text-white hover:bg-green-600"
+                        className="text-foreground hover:bg-accent"
                       >
                         {i.toString().padStart(2, '0')}:00
                       </SelectItem>
@@ -547,25 +557,25 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
               {/* Calendario */}
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Fecha:</span>
+                <span className="text-foreground font-medium text-sm">{translate_recordings_browser('date_label')}</span>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-40 h-9 bg-purple-600 border-purple-500 text-white hover:bg-purple-700 justify-start text-left font-medium"
+                      className="w-40 h-9 bg-accent border-accent text-accent-foreground hover:bg-accent/80 justify-start text-left font-medium"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {date_button_formatter.format(selectedDate)}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-600" align="start">
+                  <PopoverContent className="w-auto p-0 bg-popover border-border" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
                       onSelect={(date) => date && setSelectedDate(date)}
                       disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
                       initialFocus
-                      className="bg-gray-800 text-white"
+                      className="bg-popover text-foreground"
                       modifiers={{
                         recording: (date) => {
                           const dateStr = format(date, 'yyyy-MM-dd');
@@ -590,18 +600,18 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
             <div className="flex items-center gap-4">
               {/* Filtro de Detecciones */}
               <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-white" />
-                <span className="text-white font-medium text-sm">Filtros:</span>
+                <Search className="h-4 w-4 text-foreground" />
+                <span className="text-foreground font-medium text-sm">{translate_recordings_browser('filters_label')}</span>
                 <Select value={selectedFilter} onValueChange={setSelectedFilter}>
-                  <SelectTrigger className="w-40 h-9 bg-orange-600 border-orange-500 text-white font-medium hover:bg-orange-700">
+                  <SelectTrigger className="w-40 h-9 bg-muted border-muted text-muted-foreground font-medium hover:bg-muted/80">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    <SelectItem value="all" className="text-white hover:bg-orange-600">
-                      🔍 Todos ({currentHourObjects.totalCount})
+                  <SelectContent className="bg-popover border-border">
+                    <SelectItem value="all" className="text-foreground hover:bg-accent">
+                      🔍 {translate_recordings_browser('all_filters')} ({currentHourObjects.totalCount})
                     </SelectItem>
                     {currentHourObjects.objects.map(obj => (
-                      <SelectItem key={obj.label} value={obj.label} className="text-white hover:bg-orange-600">
+                      <SelectItem key={obj.label} value={obj.label} className="text-foreground hover:bg-accent">
                         {getObjectIcon(obj.label)} {obj.label.charAt(0).toUpperCase() + obj.label.slice(1)} ({obj.count})
                       </SelectItem>
                     ))}
@@ -612,14 +622,14 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               {/* Estado */}
               <div className="flex items-center gap-2">
                 {isLoading && (
-                  <div className="text-yellow-400 text-sm font-medium">⏳ Cargando...</div>
+                  <div className="text-yellow-400 text-sm font-medium">⏳ {translate_recordings_browser('loading')}</div>
                 )}
                 {error && (
-                  <div className="text-red-400 text-sm font-medium">❌ Error: {error}</div>
+                  <div className="text-red-400 text-sm font-medium">❌ {translate_recordings_browser('error_prefix')} {error}</div>
                 )}
                 {recordingData && (
                   <div className="text-green-400 text-sm font-medium">
-                    📹 {recordingData.segments?.length || 0} grabaciones • 🎯 {recordingData.events?.length || 0} eventos
+                    📹 {translate_recordings_browser('recordings_events', { recordings: recordingData.segments?.length || 0, events: recordingData.events?.length || 0 })}
                   </div>
                 )}
               </div>
@@ -630,17 +640,17 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
       {/* Progress Indicators */}
       {Object.keys(downloadProgress).length > 0 && (
-        <div className="bg-gray-900 border-b border-gray-700 px-4 py-2 flex-shrink-0">
+        <div className="bg-card border-b border-border px-4 py-2 flex-shrink-0">
           <div className="flex gap-4">
             {Object.entries(downloadProgress).map(([key, progress]) => (
               <div key={key} className="flex-1 max-w-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-blue-300 text-xs">{progress.status}</span>
-                  <span className="text-blue-300 text-xs">{progress.progress}%</span>
+                  <span className="text-primary text-xs">{progress.status}</span>
+                  <span className="text-primary text-xs">{progress.progress}%</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-1">
+                <div className="w-full bg-muted rounded-full h-1">
                   <div 
-                    className="bg-blue-500 h-1 rounded-full transition-all duration-300"
+                    className="bg-primary h-1 rounded-full transition-all duration-300"
                     style={{ width: `${progress.progress}%` }}
                   />
                 </div>
@@ -651,9 +661,9 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       )}
 
       {/* Main Content Area - Video Player y Timeline */}
-      <div className="flex-1 flex items-start justify-start bg-black px-4 py-2 min-h-0 overflow-hidden">
-        {/* Contenedor principal alineado a la izquierda */}
-        <div className="flex flex-col items-start justify-start gap-2">
+      <div className="flex-1 flex items-center justify-center bg-background px-4 py-2 min-h-0 overflow-hidden">
+        {/* Contenedor principal alineado al centro */}
+        <div className="flex flex-col items-center justify-center gap-2">
           {/* Video container con aspecto 16:9 */}
           <div 
             className="bg-black relative"
@@ -695,27 +705,27 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                   
                   {/* Controles de reproducción */}
                   <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">Velocidad:</span>
+                    <span className="text-white text-sm">{translate_recordings_browser('speed_label')}</span>
                     <Select value={playbackSpeed.toString()} onValueChange={(value) => setPlaybackSpeed(parseFloat(value))}>
-                      <SelectTrigger className="w-20 h-8 bg-gray-700 border-gray-600 text-white text-sm">
+                      <SelectTrigger className="w-20 h-8 bg-card border-border text-card-foreground text-sm">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-600">
-                        <SelectItem value="0.25" className="text-white hover:bg-gray-700">0.25x</SelectItem>
-                        <SelectItem value="0.5" className="text-white hover:bg-gray-700">0.5x</SelectItem>
-                        <SelectItem value="1" className="text-white hover:bg-gray-700">1x</SelectItem>
-                        <SelectItem value="2" className="text-white hover:bg-gray-700">2x</SelectItem>
-                        <SelectItem value="4" className="text-white hover:bg-gray-700">4x</SelectItem>
-                        <SelectItem value="6" className="text-white hover:bg-gray-700">6x</SelectItem>
-                        <SelectItem value="8" className="text-white hover:bg-gray-700">8x</SelectItem>
+                      <SelectContent className="bg-popover border-border">
+                        <SelectItem value="0.25" className="text-foreground hover:bg-accent">0.25x</SelectItem>
+                        <SelectItem value="0.5" className="text-foreground hover:bg-accent">0.5x</SelectItem>
+                        <SelectItem value="1" className="text-foreground hover:bg-accent">1x</SelectItem>
+                        <SelectItem value="2" className="text-foreground hover:bg-accent">2x</SelectItem>
+                        <SelectItem value="4" className="text-foreground hover:bg-accent">4x</SelectItem>
+                        <SelectItem value="6" className="text-foreground hover:bg-accent">6x</SelectItem>
+                        <SelectItem value="8" className="text-foreground hover:bg-accent">8x</SelectItem>
                       </SelectContent>
                     </Select>
                     
                     <Button
                       onClick={() => setShowExportModal(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3 text-sm"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 px-3 text-sm"
                     >
-                      Exportar
+                      {translate_recordings_browser('export')}
                     </Button>
                   </div>
                 </div>
@@ -725,7 +735,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
             {/* Overlay para preview time */}
             {timelineSelectionMode && previewTime && (
               <div className="absolute top-4 left-4 bg-black/80 text-white px-2 py-1 rounded text-xs z-10">
-                Vista previa: {time_formatter.format(new Date(previewTime * 1000))}
+                {translate_recordings_browser('preview')} {time_formatter.format(new Date(previewTime * 1000))}
               </div>
             )}
             
@@ -734,7 +744,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               <div className="absolute top-4 right-4 bg-blue-600/90 border border-blue-400 rounded-lg p-2 z-10">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
-                  <span className="text-white font-medium text-xs">Modo Selección</span>
+                  <span className="text-white font-medium text-xs">{translate_recordings_browser('selection_mode')}</span>
                   {selectionRange && (
                     <span className="text-blue-100 text-xs">
                       {time_formatter.format(new Date(selectionRange.start * 1000))} - {time_formatter.format(new Date(selectionRange.end * 1000))}
@@ -747,15 +757,15 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                       onClick={handleSelectionComplete}
                       className="bg-green-600 hover:bg-green-700 text-white h-6 px-2 text-xs"
                     >
-                      Descargar
+                      {translate_recordings_browser('download')}
                     </Button>
                   )}
                   <Button
                     onClick={handleCancelSelection}
                     variant="outline"
-                    className="border-gray-300 text-gray-100 hover:bg-gray-700 h-6 px-2 text-xs"
+                    className="border-border text-foreground hover:bg-accent h-6 px-2 text-xs"
                   >
-                    Cancelar
+                    {translate_recordings_browser('cancel')}
                   </Button>
                 </div>
               </div>
@@ -764,7 +774,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
           {/* Timeline Section - Mismo ancho que el video */}
           <div 
-            className="bg-gray-800 border border-gray-600 rounded-lg p-3"
+            className="bg-card border border-border rounded-lg p-3"
             style={{
               width: 'calc((100vh - 280px - 80px) * 16 / 9)', // Mismo ancho que el video
               maxWidth: '100%'

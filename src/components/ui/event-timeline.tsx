@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { format, addHours, subHours } from 'date-fns';
+import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import {
   IconUser, IconCar, IconTruck, IconBike, IconMotorbike, IconBus,
   IconDog, IconCat, IconPackage, IconQuestionMark, IconSearch
@@ -46,6 +48,8 @@ export default function EventTimeline({
 }: EventTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [hoveredEvent, setHoveredEvent] = useState<FrigateEvent | null>(null);
+  const t = useTranslations('events.timeline');
+  const { theme } = useTheme();
 
   const startTime = centerTime - (timeRange * 3600) / 2;
   const endTime = centerTime + (timeRange * 3600) / 2;
@@ -104,7 +108,7 @@ export default function EventTimeline({
       {/* Timeline Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Timeline</h3>
+          <h3 className="text-lg font-semibold">{t('title')}</h3>
           <div className="text-sm text-muted-foreground">
             {format(new Date(startTime * 1000), 'HH:mm')} - {format(new Date(endTime * 1000), 'HH:mm')}
           </div>
@@ -132,7 +136,7 @@ export default function EventTimeline({
             <div key={camera} className="relative">
               {/* Camera Label */}
               <div className="flex items-center mb-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                <div className={`w-2 h-2 rounded-full mr-2 ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'}`}></div>
                 <span className="text-sm font-medium text-muted-foreground">{camera}</span>
               </div>
               
@@ -143,7 +147,7 @@ export default function EventTimeline({
                 onClick={handleTimelineClick}
               >
                 {/* Motion Detection Background */}
-                <div className="absolute inset-0 bg-blue-100/30 rounded"></div>
+                <div className={`absolute inset-0 rounded ${theme === 'dark' ? 'bg-blue-900/20' : 'bg-blue-100/30'}`}></div>
                 
                 {/* Grid Lines */}
                 {getTimeLabels().map(timestamp => (
@@ -173,7 +177,7 @@ export default function EventTimeline({
                         }}
                         title={`${event.label} detected at ${format(new Date(event.start_time * 1000), 'HH:mm:ss')}`}
                       >
-                        <div className="bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm border">
+                        <div className={`rounded-full w-6 h-6 flex items-center justify-center shadow-sm border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}>
                           <IconComponent size={16} />
                         </div>
                       </div>
@@ -196,7 +200,7 @@ export default function EventTimeline({
 
         {/* Hover Tooltip */}
         {hoveredEvent && (
-          <div className="absolute z-30 bg-black text-white px-2 py-1 rounded text-xs pointer-events-none">
+          <div className={`absolute z-30 px-2 py-1 rounded text-xs pointer-events-none ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-black text-white'}`}>
             {hoveredEvent.label} - {format(new Date(hoveredEvent.start_time * 1000), 'HH:mm:ss')}
           </div>
         )}
@@ -205,7 +209,7 @@ export default function EventTimeline({
         {events.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <div className="text-2xl mb-2">👁️</div>
-            <div className="text-sm">No events in this time range</div>
+            <div className="text-sm">{t('no_events_in_range')}</div>
           </div>
         )}
       </div>

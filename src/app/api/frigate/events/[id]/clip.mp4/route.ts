@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const eventId = params.id;
+    const { id: eventId } = await params;
     
     if (!eventId) {
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });
@@ -31,8 +31,11 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': 'video/mp4',
-        'Content-Disposition': `attachment; filename="event_${eventId}.mp4"`,
         'Content-Length': buffer.length.toString(),
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
     });
   } catch (error) {

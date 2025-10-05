@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { startOfDay, endOfDay } from 'date-fns';
-import type { FrigateEvent } from '@/lib/frigate-api';
+import type { FrigateEvent, RecordingTimelineData } from '@/lib/frigate-api';
 import EventTimeline from '@/components/ui/event-timeline';
+import RecordingTimeline from '@/components/ui/recording-timeline';
 import EventSidebar from '@/components/ui/event-sidebar';
 import EventPlayer from '@/components/ui/event-player';
 import EventControls, { type TimeRange, type EventFilters } from '@/components/ui/event-controls';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
 export default function EventsPage() {
@@ -19,10 +21,23 @@ export default function EventsPage() {
   const [selectedTime, setSelectedTime] = useState<number>(Math.floor(Date.now() / 1000));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Recording timeline data
+  const [recordingData, setRecordingData] = useState<RecordingTimelineData>({
+    segments: [],
+    events: []
+  });
+  const [timelineRangeSelection, setTimelineRangeSelection] = useState<{ start: number; end: number } | null>(null);
 
   // Time and filter controls
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const default_time_range: TimeRange = { translation_key: 'last_hour', hours: 1, value: '1h' };
+  const default_time_range: TimeRange = { 
+    translation_key: 'todo_el_dia', 
+    value: 'full_day', 
+    type: 'preset',
+    startTime: '00:00',
+    endTime: '23:59'
+  };
   const [timeRange, setTimeRange] = useState<TimeRange>(default_time_range);
   const [filters, setFilters] = useState<EventFilters>({
     cameras: [],
@@ -30,30 +45,44 @@ export default function EventsPage() {
     zones: [],
   });
 
-  // Calculate time bounds
-  const centerTime = useMemo(() => {
-    if (timeRange.value === 'today') {
-      return Math.floor(Date.now() / 1000);
-    }
-    return Math.floor(Date.now() / 1000);
-  }, [timeRange, selectedDate]);
+  // Fixed timestamp for relative time ranges to avoid constant recalculation
+  const [baseTimestamp, setBaseTimestamp] = useState(() => Math.floor(Date.now() / 1000));
 
+  // Function to refresh with current timestamp
+  const refreshEvents = useCallback(() => {
+    setBaseTimestamp(Math.floor(Date.now() / 1000));
+  }, []);
+
+  // Calculate time bounds
   const { startTime, endTime } = useMemo(() => {
-    if (timeRange.value === 'today') {
-      const start = startOfDay(selectedDate);
-      const end = endOfDay(selectedDate);
-      return {
-        startTime: Math.floor(start.getTime() / 1000),
-        endTime: Math.floor(end.getTime() / 1000)
-      };
-    } else {
-      const now = Math.floor(Date.now() / 1000);
-      return {
-        startTime: now - (timeRange.hours * 3600),
-        endTime: now
-      };
+    // Get the base date (selected date)
+    const baseDate = new Date(selectedDate);
+    
+    // Parse start and end times
+    const startTimeStr = timeRange.startTime || '00:00';
+    const endTimeStr = timeRange.endTime || '23:59';
+    
+    const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+    const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+    
+    // Create start datetime
+    const startDateTime = new Date(baseDate);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+    
+    // Create end datetime
+    const endDateTime = new Date(baseDate);
+    endDateTime.setHours(endHour, endMinute, 59, 999);
+    
+    // If end time is earlier than start time, assume next day
+    if (endDateTime <= startDateTime) {
+      endDateTime.setDate(endDateTime.getDate() + 1);
     }
-  }, [timeRange, selectedDate]);
+    
+    return {
+      startTime: Math.floor(startDateTime.getTime() / 1000),
+      endTime: Math.floor(endDateTime.getTime() / 1000)
+    };
+  }, [timeRange.startTime, timeRange.endTime, selectedDate]);
 
   // Filter events based on current filters
   const filteredEvents = useMemo(() => {
@@ -101,18 +130,38 @@ export default function EventsPage() {
     [events]
   );
 
+  // Track last fetch to avoid duplicates
+  const lastFetchRef = useRef<{ startTime: number; endTime: number; timestamp: number } | null>(null);
+
   // Fetch events
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
+    const fetchId = Math.random().toString(36).substr(2, 9);
+    console.log(`[${fetchId}] fetchEvents called with:`, { startTime, endTime });
+    
+    // Check if we recently fetched with the same parameters (within 1 second)
+    const now = Date.now();
+    if (lastFetchRef.current && 
+        lastFetchRef.current.startTime === startTime && 
+        lastFetchRef.current.endTime === endTime &&
+        (now - lastFetchRef.current.timestamp) < 1000) {
+      console.log(`[${fetchId}] Skipping duplicate fetch within 1s`);
+      return;
+    }
+    
+    lastFetchRef.current = { startTime, endTime, timestamp: now };
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await fetch(
-        `/api/frigate/events?after=${startTime}&before=${endTime}&limit=1000`
-      );
+      const url = `/api/frigate/events?after=${startTime}&before=${endTime}&limit=1000`;
+      console.log(`[${fetchId}] Fetching events from:`, url);
+      
+      const response = await fetch(url);
       
       if (response.ok) {
         const data = await response.json();
+        console.log(`[${fetchId}] Events fetched successfully:`, data?.length || 0, 'events');
         setEvents(data || []);
         
         // Auto-select most recent event if none selected
@@ -123,21 +172,30 @@ export default function EventsPage() {
           setSelectedEvent(mostRecent);
           setSelectedTime(mostRecent.start_time);
         }
+        
+        // Update recording timeline data
+        setRecordingData({
+          segments: [], // Por ahora vacío, se puede implementar posteriormente
+          events: data || []
+        });
       } else {
-        throw new Error('events_fetch_failed');
+        const errorData = await response.text();
+        console.error(`[${fetchId}] API response not ok:`, response.status, response.statusText, errorData);
+        throw new Error(`events_fetch_failed: ${response.status} ${response.statusText} - ${errorData}`);
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
-      setError(translate_events_page('error_generic'));
+      console.error(`[${fetchId}] Error fetching events:`, error);
+      setError(error instanceof Error ? error.message : translate_events_page('error_generic'));
       setEvents([]);
+      setRecordingData({ segments: [], events: [] });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [startTime, endTime, selectedEvent, translate_events_page]);
 
   useEffect(() => {
     fetchEvents();
-  }, [startTime, endTime]);
+  }, [fetchEvents]);
 
   // Event navigation
   const navigateToEvent = (direction: 'previous' | 'next') => {
@@ -225,86 +283,159 @@ export default function EventsPage() {
     }
   };
 
-  return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 p-6 border-b">
-        <div className="mb-4">
-          <h1 className="font-headline text-3xl font-bold tracking-tight">Events</h1>
-          <p className="text-muted-foreground mt-1">
-            Browse and analyze detection events from your security cameras
-          </p>
-        </div>
+  /**
+   * Maneja la selección de rango de tiempo desde el timeline de grabación.
+   * @param start_time - Timestamp de inicio del rango seleccionado
+   * @param end_time - Timestamp de fin del rango seleccionado
+   * @author GitHub Copilot
+   */
+  const handle_timeline_range_select = (start_time: number, end_time: number) => {
+    setTimelineRangeSelection({ start: start_time, end: end_time });
+    console.log('Selected time range:', { start: start_time, end: end_time });
+  };
 
-        {/* Controls */}
-        <EventControls
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
-          filters={filters}
-          onFiltersChange={setFilters}
-          availableCameras={availableCameras}
-          availableLabels={availableLabels}
-          availableZones={availableZones}
-          totalEvents={filteredEvents.length}
-        />
+  /**
+   * Maneja la selección de tiempo específico desde el timeline de grabación.
+   * @param timestamp - Timestamp seleccionado
+   * @author GitHub Copilot
+   */
+  const handle_timeline_time_select = (timestamp: number) => {
+    setSelectedTime(timestamp);
+    
+    // Find closest event to selected time
+    const closestEvent = filteredEvents.reduce((closest, event) => {
+      const timeDiff = Math.abs(event.start_time - timestamp);
+      const closestDiff = closest ? Math.abs(closest.start_time - timestamp) : Infinity;
+      return timeDiff < closestDiff ? event : closest;
+    }, filteredEvents[0]);
+    
+    if (closestEvent) {
+      setSelectedEvent(closestEvent);
+    }
+  };
+
+  return (
+    <div className="h-screen bg-background flex flex-col">
+      {/* Barra de Controles Superiores */}
+      <div className="bg-card border-b border-border flex-shrink-0">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Controles Izquierda */}
+            <div className="flex items-center gap-6">
+              <h1 className="text-foreground font-semibold text-lg mr-4">Events</h1>
+              
+              {/* Controls compactos */}
+              <div className="flex items-center gap-4">
+                <EventControls
+                  selectedDate={selectedDate}
+                  onDateChange={setSelectedDate}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  availableCameras={availableCameras}
+                  availableLabels={availableLabels}
+                  availableZones={availableZones}
+                  totalEvents={filteredEvents.length}
+                  className="bg-transparent border-0 p-0"
+                />
+              </div>
+            </div>
+
+            {/* Controles Derecha: Estado y Refresh */}
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={refreshEvents}
+                variant="outline"
+                size="sm"
+                disabled={isLoading}
+                className="bg-primary border-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                🔄 Actualizar
+              </Button>
+              
+              {isLoading && (
+                <div className="text-yellow-400 text-sm font-medium">⏳ Cargando eventos...</div>
+              )}
+              {error && (
+                <div className="text-destructive text-sm font-medium">❌ Error: {error}</div>
+              )}
+              {filteredEvents.length > 0 && (
+                <div className="text-green-400 text-sm font-medium">
+                  🎯 {filteredEvents.length} eventos encontrados
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="flex-shrink-0 p-6">
-          <Alert variant="destructive">
+        <div className="bg-destructive/20 border-b border-destructive/50 px-4 py-2 flex-shrink-0">
+          <Alert variant="destructive" className="bg-transparent border-0">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="text-destructive">{error}</AlertDescription>
           </Alert>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Side - Timeline and Player */}
-        <div className="flex-1 flex flex-col p-6 pr-3">
-          {/* Timeline */}
-          <div className="flex-shrink-0 mb-6">
-            {isLoading ? (
-              <div className="h-32 bg-card rounded-lg border flex items-center justify-center">
-                <div className="text-muted-foreground">{translate_events_page('loading')}</div>
-              </div>
-            ) : (
-              <EventTimeline
-                events={filteredEvents}
-                selectedTime={selectedTime}
-                onTimeSelect={handleTimeSelect}
-                onEventSelect={handleEventSelect}
-                timeRange={timeRange.hours}
-                centerTime={centerTime}
-              />
-            )}
-          </div>
-
-          {/* Player */}
-          <div className="flex-1">
-            <EventPlayer
-              event={selectedEvent}
-              onPreviousEvent={() => navigateToEvent('previous')}
-              onNextEvent={() => navigateToEvent('next')}
-              onDownload={handleDownloadEvent}
-              className="h-full"
-            />
-          </div>
-        </div>
-
-        {/* Right Side - Event List */}
-        <div className="w-80 flex-shrink-0 p-6 pl-3">
+      {/* Main Content Area - Video Player y Timeline centrados */}
+      <div className="flex-1 flex bg-background overflow-hidden">
+        {/* Sidebar de eventos - Panel lateral fijo */}
+        <div className="w-80 bg-card border-r border-border flex-shrink-0">
           <EventSidebar
             events={filteredEvents}
             selectedEvent={selectedEvent}
             onEventSelect={handleEventSelect}
             onPlayEvent={handleEventSelect}
             onDownloadEvent={handleDownloadEvent}
-            className="h-full"
+            className="h-full bg-transparent border-0"
           />
+        </div>
+
+        {/* Video y Timeline Area - Centrado */}
+        <div className="flex-1 flex items-center justify-center bg-background px-4 py-2 min-h-0 overflow-hidden">
+          <div className="flex flex-col items-center justify-center gap-2">
+            {/* Video container con aspecto 16:9 */}
+            <div 
+              className="bg-background relative"
+              style={{
+                width: 'calc((100vh - 200px) * 16 / 9)', // Calculamos ancho basado en altura disponible
+                height: 'calc(100vh - 200px)', // Altura disponible para video
+                maxWidth: 'calc(100vw - 320px - 32px)', // Máximo ancho (descontando sidebar + padding)
+                aspectRatio: '16/9'
+              }}
+            >
+              <EventPlayer
+                event={selectedEvent}
+                onPreviousEvent={() => navigateToEvent('previous')}
+                onNextEvent={() => navigateToEvent('next')}
+                onDownload={handleDownloadEvent}
+                className="w-full h-full bg-transparent border-0"
+              />
+            </div>
+
+            {/* Timeline Section - Mismo ancho que el video */}
+            <div 
+              className="bg-card border border-border rounded-lg p-3"
+              style={{
+                width: 'calc((100vh - 200px) * 16 / 9)', // Mismo ancho que el video
+                maxWidth: 'calc(100vw - 320px - 32px)' // Mismo límite que el video
+              }}
+            >
+              <div className="h-16">
+                <RecordingTimeline
+                  data={recordingData}
+                  date={selectedDate}
+                  onTimeSelect={handle_timeline_time_select}
+                  onRangeSelect={handle_timeline_range_select}
+                  selectedTime={selectedTime}
+                  selectionRange={timelineRangeSelection}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

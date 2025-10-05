@@ -14,6 +14,7 @@ interface UnlimitedPlayerProps {
   onLoad?: () => void;
   onError?: (error: Error) => void;
   onFpsChange?: (camera: string, fps: number) => void; // Callback para reportar FPS
+  onProgress?: () => void; // Added for state machine progress tracking
 }
 
 // Cache global de imágenes por cámara
@@ -33,7 +34,8 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
   style,
   onLoad,
   onError,
-  onFpsChange
+  onFpsChange,
+  onProgress
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const img1Ref = useRef<HTMLImageElement>(null);
@@ -218,6 +220,9 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
               setIsLoading(false);
               onLoad?.();
             }
+
+            // Mark progress for state machine
+            onProgress?.();
           };
 
           const onImageError = () => {

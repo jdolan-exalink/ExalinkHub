@@ -10,6 +10,7 @@ interface WebRTCPlayerProps {
   style?: React.CSSProperties;
   onLoad?: () => void;
   onError?: (error: Error) => void;
+  onProgress?: () => void; // Added for state machine progress tracking
 }
 
 const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ 
@@ -19,7 +20,8 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({
   className = '', 
   style,
   onLoad,
-  onError 
+  onError,
+  onProgress
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -153,6 +155,37 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({
       }
     };
   }, [src, onLoad, onError]);
+
+  // Video event monitoring for state machine
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onProgress) return;
+
+    const handleVideoEvent = () => {
+      onProgress();
+    };
+
+    // HTML5 video events that indicate activity/progress
+    video.addEventListener('progress', handleVideoEvent);
+    video.addEventListener('timeupdate', handleVideoEvent);
+    video.addEventListener('canplay', handleVideoEvent);
+    video.addEventListener('canplaythrough', handleVideoEvent);
+    video.addEventListener('playing', handleVideoEvent);
+
+    // Events that might indicate issues (but still count as activity)
+    video.addEventListener('waiting', handleVideoEvent);
+    video.addEventListener('stalled', handleVideoEvent);
+
+    return () => {
+      video.removeEventListener('progress', handleVideoEvent);
+      video.removeEventListener('timeupdate', handleVideoEvent);
+      video.removeEventListener('canplay', handleVideoEvent);
+      video.removeEventListener('canplaythrough', handleVideoEvent);
+      video.removeEventListener('playing', handleVideoEvent);
+      video.removeEventListener('waiting', handleVideoEvent);
+      video.removeEventListener('stalled', handleVideoEvent);
+    };
+  }, [onProgress]);
 
   return (
     <div className={`relative w-full h-full ${className}`} style={style}>

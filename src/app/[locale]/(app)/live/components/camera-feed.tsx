@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import UnlimitedPlayer from '@/components/ui/unlimited-player';
+import WebRTCPlayer from '@/components/ui/webrtc-player';
+import HlsPlayer from '@/components/ui/hls-player';
 
 type CameraFeedProps = {
   camera: Camera;
@@ -20,6 +22,8 @@ type CameraFeedProps = {
   isHdCamera?: boolean; // Si esta cámara está en HD
   onFpsChange?: (cameraId: string, fps: number) => void; // Callback para cambios de FPS
 };
+
+type TransportMethod = 'webrtc' | 'hls' | 'mjpeg' | 'snapshot';
 
 export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay = 0, onQualitySwitch, isHdCamera = false, onFpsChange }: CameraFeedProps) {
   const [hasError, setHasError] = useState(false);
@@ -45,6 +49,129 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
   });
   const snapshotRef = useRef<HTMLImageElement>(null);
   const fullscreenVideoRef = useRef<HTMLDivElement>(null);
+
+  // Transport method selection based on context
+  const [transportMethod, setTransportMethod] = useState<TransportMethod>('mjpeg');
+  const [webrtcFailed, setWebrtcFailed] = useState(false);
+  
+  // State machine variables for automatic fallbacks
+  const [transportState, setTransportState] = useState<TransportMethod>('webrtc');
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [snapshotRetryCount, setSnapshotRetryCount] = useState<number>(0);
+
+  // Refs for watchdog timer and progress tracking
+  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProgressRef = useRef<number>(Date.now());
+  const transportStateRef = useRef<TransportMethod>('webrtc');
+
+  // State machine functions for automatic fallbacks
+  const markProgress = useCallback(() => {
+    lastProgressRef.current = Date.now();
+  }, []);
+
+  const startWatchdog = useCallback(() => {
+    if (watchdogTimerRef.current) clearInterval(watchdogTimerRef.current);
+    
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const timeSinceProgress = now - lastProgressRef.current;
+      
+      if (timeSinceProgress > 2000) { // 2 second freeze detection
+        console.warn(`🐕 Watchdog triggered for ${camera.name}: ${timeSinceProgress}ms since last progress`);
+        triggerFallback();
+      }
+    }, 500); // Check every 500ms
+    
+    watchdogTimerRef.current = timer;
+  }, [camera.name]); // Removed lastProgress and triggerFallback from deps
+
+  const stopWatchdog = useCallback(() => {
+    if (watchdogTimerRef.current) {
+      clearInterval(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
+    }
+  }, []);
+
+  const triggerFallback = useCallback(() => {
+    const currentState = transportStateRef.current;
+    let nextState: TransportMethod;
+    let timeout: number;
+
+    switch (currentState) {
+      case 'hls':
+        nextState = 'mjpeg';
+        timeout = 2000; // 2s timeout for MJPEG
+        break;
+      case 'mjpeg':
+        nextState = 'webrtc';
+        timeout = 3000; // 3s timeout for WebRTC
+        break;
+      case 'webrtc':
+        nextState = 'snapshot';
+        timeout = 0; // No timeout for snapshot
+        break;
+      case 'snapshot':
+        // Stay on snapshot, but retry HLS in background
+        setTimeout(() => {
+          console.log(`🔄 Retrying HLS for ${camera.name} (attempt ${retryCount + 1})`);
+          setTransportState('hls');
+          setTransportMethod('hls');
+          transportStateRef.current = 'hls';
+          lastProgressRef.current = Date.now();
+          // Don't start watchdog here to avoid circular dependency
+        }, 1500 * Math.pow(1.5, retryCount)); // Progressive backoff
+        return;
+      default:
+        nextState = 'hls';
+        timeout = 0;
+    }
+
+    console.log(`🔄 Fallback triggered for ${camera.name}: ${currentState} → ${nextState}`);
+    setTransportState(nextState);
+    setTransportMethod(nextState);
+    transportStateRef.current = nextState;
+    setRetryCount(prev => prev + 1);
+
+    if (nextState === 'snapshot') {
+      setSnapshotRetryCount(prev => prev + 1);
+    }
+
+    // Start timeout for next fallback if applicable
+    if (timeout > 0) {
+      setTimeout(() => {
+        if (transportStateRef.current === nextState) { // Still on same state
+          triggerFallback();
+        }
+      }, timeout);
+    }
+  }, [camera.name, retryCount]);
+
+  const tryWebRTC = useCallback(() => {
+    console.log(`🔄 Retrying WebRTC for ${camera.name} (attempt ${retryCount + 1})`);
+    setTransportState('webrtc');
+    setTransportMethod('webrtc');
+    transportStateRef.current = 'webrtc';
+    lastProgressRef.current = Date.now();
+    // Don't call startWatchdog here to avoid circular dependency
+  }, [camera.name, retryCount]);
+
+  const tryHLS = useCallback(() => {
+    console.log(`🔄 Retrying HLS for ${camera.name}`);
+    setTransportState('hls');
+    setTransportMethod('hls');
+    transportStateRef.current = 'hls';
+    lastProgressRef.current = Date.now();
+    // Don't call startWatchdog here to avoid circular dependency
+  }, [camera.name]);
+
+  const tryMJPEG = useCallback(() => {
+    console.log(`🔄 Retrying MJPEG for ${camera.name}`);
+    setTransportState('mjpeg');
+    setTransportMethod('mjpeg');
+    transportStateRef.current = 'mjpeg';
+    lastProgressRef.current = Date.now();
+    // Don't call startWatchdog here to avoid circular dependency
+  }, [camera.name]);
   
   // Función para cambiar calidad con logging robusto
   const handleQualityChange = useCallback(() => {
@@ -228,6 +355,37 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     console.log(`🎛️ Manual quality: ${camera.name} → ${manualQuality === 'main' ? 'HD' : 'SD'}`);
   }, [manualQuality, camera.name]);
 
+  // Initialize state machine on mount and camera change
+  useEffect(() => {
+    console.log(`🚀 Initializing state machine for ${camera.name}`);
+    setTransportState('hls'); // Start with HLS instead of WebRTC until go2rtc is fixed
+    setTransportMethod('hls');
+    transportStateRef.current = 'hls';
+    setRetryCount(0);
+    setSnapshotRetryCount(0);
+    lastProgressRef.current = Date.now();
+    startWatchdog();
+    
+    return () => {
+      stopWatchdog();
+    };
+  }, [camera.id, startWatchdog, stopWatchdog]);
+
+  // Transport method selection based on context (grid vs fullscreen)
+  useEffect(() => {
+    if (isFullscreen) {
+      // For fullscreen: use current state machine state
+      setTransportMethod(transportState);
+    } else {
+      // For grid: prefer MJPEG for efficiency, but respect state machine
+      if (transportState === 'snapshot') {
+        setTransportMethod('snapshot');
+      } else {
+        setTransportMethod('mjpeg');
+      }
+    }
+  }, [isFullscreen, transportState]);
+
   // Log inicial del componente  
   useEffect(() => {
     console.log(`🏁 CameraFeed mounted: ${camera.name} (initial: ${manualQuality})`);
@@ -291,6 +449,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     console.log(`✅ HLS stream loaded for ${camera.id} with quality ${currentStreamQuality}`);
     setIsLoading(false);
     setHasError(false);
+    markProgress(); // Mark progress for watchdog
     
     // Clear loading timeout
     if (loadingTimeout) {
@@ -303,6 +462,32 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     console.warn(`❌ HLS stream failed for ${camera.id} with quality ${currentStreamQuality}`);
     setIsLoading(false);
     setHasError(true);
+    triggerFallback(); // Trigger state machine fallback
+  };
+
+  const handleWebRTCLoad = () => {
+    console.log(`✅ WebRTC loaded for ${camera.id}`);
+    setIsLoading(false);
+    setHasError(false);
+    markProgress();
+    if (loadingTimeout) {
+      clearTimeout(loadingTimeout);
+      setLoadingTimeout(null);
+    }
+  };
+
+  const handleWebRTCError = (error: any) => {
+    console.warn(`❌ WebRTC failed for ${camera.id}, triggering fallback:`, error);
+    setIsLoading(false);
+    setHasError(true);
+    triggerFallback();
+  };
+
+  const handleMJPEGError = () => {
+    console.warn(`❌ MJPEG failed for ${camera.id}`);
+    setIsLoading(false);
+    setHasError(true);
+    triggerFallback();
   };
 
   const renderVideoContent = () => {
@@ -345,7 +530,11 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <div className="text-sm">
-                {!streamStarted ? "Preparando stream..." : "Conectando HLS..."}
+                {!streamStarted ? "Preparando stream..." : 
+                 transportMethod === 'webrtc' ? "Conectando WebRTC..." :
+                 transportMethod === 'hls' ? "Conectando HLS..." :
+                 transportMethod === 'mjpeg' ? "Conectando MJPEG..." :
+                 "Cargando snapshot..."}
               </div>
             </div>
           </div>
@@ -361,24 +550,90 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
           </div>
         )}
 
-        {/* Unlimited Player optimizado - 5 FPS grid, 15 FPS fullscreen */}
+        {/* Video player based on transport method */}
         {streamStarted && (
-          <UnlimitedPlayer
-            camera={camera.id}
-            quality={currentStreamQuality === 'main' ? 'hd' : 'sd'}
-            isFullscreen={isFullscreen}
-            className={cn(
-              "absolute inset-0 transition-opacity duration-500",
-              isLoading ? "opacity-0" : "opacity-100"
+          <>
+            {transportMethod === 'mjpeg' && (
+              <UnlimitedPlayer
+                camera={camera.id}
+                quality={currentStreamQuality === 'main' ? 'hd' : 'sd'}
+                isFullscreen={isFullscreen}
+                className={cn(
+                  "absolute inset-0 transition-opacity duration-500",
+                  isLoading ? "opacity-0" : "opacity-100"
+                )}
+                style={{
+                  objectFit: 'contain',
+                  objectPosition: 'center'
+                }}
+                onLoad={handleHlsLoad}
+                onError={handleMJPEGError}
+                onFpsChange={onFpsChange}
+                onProgress={markProgress}
+              />
             )}
-            style={{
-              objectFit: 'contain', // Mantener contain para ver video completo
-              objectPosition: 'center'
-            }}
-            onLoad={handleHlsLoad}
-            onError={handleHlsError}
-            onFpsChange={onFpsChange}
-          />
+
+            {transportMethod === 'webrtc' && (
+              <WebRTCPlayer
+                src={`${camera.id}:${currentStreamQuality}`}
+                className={cn(
+                  "absolute inset-0 transition-opacity duration-500",
+                  isLoading ? "opacity-0" : "opacity-100"
+                )}
+                style={{
+                  objectFit: 'contain',
+                  objectPosition: 'center'
+                }}
+                onLoad={handleWebRTCLoad}
+                onError={handleWebRTCError}
+                onProgress={markProgress}
+              />
+            )}
+
+            {transportMethod === 'hls' && (
+              <HlsPlayer
+                camera={camera.id}
+                quality={currentStreamQuality === 'main' ? 'hd' : 'sd'}
+                className={cn(
+                  "absolute inset-0 transition-opacity duration-500",
+                  isLoading ? "opacity-0" : "opacity-100"
+                )}
+                style={{
+                  objectFit: 'contain',
+                  objectPosition: 'center'
+                }}
+                onLoad={handleHlsLoad}
+                onError={handleHlsError}
+                onProgress={markProgress}
+              />
+            )}
+
+            {transportMethod === 'snapshot' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-secondary/50">
+                <div className="text-center">
+                  <img
+                    src={getSnapshotUrl()}
+                    alt={`Snapshot from ${camera.name}`}
+                    className="max-w-full max-h-full object-contain rounded"
+                    onLoad={() => {
+                      console.log(`✅ Snapshot displayed for ${camera.id}`);
+                      setIsLoading(false);
+                      markProgress();
+                    }}
+                    onError={() => {
+                      console.warn(`❌ Snapshot failed for ${camera.id}`);
+                    }}
+                  />
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Reintentando conexión... ({snapshotRetryCount})
+                  </div>
+                  <Badge variant="outline" className="mt-1 text-xs">
+                    SNAPSHOT
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </>
     );
@@ -451,7 +706,8 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               <Rss className="h-3 w-3" />
               {hasError ? 'ERROR' : 
                !streamStarted ? 'WAITING' :
-               camera.enabled ? 'LIVE' : 'OFF'}
+               transportMethod === 'snapshot' ? `SNAPSHOT (${snapshotRetryCount})` :
+               camera.enabled ? transportMethod.toUpperCase() : 'OFF'}
             </Badge>
             {camera.enabled && !hasError && (
               <Badge 
@@ -583,7 +839,7 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
               touchAction: 'none' // Prevenir comportamientos de touch por defecto
             }}
           >
-            {/* Para fullscreen usamos UnlimitedPlayer con calidad manual - key fuerza remount */}
+            {/* Video player for fullscreen based on transport method */}
             <div
               style={{
                 transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`,
@@ -605,25 +861,58 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
                 imageRendering: zoomLevel > 1.5 ? 'crisp-edges' : 'auto',
               }}
             >
-              <UnlimitedPlayer
-                key={`${camera.id}-${manualQuality}-fullscreen-stable`}
-                camera={camera.id}
-                quality={manualQuality === 'main' ? 'hd' : 'sd'}
-                isFullscreen={true}
-                disableAdaptive={true} // Deshabilitar adaptive quality para control manual
-                refreshRate={15} // 15fps para fullscreen
-                className="w-full h-full"
-                onLoad={handleHlsLoad}
-                onError={handleHlsError}
-                onFpsChange={onFpsChange}
-                style={{
-                  // Anti-aliasing mejorado para zoom
-                  WebkitFontSmoothing: 'antialiased',
-                  MozOsxFontSmoothing: 'grayscale',
-                  backfaceVisibility: 'hidden',
-                  perspective: '1000px'
-                }}
-              />
+              {transportMethod === 'mjpeg' && (
+                <UnlimitedPlayer
+                  key={`${camera.id}-${manualQuality}-fullscreen-stable`}
+                  camera={camera.id}
+                  quality={manualQuality === 'main' ? 'hd' : 'sd'}
+                  isFullscreen={true}
+                  disableAdaptive={true}
+                  refreshRate={15}
+                  className="w-full h-full"
+                  onLoad={handleHlsLoad}
+                  onError={handleMJPEGError}
+                  onFpsChange={onFpsChange}
+                  onProgress={markProgress}
+                  style={{
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
+                    backfaceVisibility: 'hidden',
+                    perspective: '1000px'
+                  }}
+                />
+              )}
+
+              {transportMethod === 'webrtc' && (
+                <WebRTCPlayer
+                  src={`${camera.id}:${manualQuality}`}
+                  className="w-full h-full"
+                  onLoad={handleWebRTCLoad}
+                  onError={handleWebRTCError}
+                  style={{
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
+                    backfaceVisibility: 'hidden',
+                    perspective: '1000px'
+                  }}
+                />
+              )}
+
+              {transportMethod === 'hls' && (
+                <HlsPlayer
+                  camera={camera.id}
+                  quality={manualQuality === 'main' ? 'hd' : 'sd'}
+                  className="w-full h-full"
+                  onLoad={handleHlsLoad}
+                  onError={handleHlsError}
+                  style={{
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
+                    backfaceVisibility: 'hidden',
+                    perspective: '1000px'
+                  }}
+                />
+              )}
             </div>
             
             {/* Filtro SVG para sharpening */}

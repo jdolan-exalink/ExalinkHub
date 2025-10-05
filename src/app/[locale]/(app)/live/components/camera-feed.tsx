@@ -304,50 +304,29 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
     setCurrentStreamQuality(optimalQuality); // Usar calidad óptima
     setSnapshotLoaded(false);
     setSnapshotError(false);
-    setStreamStarted(streamDelay === 0);
+    
+    // Always start streaming immediately for drag and drop operations
+    setStreamStarted(true);
     
     // Clear previous timeout
     if (loadingTimeout) {
       clearTimeout(loadingTimeout);
     }
     
-    const streamNumber = Math.floor(streamDelay / 2000) + 1;
-    console.log(`🔄 Resetting stream state for camera ${camera.id}, delay: ${streamDelay}ms (${streamDelay > 0 ? `#${streamNumber} in sequence` : 'immediate'}), quality: ${optimalQuality}`);
+    console.log(`🔄 Camera changed to ${camera.id}, immediate streaming start, quality: ${optimalQuality}`);
     
-    // Si hay delay, esperar antes de iniciar el stream
-    if (streamDelay > 0) {
-      const delayTimeout = setTimeout(() => {
-        console.log(`⏱️ Starting delayed stream #${streamNumber} for camera ${camera.id}`);
-        setStreamStarted(true);
-        
-        // Set timeout for loading (15 seconds) después del delay
-        const timeout = setTimeout(() => {
-          console.warn(`⏰ Loading timeout for camera ${camera.id}`);
-          setIsLoading(false);
-          setHasError(true);
-        }, 15000);
-        
-        setLoadingTimeout(timeout);
-      }, streamDelay);
-      
-      return () => {
-        clearTimeout(delayTimeout);
-        if (loadingTimeout) clearTimeout(loadingTimeout);
-      };
-    } else {
-      // Sin delay, configurar timeout inmediatamente
-      const timeout = setTimeout(() => {
-        console.warn(`⏰ Loading timeout for camera ${camera.id}`);
-        setIsLoading(false);
-        setHasError(true);
-      }, 15000);
-      
-      setLoadingTimeout(timeout);
-      
-      return () => {
-        if (timeout) clearTimeout(timeout);
-      };
-    }
+    // Set timeout for loading (15 seconds)
+    const timeout = setTimeout(() => {
+      console.warn(`⏰ Loading timeout for camera ${camera.id}`);
+      setIsLoading(false);
+      setHasError(true);
+    }, 15000);
+    
+    setLoadingTimeout(timeout);
+    
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
   }, [camera.id]);
 
   // useEffect para logging cambios de calidad manual (solo cambios importantes)

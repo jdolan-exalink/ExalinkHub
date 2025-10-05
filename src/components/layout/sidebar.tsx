@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, memo } from 'react'
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInput, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Server, Video, Search, Grid, Circle, AlertTriangle, MoreHorizontal, Edit, Trash2, Plus } from 'lucide-react';
@@ -15,10 +15,118 @@ import { cn } from '@/lib/utils';
 import { useDraggable } from '@dnd-kit/core';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+/**
+ * Componente draggable para servidores completos
+ * Permite arrastrar un servidor y todas sus cámaras al layout
+ * Solo se activa el drag en el área del icono y nombre
+ */
+function DraggableServerItem({ server, serverCameras, onDoubleClick }: { 
+    server: any, 
+    serverCameras: Camera[],
+    onDoubleClick: () => void
+}) {
+    const enabledCameras = useMemo(() => serverCameras.filter(cam => cam.enabled), [serverCameras]);
+    
+    console.log('DraggableServerItem render:', {
+        serverName: server.name,
+        totalCameras: serverCameras.length,
+        enabledCameras: enabledCameras.length,
+        enabledCameraNames: enabledCameras.map(c => c.name)
+    });
+    
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `server-${server.id}`,
+        data: { 
+            server, 
+            cameras: enabledCameras, // Solo cámaras habilitadas
+            from: 'sidebar',
+            type: 'server'
+        },
+    });
+    
+    console.log('DraggableServerItem setup:', {
+        id: `server-${server.id}`,
+        hasListeners: !!listeners,
+        hasAttributes: !!attributes,
+        isDragging
+    });
+
+    if (isDragging) {
+        console.log('Server dragging:', server.name, 'with cameras:', enabledCameras.map(c => c.name));
+    }
+
+    // Log when drag starts
+    React.useEffect(() => {
+        if (isDragging) {
+            console.log('=== DRAG STARTED ===');
+            console.log('Server:', server.name);
+            console.log('Cameras:', enabledCameras.map(c => c.name));
+        }
+    }, [isDragging]);
+
+    const handleDoubleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Double-click on server:', server.name, 'enabled cameras:', enabledCameras.length);
+        onDoubleClick();
+    };
+
+    const handleClick = (e: React.MouseEvent) => {
+        // Prevenir que el click se propague al accordion
+        e.stopPropagation();
+    };
+
+    return (
+        <div className="transition-all duration-200 relative">
+            {/* Overlay visual durante drag */}
+            {isDragging && (
+                <div className="absolute inset-0 bg-blue-500/20 rounded-md border-2 border-blue-500 border-dashed animate-pulse z-10" />
+            )}
+            
+            {/* Badge con número de cámaras durante drag */}
+            {isDragging && (
+                <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-lg z-20 font-semibold">
+                    {enabledCameras.length} cámaras
+                </div>
+            )}
+            
+            {/* Área draggable limitada al icono y nombre */}
+            <div 
+                ref={setNodeRef}
+                className={cn(
+                    "flex items-center gap-2 flex-1 cursor-grab transition-all duration-200 z-30 pointer-events-auto",
+                    isDragging && "opacity-30 scale-95 rotate-1 shadow-lg z-50"
+                )}
+                {...listeners}
+                {...attributes}
+                onDoubleClick={handleDoubleClick}
+                onClick={handleClick}
+            >
+                <Server className="h-4 w-4" />
+                <span>{server.name}</span>
+                <Circle className={cn("h-2 w-2", 
+                    ((server.status as any)?.api_status === 'online' || server.status === 'online')
+                        ? "fill-green-500 text-green-500" 
+                        : "fill-red-500 text-red-500"
+                )} />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Componente draggable para cámaras individuales
+ * Permite arrastrar una cámara específica al layout
+ * Solo se activa el drag en el área del icono y nombre
+ */
 function DraggableCameraItem({ camera, onDoubleClick }: { camera: Camera, onDoubleClick: () => void }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `camera-${camera.id}`,
-        data: { camera, from: 'sidebar' },
+        data: { 
+            camera, 
+            from: 'sidebar',
+            type: 'camera'
+        },
     });
 
     const handleDoubleClick = (e: React.MouseEvent) => {
@@ -35,44 +143,66 @@ function DraggableCameraItem({ camera, onDoubleClick }: { camera: Camera, onDoub
     };
 
     return (
-        <SidebarMenuItem 
-            ref={setNodeRef}
-            className={cn(
-                "transition-all duration-200 group",
-                isDragging && "opacity-50 scale-95"
+        <SidebarMenuItem className={cn(
+            "transition-all duration-200 group relative",
+            isDragging && "opacity-30 scale-95 rotate-2 shadow-lg z-50"
+        )}>
+            {/* Overlay visual durante drag */}
+            {isDragging && (
+                <div className="absolute inset-0 bg-primary/20 rounded-md border-2 border-primary border-dashed animate-pulse z-10" />
             )}
-            {...listeners}
-            {...attributes}
-        >
+            
+            {/* Badge indicando tipo de drag */}
+            {isDragging && (
+                <div className="absolute -top-2 -right-2 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full shadow-lg z-20 font-semibold">
+                    CAM
+                </div>
+            )}
+            
             <SidebarMenuButton 
-                className={cn(
-                    "h-8 cursor-grab hover:bg-sidebar-accent/80 transition-colors",
-                    "hover:scale-[1.02] active:scale-95"
-                )} 
+                className="h-8 hover:bg-sidebar-accent/80 transition-colors relative z-20"
                 asChild
             >
-                <div 
-                    className="flex w-full items-center gap-2 px-2 py-1 rounded-md select-none"
-                    onDoubleClick={handleDoubleClick}
-                >
-                    <div className={cn(
-                        "p-1 rounded bg-primary/10 transition-colors",
-                        isDragging && "bg-primary/20"
-                    )}>
-                        <Video className="h-3 w-3 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium flex-1">{camera.name}</span>
-                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="grid grid-cols-2 gap-0.5">
-                            <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
-                            <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
-                            <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
-                            <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
+                <div className="flex w-full items-center gap-2 px-2 py-1 rounded-md select-none">
+                    {/* Área draggable limitada al icono y nombre */}
+                    <div 
+                        ref={setNodeRef}
+                        className={cn(
+                            "flex items-center gap-2 flex-1 cursor-grab transition-colors",
+                            "hover:scale-[1.02] active:scale-95",
+                            isDragging && "bg-primary/10 border border-primary/50"
+                        )}
+                        {...listeners}
+                        {...attributes}
+                        onDoubleClick={handleDoubleClick}
+                    >
+                        <div className={cn(
+                            "p-1 rounded bg-primary/10 transition-colors",
+                            isDragging && "bg-primary/20 scale-110"
+                        )}>
+                            <Video className={cn("h-3 w-3 text-primary", isDragging && "animate-bounce")} />
                         </div>
+                        <span className={cn(
+                            "text-sm font-medium flex-1",
+                            isDragging && "text-primary font-semibold"
+                        )}>
+                            {camera.name}
+                        </span>
                     </div>
+                    
+                    {/* Área no draggable para los iconos de la derecha */}
                     <div className="flex items-center gap-1">
+                        <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="grid grid-cols-2 gap-0.5">
+                                <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
+                                <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
+                                <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
+                                <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full"></div>
+                            </div>
+                        </div>
                         <Circle className={cn("h-2 w-2", 
-                            camera.enabled ? "fill-green-500 text-green-500" : "fill-red-500 text-red-500"
+                            camera.enabled ? "fill-green-500 text-green-500" : "fill-red-500 text-red-500",
+                            isDragging && "animate-pulse"
                         )} />
                     </div>
                 </div>
@@ -81,7 +211,89 @@ function DraggableCameraItem({ camera, onDoubleClick }: { camera: Camera, onDoub
     );
 }
 
+/**
+ * Componente memo para renderizar un servidor de manera estable
+ */
+const ServerAccordionItem = memo(({ 
+    server, 
+    serverCameras, 
+    searchTerm, 
+    loading, 
+    onCameraDoubleClick 
+}: {
+    server: any;
+    serverCameras: Camera[];
+    searchTerm: string;
+    loading: boolean;
+    onCameraDoubleClick: (camera: Camera) => void;
+}) => {
+    const handleServerDoubleClick = useCallback(() => {
+        console.log('Server double-click handler called for:', server.name);
+        // Agregar todas las cámaras habilitadas del servidor al grid
+        const enabledCameras = serverCameras.filter(cam => cam.enabled);
+        console.log('Enabled cameras found:', enabledCameras.length, enabledCameras.map(c => c.name));
+        if (enabledCameras.length > 0) {
+            // Disparar evento para agregar múltiples cámaras
+            const addServerEvent = new CustomEvent('addServerToGrid', {
+                detail: { server, cameras: enabledCameras }
+            });
+            console.log('Dispatching addServerToGrid event:', addServerEvent.detail);
+            window.dispatchEvent(addServerEvent);
+        } else {
+            console.log('No enabled cameras found for server:', server.name);
+        }
+    }, [server.id, serverCameras]);
+
+    const serverFilteredCameras = useMemo(() => 
+        serverCameras.filter(camera =>
+            camera.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ), [serverCameras, searchTerm]
+    );
+
+    return (
+        <AccordionItem key={server.id} value={server.id} className="border-none">
+            <AccordionTrigger className="py-2 px-2 hover:bg-sidebar-accent rounded-md">
+                <div className="flex items-center gap-2 text-sm font-medium w-full pointer-events-none">
+                    <DraggableServerItem 
+                        server={server} 
+                        serverCameras={serverCameras}
+                        onDoubleClick={handleServerDoubleClick}
+                    />
+                    <div className="pointer-events-auto">
+                        <Badge variant="secondary">
+                            {loading ? '...' : serverFilteredCameras.length}
+                        </Badge>
+                    </div>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent className="pl-4">
+                <SidebarMenu>
+                    {loading ? (
+                        <p className="px-2 py-1 text-xs text-muted-foreground">Cargando cámaras...</p>
+                    ) : serverFilteredCameras.length === 0 ? (
+                        <p className="px-2 py-1 text-xs text-muted-foreground">
+                            {searchTerm ? 'No se encontraron cámaras.' : 'No hay cámaras disponibles.'}
+                        </p>
+                    ) : (
+                        serverFilteredCameras.map(camera => (
+                            <DraggableCameraItem 
+                                key={camera.id} 
+                                camera={camera} 
+                                onDoubleClick={() => onCameraDoubleClick(camera)}
+                            />
+                        ))
+                    )}
+                </SidebarMenu>
+            </AccordionContent>
+        </AccordionItem>
+    );
+});
+
+ServerAccordionItem.displayName = 'ServerAccordionItem';
+
 export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClick: (camera: Camera) => void }) {
+  console.log('🟡 SIDEBAR COMPONENT RENDERING');
+  
   const [servers, setServers] = useState<FrigateServer[]>([]);
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [savedViews, setSavedViews] = useState<any[]>([]);
@@ -90,6 +302,37 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
   const [searchTerm, setSearchTerm] = useState('');
   const [bandwidth, setBandwidth] = useState<string>('0 KB/s');
   const [activeFrames, setActiveFrames] = useState<number>(0);
+
+  // Estabilizar event handlers para window events
+  const handleViewSaved = useCallback(() => {
+    // Recargar la lista de vistas
+    async function loadSavedViews() {
+      try {
+        const response = await fetch('/api/views');
+        if (response.ok) {
+          const views = await response.json();
+          setSavedViews(views);
+        }
+      } catch (err) {
+        console.error('Error loading saved views:', err);
+      }
+    }
+    loadSavedViews();
+  }, []);
+
+  const handleBandwidthUpdate = useCallback((event: Event) => {
+    const customEvent = event as CustomEvent;
+    setBandwidth(customEvent.detail.bandwidth);
+  }, []);
+
+  const handleActiveFramesUpdate = useCallback((event: Event) => {
+    const customEvent = event as CustomEvent;
+    setActiveFrames(customEvent.detail.count);
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -127,22 +370,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
     loadData();
     loadSavedViews();
     
-    // Escuchar evento cuando se guarde una nueva vista
-    const handleViewSaved = () => {
-      loadSavedViews(); // Recargar la lista de vistas
-    };
-    
-    // Escuchar actualizaciones de ancho de banda y FPS activos
-    const handleBandwidthUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      setBandwidth(customEvent.detail.bandwidth);
-    };
-    
-    const handleActiveFramesUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      setActiveFrames(customEvent.detail.count);
-    };
-    
+    // Los event handlers ya están estabilizados con useCallback
     window.addEventListener('viewSaved', handleViewSaved);
     window.addEventListener('bandwidthUpdate', handleBandwidthUpdate);
     window.addEventListener('activeFramesUpdate', handleActiveFramesUpdate);
@@ -152,18 +380,18 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
       window.removeEventListener('bandwidthUpdate', handleBandwidthUpdate);
       window.removeEventListener('activeFramesUpdate', handleActiveFramesUpdate);
     };
-  }, []);
+  }, [handleViewSaved, handleBandwidthUpdate, handleActiveFramesUpdate]);
 
-  const handleLoadView = (view: any) => {
+  const handleLoadView = useCallback((view: any) => {
     console.log('Loading view:', view);
     // Crear evento personalizado para comunicación con LiveView
     const loadViewEvent = new CustomEvent('loadSavedView', { 
       detail: view
     });
     window.dispatchEvent(loadViewEvent);
-  };
+  }, []);
 
-  const handleRenameView = async (view: any) => {
+  const handleRenameView = useCallback(async (view: any) => {
     const newName = window.prompt('Nuevo nombre para la vista:', view.name);
     if (newName && newName.trim() && newName !== view.name) {
       try {
@@ -189,17 +417,17 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
         console.error('Error renaming view:', err);
       }
     }
-  };
+  }, []);
 
-  const handleSaveView = async (viewName: string) => {
+  const handleSaveView = useCallback(async (viewName: string) => {
     // Solicitar estado actual del grid al LiveView
     const saveRequestEvent = new CustomEvent('requestSaveView', {
       detail: { name: viewName }
     });
     window.dispatchEvent(saveRequestEvent);
-  };
+  }, []);
 
-  const handleDeleteView = async (view: any) => {
+  const handleDeleteView = useCallback(async (view: any) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar la vista "${view.name}"?`)) {
       try {
         const response = await fetch(`/api/views/${view.id}`, {
@@ -218,10 +446,12 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
         console.error('Error deleting view:', err);
       }
     }
-  };
+  }, []);
 
-  const filteredCameras = cameras.filter(camera =>
-    camera.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCameras = useMemo(() =>
+    cameras.filter(camera =>
+      camera.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [cameras, searchTerm]
   );
 
   return (
@@ -233,7 +463,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                 placeholder="Search cameras..." 
                 className="pl-8" 
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
             />
         </div>
       </SidebarHeader>
@@ -280,48 +510,16 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                         const serverCameras = cameras.filter(camera => 
                             String(camera.server_id) === String(server.id) || camera.server === server.id
                         );
-                        const serverFilteredCameras = serverCameras.filter(camera =>
-                            camera.name.toLowerCase().includes(searchTerm.toLowerCase())
-                        );
                         
                         return (
-                            <AccordionItem key={server.id} value={server.id} className="border-none">
-                                <AccordionTrigger className="py-2 px-2 hover:bg-sidebar-accent rounded-md">
-                                    <div className="flex items-center gap-2 text-sm font-medium w-full">
-                                        <div className="flex items-center gap-2 flex-1">
-                                            <Server className="h-4 w-4" />
-                                            <span>{server.name}</span>
-                                            <Circle className={cn("h-2 w-2", 
-                                                ((server.status as any)?.api_status === 'online' || server.status === 'online')
-                                                    ? "fill-green-500 text-green-500" 
-                                                    : "fill-red-500 text-red-500"
-                                            )} />
-                                        </div>
-                                        <Badge variant="secondary">
-                                            {loading ? '...' : serverFilteredCameras.length}
-                                        </Badge>
-                                    </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pl-4">
-                                    <SidebarMenu>
-                                        {loading ? (
-                                            <p className="px-2 py-1 text-xs text-muted-foreground">Cargando cámaras...</p>
-                                        ) : serverFilteredCameras.length === 0 ? (
-                                            <p className="px-2 py-1 text-xs text-muted-foreground">
-                                                {searchTerm ? 'No se encontraron cámaras.' : 'No hay cámaras disponibles.'}
-                                            </p>
-                                        ) : (
-                                            serverFilteredCameras.map(camera => (
-                                                <DraggableCameraItem 
-                                                    key={camera.id} 
-                                                    camera={camera} 
-                                                    onDoubleClick={() => onCameraDoubleClick(camera)}
-                                                />
-                                            ))
-                                        )}
-                                    </SidebarMenu>
-                                </AccordionContent>
-                            </AccordionItem>
+                            <ServerAccordionItem
+                                key={server.id}
+                                server={server}
+                                serverCameras={serverCameras}
+                                searchTerm={searchTerm}
+                                loading={loading}
+                                onCameraDoubleClick={onCameraDoubleClick}
+                            />
                         );
                     })}
                 </Accordion>

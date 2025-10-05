@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Camera } from '@/lib/types';
-import { DndContext, useDroppable, type DragEndEvent } from '@dnd-kit/core';
+import { useDroppable, type DragEndEvent } from '@dnd-kit/core';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDragContext } from '@/contexts/drag-context';
 import {
   Select,
   SelectContent,
@@ -38,7 +39,6 @@ type GridCell = {
 
 type LiveViewProps = {
   cameras: Camera[];
-  onCameraDoubleClick: (camera: Camera) => void;
 };
 
 function DroppableCell({ cell, onRemove, onFpsChange, children }: { 
@@ -47,9 +47,23 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
   onFpsChange?: (cameraId: string, fps: number) => void,
   children: React.ReactNode 
 }) {
-  const { isOver, setNodeRef } = useDroppable({
+  const { isOver, setNodeRef, active } = useDroppable({
     id: `cell-${cell.id}`,
   });
+
+  // Determinar el tipo de operación de drag
+  const dragType = active?.data.current?.type;
+  const isServerDrag = dragType === 'server';
+  const isCameraDrag = dragType === 'camera';
+
+  if (isOver) {
+    console.log(`DroppableCell ${cell.id} - isOver detected:`, {
+      dragType,
+      isServerDrag,
+      isCameraDrag,
+      activeData: active?.data.current
+    });
+  }
 
   return (
     <motion.div
@@ -61,15 +75,34 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
       <Card
         ref={setNodeRef}
         className={cn(
-          "bg-secondary/20 flex items-center justify-center relative transition-all duration-200 border-2 border-dashed w-full",
+          "bg-secondary/20 flex items-center justify-center relative transition-all duration-300 border-2 border-dashed w-full",
           "grid-cell-16x9 camera-container", // Clases CSS personalizadas para 16:9
-          isOver && "ring-2 ring-primary ring-inset bg-primary/10 border-primary scale-[1.01]",
+          isOver && isCameraDrag && "ring-4 ring-primary ring-inset bg-primary/20 border-primary scale-[1.02] shadow-lg shadow-primary/20",
+          isOver && isServerDrag && "ring-4 ring-blue-500 ring-inset bg-blue-500/20 border-blue-500 scale-[1.02] shadow-lg shadow-blue-500/20",
           cell.camera ? "border-border bg-card" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-secondary/40"
         )}
         style={{
           aspectRatio: '16/9' // Garantizar 16:9 en todos los navegadores
         }}
       >
+        {/* Indicador visual para drop de servidor */}
+        {isOver && isServerDrag && (
+          <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 z-10 pointer-events-none">
+            <div className="text-blue-600 text-xs font-medium bg-blue-100 px-2 py-1 rounded-md shadow-sm">
+              Servidor: {active?.data.current?.server?.name}
+            </div>
+          </div>
+        )}
+        
+        {/* Indicador visual para drop de cámara */}
+        {isOver && isCameraDrag && (
+          <div className="absolute inset-0 flex items-center justify-center bg-primary/10 z-10 pointer-events-none">
+            <div className="text-primary text-xs font-medium bg-background px-2 py-1 rounded-md shadow-sm">
+              {active?.data.current?.camera?.name}
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {cell.camera ? (
             <motion.div
@@ -92,17 +125,26 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
               className="flex flex-col items-center justify-center text-center p-4"
             >
               <div className={cn(
-                "text-4xl mb-2 transition-colors",
-                isOver ? "text-primary" : "text-muted-foreground/50"
+                "text-4xl mb-2 transition-all duration-300",
+                isOver ? "text-primary scale-110 animate-bounce" : "text-muted-foreground/50"
               )}>
                 📹
               </div>
               <span className={cn(
-                "text-sm font-medium transition-colors",
-                isOver ? "text-primary" : "text-muted-foreground"
+                "text-sm font-medium transition-all duration-300",
+                isOver ? "text-primary font-bold scale-105" : "text-muted-foreground"
               )}>
-                {isOver ? "Soltar cámara aquí" : "Arrastra una cámara"}
+                {isOver ? "¡Soltar aquí!" : "Arrastra una cámara"}
               </span>
+              {isOver && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-2 text-xs text-primary/70 font-medium"
+                >
+                  Iniciará streaming automáticamente
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -481,6 +523,7 @@ function MosaicLayout({
 
 export default function LiveView({ cameras }: { cameras: Camera[] }) {
   const { toast } = useToast();
+  const dragContext = useDragContext();
   const [layout, setLayout] = useState<keyof typeof gridLayouts>('2x2'); // Cambiar por defecto a 2x2
   const [gridCells, setGridCells] = useState<GridCell[]>([]);
   const [isLoadingView, setIsLoadingView] = useState(false); // Para vistas guardadas
@@ -626,6 +669,41 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         }, 0);
         return currentCells;
       }
+    });
+  };
+
+  /**
+   * Función para agregar múltiples cámaras al layout
+   * Útil cuando se arrastra un servidor completo
+   */
+  const addMultipleCamerasToGrid = (camerasToAdd: Camera[], startFromIndex: number = 0) => {
+    console.log('addMultipleCamerasToGrid called with:', camerasToAdd.length, 'cameras, starting from index:', startFromIndex);
+    setGridCells(currentCells => {
+      const newCells = [...currentCells];
+      const availableSlots = newCells.length;
+      let addedCount = 0;
+      
+      console.log('Current grid has', availableSlots, 'slots');
+      
+      // Filtrar cámaras que no estén ya en el grid
+      const uniqueCameras = camerasToAdd.filter(camera => 
+        !newCells.some(cell => cell.camera?.id === camera.id)
+      );
+      
+      console.log('Unique cameras to add:', uniqueCameras.length, uniqueCameras.map(c => c.name));
+      
+      // Colocar cámaras empezando desde el índice especificado
+      uniqueCameras.forEach((camera, idx) => {
+        const targetIndex = (startFromIndex + idx) % availableSlots;
+        if (targetIndex < availableSlots) {
+          newCells[targetIndex] = { ...newCells[targetIndex], camera: camera };
+          addedCount++;
+          console.log(`Placed camera ${camera.name} at index ${targetIndex}`);
+        }
+      });
+      
+      console.log(`Added ${addedCount} cameras to grid`);
+      return newCells;
     });
   };
 
@@ -807,9 +885,33 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     
     window.addEventListener('requestSaveView', handleSaveRequest);
     
+    // Escuchar eventos de doble-click en servidores
+    const handleAddServerToGrid = (event: Event) => {
+      console.log('handleAddServerToGrid called with event:', event);
+      const customEvent = event as CustomEvent;
+      const { server, cameras } = customEvent.detail;
+      
+      console.log('Adding server to grid:', server.name, 'cameras:', cameras.length);
+      
+      // Usar la función existente para agregar múltiples cámaras
+      addMultipleCamerasToGrid(cameras, 0);
+      
+      // Mostrar notificación
+      setTimeout(() => {
+        toast({
+          title: "Servidor agregado",
+          description: `${cameras.length} cámaras de ${server.name} agregadas al layout`,
+          duration: 4000,
+        });
+      }, 100);
+    };
+    
+    window.addEventListener('addServerToGrid', handleAddServerToGrid);
+    
     return () => {
       window.removeEventListener('loadSavedView', handleLoadSavedView as any);
       window.removeEventListener('requestSaveView', handleSaveRequest);
+      window.removeEventListener('addServerToGrid', handleAddServerToGrid);
     };
   }, [toast]);
 
@@ -932,14 +1034,43 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     });
   }, []);
 
+  /**
+   * Maneja el final del drag and drop
+   * Soporta tanto cámaras individuales como servidores completos
+   */
   const handleDragEnd = (event: DragEndEvent) => {
     const { over, active } = event;
     
-    console.log('Drag end:', { over, active }); // Debug log
+    console.log('=== DRAG END DEBUG ===');
+    console.log('Drag end event:', { over, active }); // Debug log
     
-    if (!over) return;
+    if (!over) {
+      console.log('WARNING: No drop target detected');
+      return;
+    }
     
-    const camera = active.data.current?.camera as Camera;
+    const dragData = active.data.current;
+    const dragType = dragData?.type;
+    
+    console.log('Drag data extracted:', dragData);
+    console.log('Drag type identified:', dragType);
+    
+    if (dragType === 'server') {
+      console.log('Handling server drop...');
+      handleServerDrop(dragData, over);
+    } else if (dragType === 'camera') {
+      console.log('Handling camera drop...');
+      handleCameraDrop(dragData, over);
+    } else {
+      console.log('ERROR: Unknown drag type:', dragType);
+    }
+  };
+
+  /**
+   * Maneja el drop de una cámara individual
+   */
+  const handleCameraDrop = (dragData: any, over: any) => {
+    const camera = dragData?.camera as Camera;
     if (!camera) return;
 
     const targetCellId = parseInt(over.id.toString().replace('cell-', ''), 10);
@@ -949,10 +1080,10 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       const targetCellIndex = newCells.findIndex(c => c.id === targetCellId);
       if (targetCellIndex === -1) return currentCells;
 
-      const sourceOrigin = active.data.current?.from;
-      const sourceCellId = active.data.current?.gridCellId;
+      const sourceOrigin = dragData?.from;
+      const sourceCellId = dragData?.gridCellId;
 
-      console.log('Drag details:', { sourceOrigin, sourceCellId, targetCellId, camera }); // Debug log
+      console.log('Camera drag details:', { sourceOrigin, sourceCellId, targetCellId, camera }); // Debug log
 
       // Check if this camera is already in the grid
       const existingCameraIndex = newCells.findIndex(c => c.camera?.id === camera.id);
@@ -965,20 +1096,127 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
             const targetCamera = newCells[targetCellIndex].camera;
             newCells[targetCellIndex] = { ...newCells[targetCellIndex], camera: sourceCamera };
             newCells[sourceCellIndex] = { ...newCells[sourceCellIndex], camera: targetCamera };
+            
+            // Notificar swap dentro del grid
+            setTimeout(() => {
+              toast({
+                title: "Cámaras intercambiadas",
+                description: `${sourceCamera?.name || 'Cámara'} ↔ ${targetCamera?.name || 'Cámara'}`,
+                duration: 2000,
+              });
+            }, 0);
         }
       } else { // Dragging from sidebar
+        const targetCamera = newCells[targetCellIndex].camera;
+        
         if (existingCameraIndex !== -1) {
             // If camera exists, swap with target
-            const targetCamera = newCells[targetCellIndex].camera;
+            const existingCamera = newCells[existingCameraIndex].camera;
             newCells[targetCellIndex] = { ...newCells[targetCellIndex], camera: camera };
             newCells[existingCameraIndex] = { ...newCells[existingCameraIndex], camera: targetCamera };
+            
+            // Notificar swap desde sidebar
+            setTimeout(() => {
+              toast({
+                title: "Cámara movida",
+                description: `${camera.name} reemplazó a ${existingCamera?.name} en la posición ${targetCellId + 1}`,
+                duration: 3000,
+              });
+            }, 0);
         } else {
             // If camera doesn't exist, place it, displacing the existing one if any
+            const wasEmpty = !targetCamera;
             newCells[targetCellIndex] = { ...newCells[targetCellIndex], camera: camera };
+            
+            // Notificar colocación desde sidebar
+            setTimeout(() => {
+              if (wasEmpty) {
+                toast({
+                  title: "Cámara agregada",
+                  description: `${camera.name} iniciando streaming en posición ${targetCellId + 1}`,
+                  duration: 3000,
+                });
+              } else {
+                toast({
+                  title: "Cámara reemplazada",
+                  description: `${camera.name} reemplazó a ${targetCamera?.name} en posición ${targetCellId + 1}`,
+                  duration: 3000,
+                });
+              }
+            }, 0);
         }
       }
       
       console.log('New grid state:', newCells); // Debug log
+      // Limpiar delays cuando se hace drag and drop
+      setStreamDelays({});
+      return newCells;
+    });
+  };
+
+  /**
+   * Maneja el drop de un servidor completo
+   * Distribuye automáticamente las cámaras del servidor en el layout
+   */
+  const handleServerDrop = (dragData: any, over: any) => {
+    console.log('=== SERVER DROP DEBUG ===');
+    console.log('dragData received:', dragData);
+    console.log('over target:', over);
+    
+    const server = dragData?.server;
+    const serverCameras = dragData?.cameras as Camera[];
+    
+    console.log('server extracted:', server);
+    console.log('serverCameras extracted:', serverCameras);
+    
+    if (!server || !serverCameras || serverCameras.length === 0) {
+      console.log('ERROR: Missing server or cameras data');
+      toast({
+        title: "Sin cámaras disponibles",
+        description: `El servidor ${server?.name || 'desconocido'} no tiene cámaras habilitadas`,
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    const targetCellId = parseInt(over.id.toString().replace('cell-', ''), 10);
+    console.log('targetCellId calculated:', targetCellId);
+    
+    setGridCells(currentCells => {
+      console.log('Current grid cells before update:', currentCells);
+      const newCells = [...currentCells];
+      const totalCells = newCells.length;
+      const camerasToPlace = serverCameras.slice(0, totalCells); // Limitar al tamaño del grid
+      
+      console.log('totalCells:', totalCells);
+      console.log('camerasToPlace:', camerasToPlace);
+      
+      // Si se arrastra sobre una celda específica, empezar desde esa posición
+      let startIndex = targetCellId;
+      
+      // Colocar cámaras secuencialmente desde la posición objetivo
+      camerasToPlace.forEach((camera, idx) => {
+        const cellIndex = (startIndex + idx) % totalCells;
+        console.log(`Placing camera ${camera.name} at cellIndex ${cellIndex}`);
+        newCells[cellIndex] = { ...newCells[cellIndex], camera: camera };
+      });
+      
+      console.log('Updated grid cells:', newCells);
+      
+      // Mostrar notificación
+      setTimeout(() => {
+        const placedCount = camerasToPlace.length;
+        const totalServerCameras = serverCameras.length;
+        
+        toast({
+          title: "Servidor agregado",
+          description: `${placedCount} de ${totalServerCameras} cámaras de ${server.name} colocadas en el layout`,
+          duration: 4000,
+        });
+      }, 0);
+      
+      console.log('Server drop - New grid state:', newCells); // Debug log
       // Limpiar delays cuando se hace drag and drop
       setStreamDelays({});
       return newCells;
@@ -1035,9 +1273,45 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     }
   };
 
+  // Registrar handlers en el layout usando contexto
+  useEffect(() => {
+    console.log('=== REGISTERING HANDLERS ===');
+    console.log('Registering drag and double-click handlers...');
+    console.log('dragContext available:', !!dragContext);
+    
+    if (dragContext.registerDoubleClickHandler) {
+      console.log('Registering double-click handler via context');
+      dragContext.registerDoubleClickHandler(addCameraToFirstEmptyCell);
+    } else {
+      console.log('❌ dragContext.registerDoubleClickHandler is not available');
+    }
+    
+    if (dragContext.registerDragEndHandler) {
+      console.log('Registering drag-end handler via context');
+      dragContext.registerDragEndHandler(handleDragEnd);
+    } else {
+      console.log('❌ dragContext.registerDragEndHandler is not available');
+    }
+    
+    // TAMBIÉN escuchar eventos de dragEnd del window
+    const handleWindowDragEnd = (event: Event) => {
+      console.log('=== WINDOW DRAG END RECEIVED ===');
+      const customEvent = event as CustomEvent;
+      console.log('Window drag end event detail:', customEvent.detail);
+      handleDragEnd(customEvent.detail);
+    };
+    
+    window.addEventListener('dragEnd', handleWindowDragEnd);
+    
+    return () => {
+      window.removeEventListener('dragEnd', handleWindowDragEnd);
+    };
+  }, [dragContext]);
+
+  console.log('🔵 LIVE VIEW COMPONENT RENDERING');
+
   return (
-    <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
               <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">Live View</h1>
               <div className="flex items-center gap-1 sm:gap-2">
@@ -1129,85 +1403,84 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
             <Maximize2 className="h-6 w-6" />
           </Button>
         </div>
-      </div>
 
-      {/* Modal de grilla en pantalla completa */}
-      <Dialog open={isGridFullscreen} onOpenChange={setIsGridFullscreen}>
-        <DialogContent className="p-0 sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] border-0 bg-black max-h-[100vh] w-full h-full">
-          <DialogHeader className="absolute top-2 left-2 z-10 bg-black/70 p-3 rounded-lg">
-            <DialogTitle className="text-white text-lg">Vista Completa - Todas las Cámaras</DialogTitle>
-          </DialogHeader>
-          
-          {/* Botón de salir en pantalla completa */}
-          <div className="absolute top-2 right-2 z-10">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 bg-black/70 hover:bg-red-600 text-white hover:text-white backdrop-blur-sm rounded" 
-              onClick={() => setIsGridFullscreen(false)}
-              title="Salir de pantalla completa"
-            >
-              <Minimize2 className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {/* Grilla completa en fullscreen */}
-          <div className="w-full h-full bg-black p-4">
-            {(layout === '1+5' || layout === '1+12') ? (
-              // Render mosaic layouts in fullscreen
-              <MosaicLayout 
-                layout={layout}
-                gridCells={gridCells}
-                onRemoveCamera={handleRemoveCamera}
-                onFpsChange={handleFpsChange}
-                streamDelays={streamDelays}
-                hdCameraId={hdCameraId}
-                onQualitySwitch={handleQualitySwitch}
-              />
-            ) : (
-              // Render standard grid layouts in fullscreen
-              <motion.div 
-                className={cn('grid gap-4 h-full w-full', gridLayouts[layout])}
-                layout
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-              >
-                {gridCells.map(cell => (
-                  <div key={cell.id} className="relative">
-                    {cell.camera ? (
-                      <CameraFeed 
-                        camera={cell.camera} 
-                        onRemove={handleRemoveCamera} 
-                        gridCellId={cell.id} 
-                        streamDelay={streamDelays[cell.id] || 0}
-                        onQualitySwitch={handleQualitySwitch}
-                        isHdCamera={hdCameraId === cell.camera.id}
-                        onFpsChange={handleFpsChange}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                        Celda vacía
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Botón flotante de salida en esquina inferior derecha */}
-            <div className="fixed bottom-4 right-4 z-50">
+        {/* Modal de grilla en pantalla completa */}
+        <Dialog open={isGridFullscreen} onOpenChange={setIsGridFullscreen}>
+          <DialogContent className="p-0 sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] border-0 bg-black max-h-[100vh] w-full h-full">
+            <DialogHeader className="absolute top-2 left-2 z-10 bg-black/70 p-3 rounded-lg">
+              <DialogTitle className="text-white text-lg">Vista Completa - Todas las Cámaras</DialogTitle>
+            </DialogHeader>
+            
+            {/* Botón de salir en pantalla completa */}
+            <div className="absolute top-2 right-2 z-10">
               <Button 
-                variant="default" 
+                variant="ghost" 
                 size="icon" 
-                className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-red-600 text-white"
+                className="h-8 w-8 bg-black/70 hover:bg-red-600 text-white hover:text-white backdrop-blur-sm rounded" 
                 onClick={() => setIsGridFullscreen(false)}
                 title="Salir de pantalla completa"
               >
-                <Minimize2 className="h-6 w-6" />
+                <Minimize2 className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </DndContext>
+            
+            {/* Grilla completa en fullscreen */}
+            <div className="w-full h-full bg-black p-4">
+              {(layout === '1+5' || layout === '1+12') ? (
+                // Render mosaic layouts in fullscreen
+                <MosaicLayout 
+                  layout={layout}
+                  gridCells={gridCells}
+                  onRemoveCamera={handleRemoveCamera}
+                  onFpsChange={handleFpsChange}
+                  streamDelays={streamDelays}
+                  hdCameraId={hdCameraId}
+                  onQualitySwitch={handleQualitySwitch}
+                />
+              ) : (
+                // Render standard grid layouts in fullscreen
+                <motion.div 
+                  className={cn('grid gap-4 h-full w-full', gridLayouts[layout])}
+                  layout
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  {gridCells.map(cell => (
+                    <div key={cell.id} className="relative">
+                      {cell.camera ? (
+                        <CameraFeed 
+                          camera={cell.camera} 
+                          onRemove={handleRemoveCamera} 
+                          gridCellId={cell.id} 
+                          streamDelay={streamDelays[cell.id] || 0}
+                          onQualitySwitch={handleQualitySwitch}
+                          isHdCamera={hdCameraId === cell.camera.id}
+                          onFpsChange={handleFpsChange}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+                          Celda vacía
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* Botón flotante de salida en esquina inferior derecha */}
+              <div className="fixed bottom-4 right-4 z-50">
+                <Button 
+                  variant="default" 
+                  size="icon" 
+                  className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-red-600 text-white"
+                  onClick={() => setIsGridFullscreen(false)}
+                  title="Salir de pantalla completa"
+                >
+                  <Minimize2 className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+    </div>
   );
 }

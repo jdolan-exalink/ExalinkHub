@@ -23,7 +23,7 @@ export function generateStaticParams() {
  * Envuelve la aplicacion con los providers de internacionalizacion y tema.
  */
 export default async function locale_layout({ children, params }: LocaleLayoutProps) {
-  const { locale } = params;
+  const { locale } = await params;
 
   setRequestLocale(locale);
   const messages = await getMessages();

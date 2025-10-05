@@ -1,13 +1,31 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import LiveView from './components/live-view';
 import { fetchFrigateData } from '@/lib/frigate-data';
 import { Camera } from '@/lib/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import type { DragEndEvent } from '@dnd-kit/core';
 
-export default function LivePage() {
+interface LivePageProps {
+  // No props needed anymore, using context
+}
+
+export default function LivePage({}: LivePageProps) {
+  console.log('🟢 LIVE PAGE COMPONENT RENDERING');
+  console.log('📦 Using context for props');
+  
+  // Test alert to verify page is loading
+  useEffect(() => {
+    console.log('Live page useEffect running');
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        console.log('Live page fully mounted');
+      }, 1000);
+    }
+  }, []);
+  
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +84,9 @@ export default function LivePage() {
 
   return (
     <div className="h-full w-full">
-      <LiveView cameras={cameras} />
+      <LiveView 
+        cameras={cameras} 
+      />
     </div>
   );
 }

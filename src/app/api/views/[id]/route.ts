@@ -61,7 +61,7 @@ export async function PUT(
     }
     
     const db = getDatabase();
-    const updatedView = db.updateView(id, name, layout, cameras);
+    const updatedView = db.updateView(id, name, layout, cameras, icon ?? null);
     
     if (!updatedView) {
       return NextResponse.json(

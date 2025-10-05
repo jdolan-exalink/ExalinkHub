@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import type { Camera } from '@/lib/types';
 import { DndContext, useDroppable, type DragEndEvent } from '@dnd-kit/core';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,18 +19,71 @@ import { LayoutGrid, Maximize2, Minimize2, Settings2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import SimpleViewEditor from '@/components/ui/simple-view-editor';
+import LayoutManager from '@/components/ui/layout-manager';
 
-const gridLayouts = {
-  '1x1': 'grid-cols-1 grid-rows-1',        // Single/Full screen
-  '2x2': 'grid-cols-2 grid-rows-2',        // Quad - 4 divisiones
-  '3x3': 'grid-cols-3 grid-rows-3',        // 9 divisiones
-  '4x4': 'grid-cols-4 grid-rows-4',        // 16 divisiones
-  '5x5': 'grid-cols-5 grid-rows-5',        // 25 divisiones  
-  '6x6': 'grid-cols-6 grid-rows-6',        // 36 divisiones
-  '1+5': 'mosaic-layout-6',                 // Mosaic 1+5 (1 grande + 5 pequeñas)
-  '1+12': 'mosaic-layout-13',               // Mosaic 1+12 (1 grande + 12 pequeñas)
-};
+const layoutDefinitions = {
+  '1x1': {
+    label: '1×1',
+    template: 'grid-cols-1 grid-rows-1 auto-rows-fr',
+    cells: 1
+  },
+  '2x2': {
+    label: '2×2',
+    template: 'grid-cols-2 grid-rows-2 auto-rows-fr',
+    cells: 4
+  },
+  '3x3': {
+    label: '3×3',
+    template: 'grid-cols-3 grid-rows-3 auto-rows-fr',
+    cells: 9
+  },
+  '4x4': {
+    label: '4×4',
+    template: 'grid-cols-4 grid-rows-4 auto-rows-fr',
+    cells: 16
+  },
+  '5x5': {
+    label: '5×5',
+    template: 'grid-cols-5 grid-rows-5 auto-rows-fr',
+    cells: 25
+  },
+  '6x6': {
+    label: '6×6',
+    template: 'grid-cols-6 grid-rows-6 auto-rows-fr',
+    cells: 36
+  },
+  '1+5': {
+    label: '1+5',
+    template: 'grid-1-5',
+    cells: 6,
+    gridAreas: [
+      'main main c2',
+      'main main c3',
+      'c4 c5 c6'
+    ],
+    cellClass: (index: number) => {
+      const areas = ['main', 'c2', 'c3', 'c4', 'c5', 'c6'];
+      return areas[index] || '';
+    }
+  },
+  '1+12': {
+    label: '1+12',
+    template: 'grid-1-12',
+    cells: 13,
+    gridAreas: [
+      'main main c2 c3 c4',
+      'main main c5 c6 c7',
+      'c8 c9 c10 c11 c12',
+      'c13 . . . .'
+    ],
+    cellClass: (index: number) => {
+      const areas = ['main', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13'];
+      return areas[index] || '';
+    }
+  }
+} as const;
+
+type LayoutKey = keyof typeof layoutDefinitions;
 
 type GridCell = {
   id: number;
@@ -41,12 +95,15 @@ type LiveViewProps = {
   onCameraDoubleClick: (camera: Camera) => void;
 };
 
-function DroppableCell({ cell, onRemove, onFpsChange, children }: { 
-  cell: GridCell, 
-  onRemove: (cameraId: string) => void, 
-  onFpsChange?: (cameraId: string, fps: number) => void,
-  children: React.ReactNode 
+function DroppableCell({ cell, onRemove, onFpsChange, children, className, isVmsLayout }: {
+  cell: GridCell;
+  onRemove: (cameraId: string) => void;
+  onFpsChange?: (cameraId: string, fps: number) => void;
+  children: React.ReactNode;
+  className?: string;
+  isVmsLayout?: boolean;
 }) {
+  const translate_live = useTranslations('live');
   const { isOver, setNodeRef } = useDroppable({
     id: `cell-${cell.id}`,
   });
@@ -58,16 +115,33 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
       transition={{ duration: 0.2 }}
       layout
     >
-      <Card
+      <motion.div
         ref={setNodeRef}
         className={cn(
-          "bg-secondary/20 flex items-center justify-center relative transition-all duration-200 border-2 border-dashed w-full",
-          "grid-cell-16x9 camera-container", // Clases CSS personalizadas para 16:9
-          isOver && "ring-2 ring-primary ring-inset bg-primary/10 border-primary scale-[1.01]",
-          cell.camera ? "border-border bg-card" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-secondary/40"
+          // keep wrapper minimal; the visual styles live on the Card
         )}
         style={{
+          gridArea: className || undefined,
           aspectRatio: '16/9' // Garantizar 16:9 en todos los navegadores
+        }}
+      >
+      <Card
+        className={cn(
+          // Base estilos para layouts normales (visual container)
+          !isVmsLayout && "bg-secondary/20 flex items-center justify-center relative transition-all duration-200 border-2 border-dashed w-full h-full grid-cell-16x9 camera-container",
+          // Estilos especiales para layouts VMS (1+5 y 1+12)
+          isVmsLayout && "vms-tile relative transition-all duration-200 w-full h-full",
+          // Apply className for grid area (kept as class for styling hooks)
+          className,
+          // Interactive states
+          isOver && "ring-2 ring-primary ring-inset bg-primary/10 border-primary scale-[1.01]",
+          cell.camera 
+            ? (isVmsLayout ? "" : "border-border bg-card")
+            : (isVmsLayout ? "" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-secondary/40")
+        )}
+        style={{
+          width: '100%',
+          height: '100%'
         }}
       >
         <AnimatePresence mode="wait">
@@ -101,387 +175,22 @@ function DroppableCell({ cell, onRemove, onFpsChange, children }: {
                 "text-sm font-medium transition-colors",
                 isOver ? "text-primary" : "text-muted-foreground"
               )}>
-                {isOver ? "Soltar cámara aquí" : "Arrastra una cámara"}
+                {isOver ? translate_live('grid.drop_here') : translate_live('grid.drag_prompt')}
               </span>
             </motion.div>
           )}
         </AnimatePresence>
       </Card>
+      </motion.div>
     </motion.div>
   );
 }
 
 
-// Componente para layouts mosaic con celdas de diferente tamaño
-function MosaicLayout({ 
-  layout, 
-  gridCells, 
-  onRemoveCamera, 
-  onFpsChange, 
-  streamDelays, 
-  hdCameraId, 
-  onQualitySwitch 
-}: {
-  layout: string;
-  gridCells: GridCell[];
-  onRemoveCamera: (cameraId: string) => void;
-  onFpsChange?: (cameraId: string, fps: number) => void;
-  streamDelays: Record<number, number>;
-  hdCameraId: string | null;
-  onQualitySwitch: (cameraId: string, newQuality: 'sub' | 'main') => void;
-}) {
-  const isMosaic6 = layout === '1+5';
-  const isMosaic13 = layout === '1+12';
-
-  return (
-    <div className="w-full h-full p-0.5">
-      {isMosaic6 ? (
-        // Layout Mosaic 1+5: Cámara grande arriba-izquierda + 5 pequeñas llenando el resto
-        <div className="grid grid-cols-3 grid-rows-3 gap-0.5 h-full">
-          {/* Celda grande (posición 0) - ocupa 2x2 en esquina superior izquierda */}
-          <motion.div
-            className="col-span-2 row-span-2"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[0] || { id: 0, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[0]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[0].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={0} 
-                  streamDelay={streamDelays[0] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[0].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-sm text-muted-foreground">Cámara principal</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-
-          {/* Celda 1: Superior derecha */}
-          <motion.div
-            className="col-span-1 row-span-1 col-start-3 row-start-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2, delay: 0.1 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[1] || { id: 1, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[1]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[1].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={1} 
-                  streamDelay={streamDelays[1] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[1].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-xs text-muted-foreground">Cam 1</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-
-          {/* Celda 2: Media derecha */}
-          <motion.div
-            className="col-span-1 row-span-1 col-start-3 row-start-2"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2, delay: 0.2 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[2] || { id: 2, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[2]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[2].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={2} 
-                  streamDelay={streamDelays[2] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[2].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-xs text-muted-foreground">Cam 2</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-
-          {/* Celda 3: Inferior izquierda */}
-          <motion.div
-            className="col-span-1 row-span-1 col-start-1 row-start-3"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2, delay: 0.3 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[3] || { id: 3, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[3]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[3].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={3} 
-                  streamDelay={streamDelays[3] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[3].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-xs text-muted-foreground">Cam 3</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-
-          {/* Celda 4: Inferior centro */}
-          <motion.div
-            className="col-span-1 row-span-1 col-start-2 row-start-3"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2, delay: 0.4 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[4] || { id: 4, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[4]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[4].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={4} 
-                  streamDelay={streamDelays[4] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[4].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-xs text-muted-foreground">Cam 4</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-
-          {/* Celda 5: Inferior derecha */}
-          <motion.div
-            className="col-span-1 row-span-1 col-start-3 row-start-3"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2, delay: 0.5 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[5] || { id: 5, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[5]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[5].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={5} 
-                  streamDelay={streamDelays[5] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[5].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-xs text-muted-foreground">Cam 5</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-        </div>
-      ) : isMosaic13 ? (
-        // Layout Mosaic 1+12: Cámara grande arriba-izquierda + 12 pequeñas llenando todo el resto
-        <div className="grid grid-cols-4 grid-rows-4 gap-0.5 h-full">
-          {/* Celda grande (posición 0) - ocupa 2x2 en esquina superior izquierda */}
-          <motion.div
-            className="col-span-2 row-span-2 col-start-1 row-start-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            layout
-          >
-            <DroppableCell 
-              cell={gridCells[0] || { id: 0, camera: null }} 
-              onRemove={onRemoveCamera} 
-              onFpsChange={onFpsChange}
-            >
-              {gridCells[0]?.camera ? (
-                <CameraFeed 
-                  camera={gridCells[0].camera} 
-                  onRemove={onRemoveCamera} 
-                  gridCellId={0} 
-                  streamDelay={streamDelays[0] || 0}
-                  onQualitySwitch={onQualitySwitch}
-                  isHdCamera={hdCameraId === gridCells[0].camera.id}
-                  onFpsChange={onFpsChange}
-                />
-              ) : (
-                <span className="text-sm text-muted-foreground">Cámara principal</span>
-              )}
-            </DroppableCell>
-          </motion.div>
-
-          {/* 12 celdas pequeñas llenando todo el espacio restante */}
-          {/* Fila 1 - columnas 3 y 4 */}
-          {[1, 2].map((cellIndex) => (
-            <motion.div
-              key={cellIndex}
-              className={`col-span-1 row-span-1 col-start-${cellIndex + 2} row-start-1`}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: cellIndex * 0.05 }}
-              layout
-            >
-              <DroppableCell 
-                cell={gridCells[cellIndex] || { id: cellIndex, camera: null }} 
-                onRemove={onRemoveCamera} 
-                onFpsChange={onFpsChange}
-              >
-                {gridCells[cellIndex]?.camera ? (
-                  <CameraFeed 
-                    camera={gridCells[cellIndex].camera} 
-                    onRemove={onRemoveCamera} 
-                    gridCellId={cellIndex} 
-                    streamDelay={streamDelays[cellIndex] || 0}
-                    onQualitySwitch={onQualitySwitch}
-                    isHdCamera={hdCameraId === gridCells[cellIndex].camera.id}
-                    onFpsChange={onFpsChange}
-                  />
-                ) : (
-                  <span className="text-xs text-muted-foreground">Cam {cellIndex}</span>
-                )}
-              </DroppableCell>
-            </motion.div>
-          ))}
-
-          {/* Fila 2 - columnas 3 y 4 */}
-          {[3, 4].map((cellIndex) => (
-            <motion.div
-              key={cellIndex}
-              className={`col-span-1 row-span-1 col-start-${cellIndex - 2 + 2} row-start-2`}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: cellIndex * 0.05 }}
-              layout
-            >
-              <DroppableCell 
-                cell={gridCells[cellIndex] || { id: cellIndex, camera: null }} 
-                onRemove={onRemoveCamera} 
-                onFpsChange={onFpsChange}
-              >
-                {gridCells[cellIndex]?.camera ? (
-                  <CameraFeed 
-                    camera={gridCells[cellIndex].camera} 
-                    onRemove={onRemoveCamera} 
-                    gridCellId={cellIndex} 
-                    streamDelay={streamDelays[cellIndex] || 0}
-                    onQualitySwitch={onQualitySwitch}
-                    isHdCamera={hdCameraId === gridCells[cellIndex].camera.id}
-                    onFpsChange={onFpsChange}
-                  />
-                ) : (
-                  <span className="text-xs text-muted-foreground">Cam {cellIndex}</span>
-                )}
-              </DroppableCell>
-            </motion.div>
-          ))}
-
-          {/* Fila 3 - todas las columnas */}
-          {[5, 6, 7, 8].map((cellIndex) => (
-            <motion.div
-              key={cellIndex}
-              className={`col-span-1 row-span-1 col-start-${cellIndex - 4} row-start-3`}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: cellIndex * 0.05 }}
-              layout
-            >
-              <DroppableCell 
-                cell={gridCells[cellIndex] || { id: cellIndex, camera: null }} 
-                onRemove={onRemoveCamera} 
-                onFpsChange={onFpsChange}
-              >
-                {gridCells[cellIndex]?.camera ? (
-                  <CameraFeed 
-                    camera={gridCells[cellIndex].camera} 
-                    onRemove={onRemoveCamera} 
-                    gridCellId={cellIndex} 
-                    streamDelay={streamDelays[cellIndex] || 0}
-                    onQualitySwitch={onQualitySwitch}
-                    isHdCamera={hdCameraId === gridCells[cellIndex].camera.id}
-                    onFpsChange={onFpsChange}
-                  />
-                ) : (
-                  <span className="text-xs text-muted-foreground">Cam {cellIndex}</span>
-                )}
-              </DroppableCell>
-            </motion.div>
-          ))}
-
-          {/* Fila 4 - todas las columnas */}
-          {[9, 10, 11, 12].map((cellIndex) => (
-            <motion.div
-              key={cellIndex}
-              className={`col-span-1 row-span-1 col-start-${cellIndex - 8} row-start-4`}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: cellIndex * 0.05 }}
-              layout
-            >
-              <DroppableCell 
-                cell={gridCells[cellIndex] || { id: cellIndex, camera: null }} 
-                onRemove={onRemoveCamera} 
-                onFpsChange={onFpsChange}
-              >
-                {gridCells[cellIndex]?.camera ? (
-                  <CameraFeed 
-                    camera={gridCells[cellIndex].camera} 
-                    onRemove={onRemoveCamera} 
-                    gridCellId={cellIndex} 
-                    streamDelay={streamDelays[cellIndex] || 0}
-                    onQualitySwitch={onQualitySwitch}
-                    isHdCamera={hdCameraId === gridCells[cellIndex].camera.id}
-                    onFpsChange={onFpsChange}
-                  />
-                ) : (
-                  <span className="text-xs text-muted-foreground">Cam {cellIndex}</span>
-                )}
-              </DroppableCell>
-            </motion.div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-
 export default function LiveView({ cameras }: { cameras: Camera[] }) {
+  const translate_live = useTranslations('live');
   const { toast } = useToast();
-  const [layout, setLayout] = useState<keyof typeof gridLayouts>('2x2'); // Cambiar por defecto a 2x2
+  const [layout, setLayout] = useState<LayoutKey>('2x2'); // Cambiar por defecto a 2x2
   const [gridCells, setGridCells] = useState<GridCell[]>([]);
   const [isLoadingView, setIsLoadingView] = useState(false); // Para vistas guardadas
   const [streamDelays, setStreamDelays] = useState<Record<number, number>>({}); // Delays por celda
@@ -490,6 +199,9 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
   const [lastTotalFps, setLastTotalFps] = useState<number>(0); // Para evitar actualizaciones innecesarias
   const [lastBandwidth, setLastBandwidth] = useState<string>('0 KB/s'); // Para evitar actualizaciones innecesarias
   const [isGridFullscreen, setIsGridFullscreen] = useState(false); // Estado para pantalla completa de grilla
+  const [currentPage, setCurrentPage] = useState(0); // Current page for pagination
+  const [camerasPerPage, setCamerasPerPage] = useState(0); // Will be set based on layout
+  const [primaryCameraId, setPrimaryCameraId] = useState<string | null>(null); // Primary camera for 1+5/1+12 layouts
 
   // Funciones para persistencia de vista
   const saveViewToLocalStorage = () => {
@@ -568,8 +280,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
           }
           
           toast({
-            title: "Vista restaurada",
-            description: `Configuración recuperada: ${restoredCells.filter(c => c.camera !== null).length} cámaras en layout ${viewState.layout}`,
+            title: translate_live('toast.view_restored.title'),
+            description: translate_live('toast.view_restored.description', { count: restoredCells.filter(c => c.camera !== null).length, layout: viewState.layout }),
             duration: 4000,
           });
         }, 100); // Small delay para asegurar que el layout se actualice
@@ -595,8 +307,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
           // Programar toast para después del render
           setTimeout(() => {
             toast({ 
-              title: "Cámara ya en vista", 
-              description: `${camera.name} ya está en el grid.`, 
+              title: translate_live('toast.camera_exists.title'), 
+              description: translate_live('toast.camera_exists.description', { camera: camera.name }), 
               variant: 'default' 
             });
           }, 0);
@@ -608,8 +320,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         // Programar toast para después del render
         setTimeout(() => {
           toast({ 
-            title: "Grid lleno", 
-            description: "No hay celdas vacías disponibles para añadir la cámara.", 
+            title: translate_live('toast.grid_full.title'), 
+            description: translate_live('toast.grid_full.description'), 
             variant: 'destructive' 
           });
         }, 0);
@@ -631,17 +343,60 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     };
   }, []);
 
-  // Cargar vista desde localStorage al inicializar
+  // Keyboard shortcuts
   useEffect(() => {
-    if (cameras.length > 0) {
-      const loaded = loadViewFromLocalStorage();
-      if (!loaded) {
-        // Si no hay vista guardada, inicializar grid vacío
-        const size = getGridSize(layout);
-        setGridCells(Array.from({ length: size }, (_, i) => ({ id: i, camera: null })));
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore if typing in input fields
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
       }
-    }
-  }, [cameras]); // Solo cuando las cámaras estén disponibles
+
+      switch (event.key) {
+        case '1':
+          setLayout('1x1');
+          break;
+        case '2':
+          setLayout('2x2');
+          break;
+        case '3':
+          setLayout('3x3');
+          break;
+        case '4':
+          setLayout('4x4');
+          break;
+        case '6':
+          setLayout('6x6');
+          break;
+        case 'q':
+        case 'Q':
+          setLayout('1+5');
+          break;
+        case 'w':
+        case 'W':
+          setLayout('1+12');
+          break;
+        case 'f':
+        case 'F':
+          // Toggle maximize for focused cell (for now, just trigger F11)
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'F11' }));
+          break;
+        case 'ArrowLeft':
+          if (currentPage > 0) {
+            setCurrentPage(currentPage - 1);
+          }
+          break;
+        case 'ArrowRight':
+          const maxPage = Math.ceil(cameras.length / camerasPerPage) - 1;
+          if (currentPage < maxPage) {
+            setCurrentPage(currentPage + 1);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Guardar vista en localStorage cuando cambie el estado
   useEffect(() => {
@@ -766,8 +521,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         }, loadingTimeout);
         
         toast({
-          title: "Vista cargada",
-          description: `${delayIndex} cámaras cargándose. Tiempo estimado: ${delayIndex} segundos.`,
+          title: translate_live('toast.view_loaded.title'),
+          description: translate_live('toast.view_loaded.description', { count: delayIndex }),
           duration: 3000,
           variant: "default"
         });
@@ -775,8 +530,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         console.error('Error loading saved view:', error);
         setIsLoadingView(false);
         toast({
-          title: "Error",
-          description: "No se pudo cargar la vista guardada.",
+          title: translate_live('toast.error.title'),
+          description: translate_live('toast.load_saved_error'),
           variant: "destructive"
         });
       }
@@ -802,33 +557,53 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     };
   }, [toast]);
 
-  const getGridSize = (layout: keyof typeof gridLayouts): number => {
+  const getGridSize = (layout: LayoutKey): number => {
     switch (layout) {
-      case '1x1': return 1;        // Single/Full screen
-      case '2x2': return 4;        // Quad
-      case '3x3': return 9;        // 9 divisiones
-      case '4x4': return 16;       // 16 divisiones
-      case '5x5': return 25;       // 25 divisiones
-      case '6x6': return 36;       // 36 divisiones
-      case '1+5': return 6;        // Mosaic 1+5 (1 grande + 5 pequeñas)
-      case '1+12': return 13;      // Mosaic 1+12 (1 grande + 12 pequeñas)
+      case '1x1': return 1;   // Single/Full screen
+      case '2x2': return 4;   // Quad
+      case '3x3': return 9;   // 9 divisiones
+      case '4x4': return 16;  // 16 divisiones
+      case '5x5': return 25;  // 25 divisiones
+      case '6x6': return 36;  // 36 divisiones
+      case '1+5': return 6;   // 1 principal + 5 secundarias
+      case '1+12': return 13; // 1 principal + 12 secundarias
       default: return 4;
     }
   };
 
   useEffect(() => {
     const size = getGridSize(layout);
-    // Preserve existing cameras when resizing grid
-    setGridCells(currentCells => {
-      const newCells: GridCell[] = Array.from({ length: size }, (_, i) => ({ id: i, camera: null }));
-      currentCells.forEach((cell, index) => {
-        if (cell.camera && index < size) {
-          newCells[index] = { ...newCells[index], camera: cell.camera };
+    setCamerasPerPage(size);
+    
+    // Get cameras for current page
+    const startIndex = currentPage * size;
+    const endIndex = startIndex + size;
+    let pageCameras = cameras.slice(startIndex, endIndex);
+    
+    // For 1+5 and 1+12 layouts, ensure primary camera is first (position 0 = main area)
+    if ((layout === '1+5' || layout === '1+12') && primaryCameraId) {
+      const primaryIndex = pageCameras.findIndex(c => c.id === primaryCameraId);
+      if (primaryIndex > 0) {
+        // Move primary camera to front (position 0)
+        const primary = pageCameras.splice(primaryIndex, 1)[0];
+        pageCameras.unshift(primary);
+      } else if (!pageCameras.some(c => c.id === primaryCameraId)) {
+        // If primary is not in this page, find it and put it first
+        const primaryCamera = cameras.find(c => c.id === primaryCameraId);
+        if (primaryCamera) {
+          pageCameras = [primaryCamera, ...pageCameras.slice(0, size - 1)];
         }
-      });
-      return newCells;
-    });
-  }, [layout]);
+      }
+    }
+    
+    // Create grid cells for this page
+    const newCells: GridCell[] = Array.from({ length: size }, (_, i) => ({
+      id: i,
+      camera: pageCameras[i] || null
+    }));
+    
+    setGridCells(newCells);
+  }, [layout, cameras, currentPage, primaryCameraId]);
   
   // Enviar actualizaciones de FPS activos y ancho de banda al sidebar (optimizado)
   useEffect(() => {
@@ -863,8 +638,49 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     }
   }, [activeFpsMap, lastTotalFps, lastBandwidth]);
   
-  const handleLayoutChange = (newLayout: keyof typeof gridLayouts) => {
+  const handleLayoutChange = (newLayout: LayoutKey) => {
     setLayout(newLayout);
+  };
+
+  /**
+   * Resetear la vista VMS a la primera página y quitar promoción.
+   * @description Reinicia la grilla al orden por defecto usando las cámaras de la página 0.
+   */
+  const reset_vms_layout = () => {
+    // Clear any promoted primary camera and reset page to first
+    setPrimaryCameraId(null);
+    setCurrentPage(0);
+
+    const size = getGridSize(layout);
+    const pageCameras = cameras.slice(0, size);
+    const newCells: GridCell[] = Array.from({ length: size }, (_, i) => ({
+      id: i,
+      camera: pageCameras[i] || null
+    }));
+
+    setGridCells(newCells);
+    toast({ title: translate_live('toast.reset.title') || 'Orden reiniciada', description: translate_live('toast.reset.description') || 'Se reinició el orden de la grilla.' });
+  };
+
+  /**
+   * Promover una celda secundaria a la posición MAIN (swap con la celda 0).
+   * @param cell_id - índice de la celda a promover (debe ser > 0)
+   * @description Intercambia los objetos `camera` entre la celda principal (0) y la celda indicada.
+   */
+  const promote_grid_cell = (cell_id: number) => {
+    if (cell_id === 0) return;
+    setGridCells(current => {
+      const new_cells = [...current];
+      if (!new_cells[cell_id]) return current;
+      const main_camera = new_cells[0]?.camera || null;
+      const target_camera = new_cells[cell_id]?.camera || null;
+      new_cells[0] = { ...new_cells[0], camera: target_camera };
+      new_cells[cell_id] = { ...new_cells[cell_id], camera: main_camera };
+
+      // Update primaryCameraId for pagination consistency
+      if (target_camera) setPrimaryCameraId(target_camera.id);
+      return new_cells;
+    });
   };
 
   const handleRemoveCamera = (cameraId: string) => {
@@ -885,8 +701,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       // Si queremos HD, verificar que no haya otra cámara en HD
       if (hdCameraId && hdCameraId !== cameraId) {
         toast({
-          title: "Solo 1 cámara en HD",
-          description: "Solo puedes tener una cámara en HD a la vez. La anterior se cambió a SD.",
+          title: translate_live('toast.hd_limit.title'),
+          description: translate_live('toast.hd_limit.description'),
           variant: "default"
         });
         // Notificar a la cámara anterior que debe cambiar a SD
@@ -1003,8 +819,8 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       const savedView = await response.json();
       
       toast({
-        title: "Vista Guardada",
-        description: `La vista "${viewName}" ha sido guardada exitosamente.`,
+        title: translate_live('toast.view_saved.title'),
+        description: translate_live('toast.view_saved.description', { name: viewName }),
       });
       
       console.log("View saved:", savedView);
@@ -1016,41 +832,111 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
       window.dispatchEvent(saveViewEvent);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "No se pudo guardar la vista. Inténtalo de nuevo.",
+        title: translate_live('toast.error.title'),
+        description: translate_live('toast.view_saved_error'),
         variant: "destructive",
       });
       console.error("Error saving view:", error);
     }
   };
 
+  /**
+   * Manejar la carga de vista desde Layout Manager
+   */
+  const handleLoadView = (view: any) => {
+    try {
+      // Cambiar layout si es diferente
+      if (view.layout !== layout) {
+        setLayout(view.layout);
+      }
+
+      // Preparar las cámaras guardadas
+      let saved_cameras = view.cameras;
+      if (typeof saved_cameras === 'string') {
+        saved_cameras = JSON.parse(saved_cameras);
+      }
+
+      // Aplicar configuración de cámaras
+      const view_grid_size = getGridSize(view.layout);
+      const new_grid_cells = Array.from({ length: view_grid_size }, (_, index) => {
+        const saved_cell = saved_cameras.find((c: any) => c.id === index || c.position === index);
+        
+        // Buscar la cámara por ID si existe
+        let camera = null;
+        if (saved_cell && (saved_cell.camera?.id || saved_cell.camera_id)) {
+          const camera_id = saved_cell.camera?.id || saved_cell.camera_id;
+          camera = cameras.find(cam => cam.id === camera_id) || null;
+        }
+        
+        return {
+          id: index,
+          camera: camera
+        };
+      });
+
+      setGridCells(new_grid_cells);
+      saveViewToLocalStorage();
+
+      toast({
+        title: translate_live('toast.view_loaded.title'),
+        description: translate_live('toast.view_loaded_confirm', { name: view.name }),
+      });
+    } catch (error) {
+      console.error('Error loading view:', error);
+      toast({
+        title: translate_live('toast.error.title'),
+        description: translate_live('toast.view_load_error'),
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Restore last view on mount or when cameras list is available
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const restored = loadViewFromLocalStorage();
+        console.log('Attempted to restore last view from localStorage:', restored);
+      }
+    } catch (error) {
+      console.error('Error while attempting to restore last view:', error);
+    }
+  }, [cameras.length]);
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 px-1 py-1">
-              <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">Live View</h1>
+              <h1 className="font-headline text-lg sm:text-2xl font-bold tracking-tight">{translate_live('heading')}</h1>
               <div className="flex items-center gap-1 sm:gap-2">
-                  <SimpleViewEditor
-                    currentLayout={layout}
-                    currentCameras={gridCells}
-                    onSaveView={handleSaveView}
+                  <LayoutManager
+                    current_layout={layout}
+                    current_cameras={gridCells}
+                    on_layout_change={(new_layout) => handleLayoutChange(new_layout as LayoutKey)}
+                    on_save_view={handleSaveView}
+                    on_load_view={handleLoadView}
                   >
                     <Button variant="outline" size="sm" className="text-xs sm:text-sm">
                         <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         <span className="hidden sm:inline">Layout Manager</span>
                         <span className="sm:hidden">Layouts</span>
                     </Button>
-                  </SimpleViewEditor>
+                  </LayoutManager>
+                  {((layout as string) === '1+5' || (layout as string) === '1+12') && (
+                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm ml-2" onClick={reset_vms_layout}>
+                      Reset orden
+                    </Button>
+                  )}
                   <div className="flex items-center gap-1 sm:gap-2">
                       <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                      <Select value={layout} onValueChange={(value) => handleLayoutChange(value as keyof typeof gridLayouts)}>
+                      <Select value={layout} onValueChange={(value) => handleLayoutChange(value as LayoutKey)}>
                           <SelectTrigger className="w-[80px] sm:w-[100px] h-7 sm:h-8 text-xs sm:text-sm">
                               <SelectValue placeholder="Grid" />
                           </SelectTrigger>
                           <SelectContent>
-                              {Object.keys(gridLayouts).map(key => (
+                              {Object.keys(layoutDefinitions).map(key => (
                                   <SelectItem key={key} value={key} className="text-xs sm:text-sm">{key.replace('x', '×')}</SelectItem>
-                              ))}
+                              ))} 
                           </SelectContent>
                       </Select>
                   </div>
@@ -1058,49 +944,39 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
         </div>
 
         <div className="flex-1 w-full overflow-hidden">
-          {(layout === '1+5' || layout === '1+12') ? (
-            // Render mosaic layouts with custom positioning
-            <MosaicLayout 
-              layout={layout}
-              gridCells={gridCells}
-              onRemoveCamera={handleRemoveCamera}
-              onFpsChange={handleFpsChange}
-              streamDelays={streamDelays}
-              hdCameraId={hdCameraId}
-              onQualitySwitch={handleQualitySwitch}
-            />
-          ) : (
-            // Render standard grid layouts
-            <motion.div 
-              className={cn('grid gap-0.5 w-full h-full p-0.5 content-start', gridLayouts[layout])}
-              style={{
-                height: '100%', // Usar toda la altura disponible
-                maxHeight: '100%' // No exceder la altura del contenedor
-              }}
-              layout
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <AnimatePresence>
-                {gridCells.map(cell => (
-                  <DroppableCell key={cell.id} cell={cell} onRemove={handleRemoveCamera} onFpsChange={handleFpsChange}>
-                    {cell.camera ? (
-                      <CameraFeed 
-                        camera={cell.camera} 
-                        onRemove={handleRemoveCamera} 
-                        gridCellId={cell.id} 
-                        streamDelay={streamDelays[cell.id] || 0}
-                        onQualitySwitch={handleQualitySwitch}
-                        isHdCamera={hdCameraId === cell.camera.id}
-                        onFpsChange={handleFpsChange}
-                      />
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Drop camera here</span>
-                    )}
-                  </DroppableCell>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
+          {/* Render VMS layouts full-bleed como el resto de layouts */}
+          <motion.div 
+            className={cn('w-full h-full p-0.5 content-start', ((layoutDefinitions[layout] as any).template))}
+            style={{ display: 'grid' }}
+            layout
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <AnimatePresence>
+              {gridCells.map(cell => (
+                <DroppableCell key={cell.id} cell={cell} onRemove={handleRemoveCamera} onFpsChange={handleFpsChange} className={(layoutDefinitions[layout] as any).cellClass?.(cell.id) || ''} isVmsLayout={((layout as string) === '1+5' || (layout as string) === '1+12')}>
+                  {cell.camera ? (
+                    <CameraFeed 
+                      camera={cell.camera} 
+                      onRemove={handleRemoveCamera} 
+                      gridCellId={cell.id} 
+                      streamDelay={streamDelays[cell.id] || 0}
+                      onQualitySwitch={handleQualitySwitch}
+                      isHdCamera={hdCameraId === cell.camera.id}
+                      onFpsChange={handleFpsChange}
+                      onClick={() => {
+                        // Promote to primary for 1+5/1+12 layouts (position 0 = main area)
+                        if (((layout as string) === '1+5' || (layout as string) === '1+12') && cell.id > 0 && cell.camera) {
+                          promote_grid_cell(cell.id);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Drop camera here</span>
+                  )}
+                </DroppableCell>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* Botón flotante para maximizar grilla completa */}
@@ -1109,19 +985,21 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
             variant="default" 
             size="icon" 
             className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-green-600 text-white"
-            onClick={() => setIsGridFullscreen(true)}
-            title="Maximizar grilla completa"
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'F11' }))}
+            title={translate_live('fullscreen.maximize_grid')}
           >
             <Maximize2 className="h-6 w-6" />
           </Button>
         </div>
       </div>
 
+      
+
       {/* Modal de grilla en pantalla completa */}
       <Dialog open={isGridFullscreen} onOpenChange={setIsGridFullscreen}>
         <DialogContent className="p-0 sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] border-0 bg-black max-h-[100vh] w-full h-full">
           <DialogHeader className="absolute top-2 left-2 z-10 bg-black/70 p-3 rounded-lg">
-            <DialogTitle className="text-white text-lg">Vista Completa - Todas las Cámaras</DialogTitle>
+            <DialogTitle className="text-white text-lg">{translate_live('fullscreen.title')}</DialogTitle>
           </DialogHeader>
           
           {/* Botón de salir en pantalla completa */}
@@ -1131,7 +1009,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
               size="icon" 
               className="h-8 w-8 bg-black/70 hover:bg-red-600 text-white hover:text-white backdrop-blur-sm rounded" 
               onClick={() => setIsGridFullscreen(false)}
-              title="Salir de pantalla completa"
+              title={translate_live('fullscreen.exit')}
             >
               <Minimize2 className="h-4 w-4" />
             </Button>
@@ -1139,45 +1017,32 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
           
           {/* Grilla completa en fullscreen */}
           <div className="w-full h-full bg-black p-4">
-            {(layout === '1+5' || layout === '1+12') ? (
-              // Render mosaic layouts in fullscreen
-              <MosaicLayout 
-                layout={layout}
-                gridCells={gridCells}
-                onRemoveCamera={handleRemoveCamera}
-                onFpsChange={handleFpsChange}
-                streamDelays={streamDelays}
-                hdCameraId={hdCameraId}
-                onQualitySwitch={handleQualitySwitch}
-              />
-            ) : (
-              // Render standard grid layouts in fullscreen
-              <motion.div 
-                className={cn('grid gap-4 h-full w-full', gridLayouts[layout])}
-                layout
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-              >
-                {gridCells.map(cell => (
-                  <div key={cell.id} className="relative">
-                    {cell.camera ? (
-                      <CameraFeed 
-                        camera={cell.camera} 
-                        onRemove={handleRemoveCamera} 
-                        gridCellId={cell.id} 
-                        streamDelay={streamDelays[cell.id] || 0}
-                        onQualitySwitch={handleQualitySwitch}
-                        isHdCamera={hdCameraId === cell.camera.id}
-                        onFpsChange={handleFpsChange}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                        Celda vacía
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </motion.div>
-            )}
+            <motion.div 
+              className={cn('h-full w-full', layoutDefinitions[layout].template)}
+              style={{ display: 'grid' }}
+              layout
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              {gridCells.map(cell => (
+                <div key={cell.id} style={{ gridArea: (layoutDefinitions[layout] as any).cellClass?.(cell.id) || undefined }}>
+                  {cell.camera ? (
+                    <CameraFeed 
+                      camera={cell.camera} 
+                      onRemove={handleRemoveCamera} 
+                      gridCellId={cell.id} 
+                      streamDelay={streamDelays[cell.id] || 0}
+                      onQualitySwitch={handleQualitySwitch}
+                      isHdCamera={hdCameraId === cell.camera.id}
+                      onFpsChange={handleFpsChange}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+                      {translate_live('grid.empty_cell')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </motion.div>
 
             {/* Botón flotante de salida en esquina inferior derecha */}
             <div className="fixed bottom-4 right-4 z-50">
@@ -1186,7 +1051,7 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
                 size="icon" 
                 className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-black/70 hover:bg-red-600 text-white"
                 onClick={() => setIsGridFullscreen(false)}
-                title="Salir de pantalla completa"
+                title={translate_live('fullscreen.exit')}
               >
                 <Minimize2 className="h-6 w-6" />
               </Button>
@@ -1197,3 +1062,6 @@ export default function LiveView({ cameras }: { cameras: Camera[] }) {
     </DndContext>
   );
 }
+
+
+

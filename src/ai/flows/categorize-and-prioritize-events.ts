@@ -45,30 +45,28 @@ export async function categorizeAndPrioritizeEvents(
   return categorizeAndPrioritizeEventsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'categorizeAndPrioritizeEventsPrompt',
-  input: {schema: CategorizeAndPrioritizeEventsInputSchema},
-  output: {schema: CategorizeAndPrioritizeEventsOutputSchema},
-  prompt: `You are a security expert analyzing events from a video surveillance system.
+// Deterministic rule-based implementation (replaces AI prompt/flow).
+// This function applies the provided rules in order and returns the first matching rule result.
+function categorizeAndPrioritizeEventsFlow(input: CategorizeAndPrioritizeEventsInput): CategorizeAndPrioritizeEventsOutput {
+  const { eventData, rules } = input;
 
-You will receive event data and a set of rules. Your task is to categorize and prioritize the event based on these rules.
+  for (let i = 0; i < rules.length; i++) {
+    const rule = rules[i];
+    const crit = rule.criteria || {};
 
-Event Data:
-Camera: {{{eventData.camera}}}
-Label: {{{eventData.label}}}
-Start Time: {{{eventData.startTime}}}
-Zones: {{{eventData.zones}}}
-Thumbnail: {{media url=eventData.thumbnail}}
+    let match = true;
+    if (crit.label && crit.label !== eventData.label) match = false;
+    if (crit.camera && crit.camera !== eventData.camera) match = false;
+    if (crit.zone && !eventData.zones.includes(crit.zone)) match = false;
 
-Rules:
-{{#each rules}}
-  {{@index}}. If the label is {{{this.criteria.label}}}, the camera is {{{this.criteria.camera}}}, and the zone is {{{this.criteria.zone}}}, then the category is {{{this.category}}} and the priority is {{{this.priority}}}. Reason: The {{@index}} rule was triggered
-{{/each}}
+    if (match) {
+      return {
+        category: rule.category,
+        priority: rule.priority,
+        reason: `Rule ${i}`
+      };
+    }
+  }
 
-Based on the event data and the rules, determine the category, priority, and reason for the event. The reason should be the rule number that was triggered.
-
-If no rules are triggered, assign category as "Uncategorized" and priority as "low" and reason as "No rule was triggered".
-
-Output the category, priority, and the rule that was triggered.
-
-Ensure the output is a JSON object with the fields \
+  return { category: 'Uncategorized', priority: 'low', reason: 'No rule was triggered' };
+}

@@ -8,6 +8,7 @@ interface UnlimitedPlayerProps {
   refreshRate?: number; // FPS de actualización
   isFullscreen?: boolean; // Para determinar FPS óptimos
   disableAdaptive?: boolean; // Para deshabilitar adaptive quality y usar calidad fija
+  paused?: boolean; // Nueva prop para pausar/reproducir
   className?: string;
   style?: React.CSSProperties;
   onLoad?: () => void;
@@ -27,6 +28,7 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
   refreshRate, // Si no se especifica, se calcula automático
   isFullscreen = false,
   disableAdaptive = false, // Nueva prop
+  paused = false, // Nueva prop por defecto false
   className = '', 
   style,
   onLoad,
@@ -179,7 +181,7 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
         let startTime = Date.now();
 
         const updateFrame = () => {
-          if (!mounted) return;
+          if (!mounted || paused) return;
 
           frameIndex++;
           const nextImg = currentImg === 1 ? 2 : 1;
@@ -192,7 +194,7 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
           const loadStartTime = Date.now();
           
           const onImageLoad = () => {
-            if (!mounted) return;
+            if (!mounted || paused) return;
             
             // Medir tiempo de carga para adaptive quality
             const loadTime = Date.now() - loadStartTime;
@@ -219,7 +221,7 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
           };
 
           const onImageError = () => {
-            if (!mounted) return;
+            if (!mounted || paused) return;
             
             // Medir tiempo de error para adaptive quality (penalizar errores)
             const loadTime = Date.now() - loadStartTime;
@@ -251,12 +253,16 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
           nextImgRef.src = newUrl;
         };
 
-        // Cargar primer frame inmediatamente
-        updateFrame();
+        // Si no está pausado, cargar primer frame inmediatamente
+        if (!paused) {
+          updateFrame();
+        }
 
-        // Configurar intervalo para frames siguientes
-        const interval = 1000 / currentFps; // ms por frame
-        intervalRef.current = setInterval(updateFrame, interval);
+        // Configurar intervalo para frames siguientes solo si no está pausado
+        if (!paused) {
+          const interval = 1000 / currentFps; // ms por frame
+          intervalRef.current = setInterval(updateFrame, interval);
+        }
 
       } catch (error) {
         if (!mounted) return;
@@ -290,7 +296,16 @@ const UnlimitedPlayer: React.FC<UnlimitedPlayerProps> = ({
         img2Ref.current.onerror = null;
       }
     };
-  }, [camera, quality, currentQuality, currentFps, isFullscreen, onLoad, onError]); // Agregado currentQuality
+  }, [camera, quality, currentQuality, currentFps, isFullscreen, paused, onLoad, onError]); // Agregado paused
+
+  // useEffect separado para manejar pause/unpause
+  useEffect(() => {
+    if (paused && intervalRef.current) {
+      console.log(`⏸️ Pausing stream for ${camera}`);
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, [paused, camera]);
 
   return (
     <div 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Save, Trash2, Grid, Play, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -29,8 +30,9 @@ type SavedView = {
   id: number;
   name: string;
   layout: string;
-  cameras: GridCell[];
+  cameras: Array<{position: number, camera_id: string | null}>;
   created_at: string;
+  icon?: string;
 };
 
 type LayoutManagerProps = {
@@ -76,6 +78,10 @@ export default function LayoutManager({
   const [new_view_name, set_new_view_name] = useState('');
   const [saving_view, set_saving_view] = useState(false);
   const [view_to_delete, set_view_to_delete] = useState<SavedView | null>(null);
+  const [editing_view, set_editing_view] = useState<SavedView | null>(null);
+  const [edit_name, set_edit_name] = useState('');
+  const [edit_icon, set_edit_icon] = useState('');
+  const [edit_layout, set_edit_layout] = useState('');
 
   const active_cameras_count = current_cameras.filter(cell => cell.camera !== null).length;
   const current_preset = grid_presets.find(preset => preset.value === current_layout);
@@ -114,7 +120,10 @@ export default function LayoutManager({
         body: JSON.stringify({
           name: new_view_name.trim(),
           layout: current_layout,
-          cameras: current_cameras
+          cameras: current_cameras.map((cell, index) => ({
+            position: index,
+            camera_id: cell.camera?.id || null
+          }))
         }),
       });
 
@@ -151,6 +160,48 @@ export default function LayoutManager({
   };
 
   /**
+   * Editar vista guardada
+   */
+  const handle_edit_view = async () => {
+    if (!editing_view || !edit_name.trim()) return;
+    
+    // Adjust cameras for new layout
+    const new_layout_size = get_grid_size(edit_layout);
+    const adjusted_cameras = Array.from({ length: new_layout_size }, (_, index) => {
+      const existing = editing_view.cameras.find(c => c.position === index);
+      return {
+        position: index,
+        camera_id: existing?.camera_id || null
+      };
+    });
+    
+    try {
+      const response = await fetch(`/api/views/${editing_view.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: edit_name.trim(),
+          layout: edit_layout,
+          icon: edit_icon,
+          cameras: adjusted_cameras
+        }),
+      });
+
+      if (response.ok) {
+        set_editing_view(null);
+        set_edit_name('');
+        set_edit_icon('');
+        set_edit_layout('');
+        await load_saved_views();
+      }
+    } catch (error) {
+      console.error('Error updating view:', error);
+    }
+  };
+
+  /**
    * Eliminar vista guardada
    */
   const handle_delete_view = async (view: SavedView) => {
@@ -168,10 +219,6 @@ export default function LayoutManager({
       set_view_to_delete(null);
     }
   };
-
-  /**
-   * Cambiar layout de grilla
-   */
   const handle_layout_change = (layout: string) => {
     if (on_layout_change) {
       on_layout_change(layout);
@@ -313,7 +360,7 @@ export default function LayoutManager({
                                   {grid_presets.find(p => p.value === view.layout)?.label || view.layout}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
-                                  {view.cameras.filter(c => c.camera).length} cámaras
+                                  {Array.isArray(view.cameras) ? view.cameras.filter((c: any) => c.camera_id).length : 0} cámaras
                                 </span>
                               </div>
                             </div>
@@ -325,6 +372,19 @@ export default function LayoutManager({
                                 className="h-8 w-8 p-0"
                               >
                                 <Play className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  set_editing_view(view);
+                                  set_edit_name(view.name);
+                                  set_edit_icon(view.icon || 'Grid');
+                                  set_edit_layout(view.layout);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Settings className="h-3 w-3" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -368,6 +428,64 @@ export default function LayoutManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog para editar vista */}
+      <Dialog open={!!editing_view} onOpenChange={() => set_editing_view(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Vista</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Nombre</Label>
+              <Input
+                id="edit-name"
+                value={edit_name}
+                onChange={(e) => set_edit_name(e.target.value)}
+                placeholder="Nombre de la vista"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-icon">Icono</Label>
+              <Select value={edit_icon} onValueChange={set_edit_icon}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar icono" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Grid">Grid</SelectItem>
+                  <SelectItem value="Monitor">Monitor</SelectItem>
+                  <SelectItem value="Camera">Camera</SelectItem>
+                  <SelectItem value="Eye">Eye</SelectItem>
+                  <SelectItem value="Layout">Layout</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-layout">Layout</Label>
+              <Select value={edit_layout} onValueChange={set_edit_layout}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar layout" />
+                </SelectTrigger>
+                <SelectContent>
+                  {grid_presets.map((preset) => (
+                    <SelectItem key={preset.value} value={preset.value}>
+                      {preset.label} - {preset.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => set_editing_view(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handle_edit_view} disabled={!edit_name.trim()}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -142,3 +142,121 @@ body {
     grid-row: 1 / -1;
   }
 }
+
+/* Layouts personalizados para 1+5 y 1+12 similares al ejemplo HTML */
+
+/* Variables CSS para el tema VMS */
+:root {
+  --vms-gap: 8px;
+  --vms-tile-bg: #0f172a;        /* slate-900 */
+  --vms-tile-fg: #e5e7eb;        /* gray-200 */
+  --vms-main-bg: #111827;        /* gray-900 */
+  --vms-accent: #60a5fa;         /* blue-400 */
+  --vms-ring: rgba(96,165,250,.55);
+  --vms-border: #1f2937;
+  --vms-gradient-from: #0d142b;
+  --vms-gradient-to: #0a0f1f;
+}
+
+/* Contenedor principal responsive para VMS */
+.vms-board {
+  /* Nunca se va de la pantalla */
+  width: min(96vw, 1200px);
+  /* Mantiene proporción visual de VMS */
+  aspect-ratio: 16 / 9;
+  max-height: 80vh;
+  border: 1px solid var(--vms-border);
+  border-radius: 14px;
+  background: #0a0f1f;
+  padding: var(--vms-gap);
+  overflow: hidden; /* IMPORTANTE: no se sale del contenedor */
+  margin: 0 auto;
+}
+
+/* Layout 1+5 (C1 bloque 2x2 arriba izquierda) */
+.grid-1-5 {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-rows: 1.2fr 1.2fr 1fr;
+  gap: var(--vms-gap);
+  grid-template-areas:
+    "main main c2"
+    "main main c3"
+    "c4   c5   c6";
+}
+
+/* Layout 1+12 (C1 bloque 2x2 arriba izquierda) */
+.grid-1-12 {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--vms-gap);
+  grid-template-areas:
+    "main main c2  c3  c4"
+    "main main c5  c6  c7"
+    "c8   c9   c10 c11 c12"
+    "c13  .    .   .   .  ";
+}
+
+/* Estilos generales para tiles/celdas VMS */
+.vms-tile {
+  position: relative;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--vms-gradient-from), var(--vms-gradient-to));
+  border: 1px solid #1f2a44;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  user-select: none;
+  overflow: hidden; /* recorta para que no se "escape" nada */
+  transition: all 0.2s ease;
+}
+
+/* Estilo especial para la celda principal */
+.vms-tile.main {
+  background: radial-gradient(120% 120% at 0% 0%, var(--vms-main-bg) 0%, #0b1020 60%);
+  box-shadow: 0 0 0 2px var(--vms-ring) inset;
+}
+
+/* Hover effect para tiles */
+.vms-tile:hover {
+  transform: scale(1.02);
+  border-color: var(--vms-accent);
+}
+
+/* Etiqueta visible en la esquina superior izquierda (data-label) */
+.vms-tile::after{
+  content: attr(data-label);
+  position: absolute; left: 8px; top: 8px;
+  font-size: 12px; padding: 3px 8px; border-radius: 999px;
+  background: rgba(2,6,23,.75); border: 1px solid #1e293b; color: #cbd5e1;
+}
+
+/* Áreas grid mapping para layout 1+5 */
+.grid-1-5 .main { grid-area: main; }
+.grid-1-5 .c2   { grid-area: c2; }
+.grid-1-5 .c3   { grid-area: c3; }
+.grid-1-5 .c4   { grid-area: c4; }
+.grid-1-5 .c5   { grid-area: c5; }
+.grid-1-5 .c6   { grid-area: c6; }
+
+/* Áreas grid mapping para layout 1+12 */
+.grid-1-12 .main { grid-area: main; }
+.grid-1-12 .c2   { grid-area: c2; }
+.grid-1-12 .c3   { grid-area: c3; }
+.grid-1-12 .c4   { grid-area: c4; }
+.grid-1-12 .c5   { grid-area: c5; }
+.grid-1-12 .c6   { grid-area: c6; }
+.grid-1-12 .c7   { grid-area: c7; }
+.grid-1-12 .c8   { grid-area: c8; }
+.grid-1-12 .c9   { grid-area: c9; }
+.grid-1-12 .c10  { grid-area: c10; }
+.grid-1-12 .c11  { grid-area: c11; }
+.grid-1-12 .c12  { grid-area: c12; }
+.grid-1-12 .c13  { grid-area: c13; }

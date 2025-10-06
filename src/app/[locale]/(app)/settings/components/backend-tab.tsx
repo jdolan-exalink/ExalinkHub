@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +34,8 @@ import {
 import type { BackendConfig } from '@/lib/config-database';
 
 export default function BackendTab() {
+  const translate = useTranslations('settings.backend');
+  const translate_common = useTranslations('common');
   const [config, setConfig] = useState<BackendConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -737,11 +740,10 @@ export default function BackendTab() {
       {/* Botón de Guardar */}
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={loadBackendConfig}>
-          Restablecer
+          {translate('reset')}
         </Button>
         <Button onClick={handleSave} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Guardando...' : 'Guardar Configuración'}
+          {saving ? translate_common('loading') : translate('save_config')}
         </Button>
       </div>
     </div>

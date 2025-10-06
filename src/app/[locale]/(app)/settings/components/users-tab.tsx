@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,8 @@ import { Textarea } from '@/components/ui/textarea';
 import type { User as UserType, Group as GroupType } from '@/lib/config-database';
 
 export default function UsersTab() {
+  const translate = useTranslations('settings.users');
+  const translate_common = useTranslations('common');
   const [users, setUsers] = useState<UserType[]>([]);
   const [groups, setGroups] = useState<GroupType[]>([]);
   const [savedViews, setSavedViews] = useState<any[]>([]);
@@ -98,7 +101,7 @@ export default function UsersTab() {
     }, [userId]);
     
     if (userGroups.length === 0) {
-      return <Badge variant="outline" className="text-muted-foreground">Sin grupos</Badge>;
+      return <Badge variant="outline" className="text-muted-foreground">{translate('no_group')}</Badge>;
     }
     
     return (
@@ -413,7 +416,7 @@ export default function UsersTab() {
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+    if (!confirm(translate('delete_confirm_user'))) {
       return;
     }
 
@@ -435,7 +438,7 @@ export default function UsersTab() {
   };
 
   const handleDeleteGroup = async (groupId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este grupo?')) {
+    if (!confirm(translate('delete_confirm_group'))) {
       return;
     }
 
@@ -470,7 +473,7 @@ export default function UsersTab() {
   };
 
   if (loading) {
-    return <div>Cargando usuarios y grupos...</div>;
+    return <div>{translate('loading')}</div>;
   }
 
   return (
@@ -478,23 +481,22 @@ export default function UsersTab() {
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="users" className="flex items-center gap-2">
           <User className="h-4 w-4" />
-          Usuarios
+          {translate('system_users')}
         </TabsTrigger>
         <TabsTrigger value="groups" className="flex items-center gap-2">
           <Users className="h-4 w-4" />
-          Grupos
+          {translate('system_groups')}
         </TabsTrigger>
       </TabsList>
       
       <TabsContent value="users" className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-medium">Usuarios del Sistema</h3>
+            <h3 className="text-lg font-medium">{translate('system_users')}</h3>
             <p className="text-sm text-muted-foreground">
-              {users.length} usuario{users.length !== 1 ? 's' : ''} registrado{users.length !== 1 ? 's' : ''}
+              {users.length} {translate('username').toLowerCase()}{users.length !== 1 ? 's' : ''}
             </p>
           </div>
-          
           <Dialog open={isUserDialogOpen} onOpenChange={(open) => {
             setIsUserDialogOpen(open);
             if (!open) resetUserForm();
@@ -502,23 +504,23 @@ export default function UsersTab() {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Agregar Usuario
+                {translate('add_user')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[400px]">
               <form onSubmit={handleUserSubmit}>
                 <DialogHeader>
                   <DialogTitle>
-                    {editingUser ? 'Editar Usuario' : 'Agregar Nuevo Usuario'}
+                    {editingUser ? translate('edit_user') : translate('add_new_user')}
                   </DialogTitle>
                   <DialogDescription>
-                    Configura las credenciales y permisos del usuario.
+                    {translate('user_credentials')}
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="username" className="text-right">Usuario</Label>
+                    <Label htmlFor="username" className="text-right">{translate('username')}</Label>
                     <Input
                       id="username"
                       value={userFormData.username}
@@ -530,20 +532,20 @@ export default function UsersTab() {
                   </div>
                   
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="password" className="text-right">Contraseña</Label>
+                    <Label htmlFor="password" className="text-right">{translate('password')}</Label>
                     <Input
                       id="password"
                       type="password"
                       value={userFormData.password}
                       onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
                       className="col-span-3"
-                      placeholder={editingUser ? "Dejar vacío para mantener actual" : "Contraseña"}
+                      placeholder={editingUser ? translate('password_placeholder_edit') : translate('password')}
                       required={!editingUser}
                     />
                   </div>
                   
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="role" className="text-right">Rol</Label>
+                    <Label htmlFor="role" className="text-right">{translate('role')}</Label>
                     <Select
                       value={userFormData.role}
                       onValueChange={(value: 'admin' | 'operator' | 'viewer') => setUserFormData({...userFormData, role: value})}
@@ -552,31 +554,31 @@ export default function UsersTab() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Administrador (Control total)</SelectItem>
-                        <SelectItem value="operator">Operador (Gestión limitada)</SelectItem>
-                        <SelectItem value="viewer">Visualizador (Solo lectura)</SelectItem>
+                        <SelectItem value="admin">{translate('role_admin')}</SelectItem>
+                        <SelectItem value="operator">{translate('role_operator')}</SelectItem>
+                        <SelectItem value="viewer">{translate('role_viewer')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label className="text-right">Estado</Label>
+                    <Label className="text-right">{translate('status')}</Label>
                     <div className="col-span-3 flex items-center space-x-2">
                       <Checkbox
                         id="enabled"
                         checked={userFormData.enabled}
                         onCheckedChange={(checked) => setUserFormData({...userFormData, enabled: !!checked})}
                       />
-                      <Label htmlFor="enabled">Usuario activo</Label>
+                      <Label htmlFor="enabled">{translate('user_active')}</Label>
                     </div>
                   </div>
 
                   {userFormData.role !== 'admin' && (
                     <div className="grid grid-cols-4 items-start gap-4">
-                      <Label className="text-right pt-2">Grupos</Label>
+                      <Label className="text-right pt-2">{translate('groups')}</Label>
                       <div className="col-span-3">
                         <p className="text-sm text-muted-foreground mb-3">
-                          Selecciona los grupos que determinan las vistas disponibles para este usuario.
+                          {translate('groups_description')}
                         </p>
                         
                         {groups.length > 0 ? (
@@ -614,7 +616,7 @@ export default function UsersTab() {
                           </div>
                         ) : (
                           <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/20">
-                            No hay grupos disponibles.
+                            {translate('no_groups_available')}
                           </div>
                         )}
                         
@@ -630,10 +632,10 @@ export default function UsersTab() {
                 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsUserDialogOpen(false)}>
-                    Cancelar
+                    {translate_common('cancel')}
                   </Button>
                   <Button type="submit">
-                    {editingUser ? 'Actualizar' : 'Crear'} Usuario
+                    {editingUser ? translate('update') : translate('create')} {translate('username')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -686,14 +688,14 @@ export default function UsersTab() {
                       <div>
                         <CardTitle className="text-lg">{user.username}</CardTitle>
                         <CardDescription>
-                          Creado: {new Date(user.created_at).toLocaleDateString()}
+                          {translate('created')}: {new Date(user.created_at).toLocaleDateString()}
                         </CardDescription>
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-2">
                       {getRoleBadge(user.role)}
-                      {!user.enabled && <Badge variant="outline">Inactivo</Badge>}
+                      {!user.enabled && <Badge variant="outline">{translate('inactive')}</Badge>}
                       
                       <Badge variant="secondary" className="bg-blue-50 text-blue-700">
                         {get_user_available_views_count(user)} vista{get_user_available_views_count(user) !== 1 ? 's' : ''}
@@ -741,9 +743,9 @@ export default function UsersTab() {
       <TabsContent value="groups" className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-medium">Grupos de Usuarios</h3>
+            <h3 className="text-lg font-medium">{translate('system_groups')}</h3>
             <p className="text-sm text-muted-foreground">
-              {groups.length} grupo{groups.length !== 1 ? 's' : ''} configurado{groups.length !== 1 ? 's' : ''}
+              {groups.length} {translate('group').toLowerCase()}{groups.length !== 1 ? 's' : ''}
             </p>
           </div>
           
@@ -754,23 +756,23 @@ export default function UsersTab() {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Crear Grupo
+                {translate('create_group')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <form onSubmit={handleGroupSubmit}>
                 <DialogHeader>
                   <DialogTitle>
-                    {editingGroup ? 'Editar Grupo' : 'Crear Nuevo Grupo'}
+                    {editingGroup ? translate('edit_group') : translate('add_new_group')}
                   </DialogTitle>
                   <DialogDescription>
-                    Organiza usuarios y asigna vistas guardadas al grupo.
+                    {translate('group_description')}
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="groupName" className="text-right">Nombre</Label>
+                    <Label htmlFor="groupName" className="text-right">{translate('group_name')}</Label>
                     <Input
                       id="groupName"
                       value={groupFormData.name}
@@ -782,22 +784,21 @@ export default function UsersTab() {
                   </div>
                   
                   <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="groupDescription" className="text-right pt-2">Descripción</Label>
+                    <Label htmlFor="groupDescription" className="text-right pt-2">{translate('group_desc')}</Label>
                     <Textarea
                       id="groupDescription"
                       value={groupFormData.description}
                       onChange={(e) => setGroupFormData({...groupFormData, description: e.target.value})}
                       className="col-span-3"
-                      placeholder="Descripción opcional del grupo..."
                       rows={3}
                     />
                   </div>
                   
                   <div className="grid grid-cols-4 items-start gap-4">
-                    <Label className="text-right pt-2">Vistas</Label>
+                    <Label className="text-right pt-2">{translate('saved_views')}</Label>
                     <div className="col-span-3">
                       <p className="text-sm text-muted-foreground mb-3">
-                        Selecciona las vistas guardadas que estarán disponibles para este grupo.
+                        {translate('select_views')}
                       </p>
                       
                       {savedViews.length > 0 ? (
@@ -829,7 +830,7 @@ export default function UsersTab() {
                         </div>
                       ) : (
                         <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/20">
-                          No hay vistas guardadas disponibles. Crea vistas desde el panel de Vivo.
+                          {translate('no_views_available')}
                         </div>
                       )}
                       
@@ -844,10 +845,10 @@ export default function UsersTab() {
                 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsGroupDialogOpen(false)}>
-                    Cancelar
+                    {translate_common('cancel')}
                   </Button>
                   <Button type="submit">
-                    {editingGroup ? 'Actualizar' : 'Crear'} Grupo
+                    {editingGroup ? translate('update') : translate('create')} {translate('group')}
                   </Button>
                 </DialogFooter>
               </form>

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
@@ -37,7 +37,8 @@ interface TestStep {
 }
 
 export default function ServersTab() {
-  const translate_servers = useTranslations('SettingsPage');
+  const translate = useTranslations('settings.servers');
+  const translate_common = useTranslations('common');
   const [servers, setServers] = useState<ServerWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -356,23 +357,23 @@ export default function ServersTab() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Agregar Servidor
+              {translate('add_server')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
                 <DialogTitle>
-                  {editingServer ? 'Editar Servidor' : 'Agregar Nuevo Servidor'}
+                  {editingServer ? translate('edit_server') : translate('add_new_server')}
                 </DialogTitle>
                 <DialogDescription>
-                  Configura la conexión a tu servidor Frigate con autenticación opcional.
+                  {translate('server_description')}
                 </DialogDescription>
               </DialogHeader>
               
               <div className="grid gap-6 py-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium">Nombre del Servidor</Label>
+                  <Label htmlFor="name" className="text-sm font-medium">{translate('server_name')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -418,7 +419,7 @@ export default function ServersTab() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="url" className="text-sm font-medium">URL del Servidor</Label>
+                  <Label htmlFor="url" className="text-sm font-medium">{translate('server_url')}</Label>
                   <Input
                     id="url"
                     value={formData.url}
@@ -444,7 +445,7 @@ export default function ServersTab() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="username" className="text-sm font-medium">Usuario (opcional)</Label>
+                          <Label htmlFor="username" className="text-sm font-medium">{translate('auth_username')}</Label>
                           <Input
                             id="username"
                             value={formData.username}
@@ -495,10 +496,10 @@ export default function ServersTab() {
               
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
+                  {translate_common('cancel')}
                 </Button>
                 <Button type="submit">
-                  {editingServer ? 'Actualizar' : 'Crear'} Servidor
+                  {editingServer ? translate_common('edit') : translate_common('create')}
                 </Button>
               </DialogFooter>
             </form>
@@ -812,7 +813,7 @@ export default function ServersTab() {
                                     <span className="text-sm font-medium">API</span>
                                   </div>
                                   <Badge variant="outline" className="text-green-600 border-green-600">
-                                    {translate_servers('status_online')}
+                                    ONLINE
                                   </Badge>
                                 </div>
                               </div>

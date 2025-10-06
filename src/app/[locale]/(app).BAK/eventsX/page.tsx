@@ -4,27 +4,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { startOfDay, endOfDay } from 'date-fns';
 import type { FrigateEvent } from '@/lib/frigate-api';
+import EventTimeline from '@/components/ui/event-timeline';
 import EventSidebar from '@/components/ui/event-sidebar';
 import EventPlayer from '@/components/ui/event-player';
 import EventControls, { type TimeRange, type EventFilters } from '@/components/ui/event-controls';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import RecordingPlayer from '@/components/ui/recording-player';
-import FrigateTimeline from '@/components/ui/frigate-timeline';
 
-/**
- * Página de eventos con reproductor unificado
- *
- * Esta página muestra los eventos de Frigate con un reproductor avanzado
- * que comparte la misma implementación que las grabaciones.
- *
- * @description Utiliza RecordingPlayer para reproducción de video con HLS,
- * zoom, pan y controles avanzados. El timeline muestra eventos marcados
- * con íconos por tipo de objeto detectado.
- *
- * @since 2025-01-05
- * @author GitHub Copilot / Juan
- */
 export default function EventsPage() {
 
   const translate_events_page = useTranslations('events.page');
@@ -115,14 +101,6 @@ export default function EventsPage() {
     [events]
   );
 
-  const label_counts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredEvents.forEach((e) => {
-      counts[e.label] = (counts[e.label] || 0) + 1;
-    });
-    return counts;
-  }, [filteredEvents]);
-
   // Fetch events
   const fetchEvents = async () => {
     setIsLoading(true);
@@ -144,16 +122,6 @@ export default function EventsPage() {
           );
           setSelectedEvent(mostRecent);
           setSelectedTime(mostRecent.start_time);
-        }
-
-        // Auto-select first camera if no camera is selected in filters
-        if (data && data.length > 0 && filters.cameras.length === 0) {
-          const eventsData = data as FrigateEvent[];
-          const cameras = [...new Set(eventsData.map(e => e.camera))].sort();
-          const firstCamera = cameras[0];
-          if (firstCamera) {
-            setFilters(prev => ({ ...prev, cameras: [firstCamera] }));
-          }
         }
       } else {
         throw new Error('events_fetch_failed');
@@ -260,7 +228,14 @@ export default function EventsPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 border-b">
+      <div className="flex-shrink-0 p-6 border-b">
+        <div className="mb-4">
+          <h1 className="font-headline text-3xl font-bold tracking-tight">Events</h1>
+          <p className="text-muted-foreground mt-1">
+            Browse and analyze detection events from your security cameras
+          </p>
+        </div>
+
         {/* Controls */}
         <EventControls
           selectedDate={selectedDate}
@@ -271,7 +246,6 @@ export default function EventsPage() {
           onFiltersChange={setFilters}
           availableCameras={availableCameras}
           availableLabels={availableLabels}
-          label_counts={label_counts}
           availableZones={availableZones}
           totalEvents={filteredEvents.length}
         />
@@ -289,60 +263,35 @@ export default function EventsPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Side - Player above Timeline */}
+        {/* Left Side - Timeline and Player */}
         <div className="flex-1 flex flex-col p-6 pr-3">
-          {/* Player - moved above timeline to prioritize viewing */}
-          <div className="flex-1 mb-6 flex items-center justify-center">
-            {/* Contenedor principal centrado como en grabaciones */}
-            <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[900px]">
-              {/* Video container con aspecto 16:9 (responsive) */}
-              <div
-                className="relative w-full border-0"
-                style={{
-                  maxWidth: '900px',
-                  aspectRatio: '16/9'
-                }}
-              >
-                {/* Use EventPlayer for specific events with clips, RecordingPlayer for time navigation */}
-                {selectedEvent && selectedEvent.has_clip ? (
-                  <EventPlayer
-                    event={selectedEvent}
-                    onPreviousEvent={() => navigateToEvent('previous')}
-                    onNextEvent={() => navigateToEvent('next')}
-                    onDownload={handleDownloadEvent}
-                    className="w-full h-full"
-                  />
-                ) : (
-                  <RecordingPlayer
-                    camera={selectedEvent?.camera || ''}
-                    timestamp={selectedTime}
-                    className="w-full h-full"
-                  />
-                )}
+          {/* Timeline */}
+          <div className="flex-shrink-0 mb-6">
+            {isLoading ? (
+              <div className="h-32 bg-card rounded-lg border flex items-center justify-center">
+                <div className="text-muted-foreground">{translate_events_page('loading')}</div>
               </div>
-            </div>
+            ) : (
+              <EventTimeline
+                events={filteredEvents}
+                selectedTime={selectedTime}
+                onTimeSelect={handleTimeSelect}
+                onEventSelect={handleEventSelect}
+                timeRange={timeRange.hours}
+                centerTime={centerTime}
+              />
+            )}
           </div>
 
-          {/* Timeline */}
-          <div className="flex-shrink-0 flex justify-center">
-            <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '900px' }}>
-              {isLoading ? (
-                <div className="h-32 bg-card rounded-lg border flex items-center justify-center">
-                  <div className="text-muted-foreground">{translate_events_page('loading')}</div>
-                </div>
-              ) : (
-                <FrigateTimeline
-                  data={{
-                    segments: [], // No tenemos segmentos en eventos
-                    events: filteredEvents
-                  }}
-                  camera={selectedEvent?.camera || ''}
-                  onTimeSelect={handleTimeSelect}
-                  selectedTime={selectedTime}
-                  className="h-32"
-                />
-              )}
-            </div>
+          {/* Player */}
+          <div className="flex-1">
+            <EventPlayer
+              event={selectedEvent}
+              onPreviousEvent={() => navigateToEvent('previous')}
+              onNextEvent={() => navigateToEvent('next')}
+              onDownload={handleDownloadEvent}
+              className="h-full"
+            />
           </div>
         </div>
 

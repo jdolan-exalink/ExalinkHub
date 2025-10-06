@@ -38,9 +38,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
   const [selectedCamera, setSelectedCamera] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // Set to a date that has recordings
-  // Selecciona por defecto la hora anterior a la actual
-  const defaultHour = ((new Date().getHours() - 1 + 24) % 24);
-  const [selectedHour, setSelectedHour] = useState<number>(defaultHour);
+  const [selectedHour, setSelectedHour] = useState<number>(12); // Start at noon
   const [recordingData, setRecordingData] = useState<RecordingTimelineData | null>(null);
   const [selectedTime, setSelectedTime] = useState<number | undefined>();
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
@@ -549,13 +547,13 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
-                    {Array.from({ length: 24 }, (_, hour) => (
+                    {Array.from({ length: 24 }, (_, i) => (
                       <SelectItem 
-                        key={hour} 
-                        value={hour.toString()}
+                        key={i} 
+                        value={i.toString()}
                         className="text-white hover:bg-green-600"
                       >
-                        {hour.toString().padStart(2, '0')}:00
+                        {i.toString().padStart(2, '0')}:00
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -670,12 +668,12 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       {/* Main Content Area - Video Player y Timeline (centered) */}
       <div className="flex-1 flex items-center justify-center bg-background px-4 py-2 min-h-0 overflow-hidden">
         {/* Contenedor principal centrado */}
-        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[900px]">
+        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[1120px]">
           {/* Video container con aspecto 16:9 (responsive) */}
           <div 
-            className="relative w-full border-0"
+            className="relative w-full"
             style={{
-              maxWidth: '900px',
+              maxWidth: '1120px',
               aspectRatio: '16/9'
             }}
             onMouseMove={handleMouseMove}
@@ -736,7 +734,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
           </div>
 
           {/* Timeline Section - matched to player width */}
-          <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '900px' }}>
+          <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '1120px' }}>
             <div className="h-16">
               <FrigateTimeline
                 data={filteredRecordingData}

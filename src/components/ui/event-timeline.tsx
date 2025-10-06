@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { format, addHours, subHours } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import {
   IconUser, IconCar, IconTruck, IconBike, IconMotorbike, IconBus,
   IconDog, IconCat, IconPackage, IconQuestionMark, IconSearch
@@ -45,6 +46,7 @@ export default function EventTimeline({
   className 
 }: EventTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const translate_timeline = useTranslations('events.timeline');
   const [hoveredEvent, setHoveredEvent] = useState<FrigateEvent | null>(null);
 
   const startTime = centerTime - (timeRange * 3600) / 2;
@@ -104,7 +106,7 @@ export default function EventTimeline({
       {/* Timeline Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Timeline</h3>
+          <h3 className="text-lg font-semibold">{translate_timeline('title')}</h3>
           <div className="text-sm text-muted-foreground">
             {format(new Date(startTime * 1000), 'HH:mm')} - {format(new Date(endTime * 1000), 'HH:mm')}
           </div>
@@ -205,7 +207,7 @@ export default function EventTimeline({
         {events.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <div className="text-2xl mb-2">👁️</div>
-            <div className="text-sm">No events in this time range</div>
+            <div className="text-sm">{translate_timeline('no_events')}</div>
           </div>
         )}
       </div>

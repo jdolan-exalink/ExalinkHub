@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       username: data.username,
       password_hash: passwordHash,
       role: data.role,
-      enabled: data.enabled !== false
+      enabled: data.enabled !== false  // Mantener como booleano, la conversión se hace en config-database
     });
 
     const newUser = db.getUserById(userId);

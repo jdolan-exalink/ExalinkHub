@@ -4,7 +4,9 @@
  */
 
 import Database from 'better-sqlite3';
+import { join } from 'path';
 import { mkdir } from 'fs/promises';
+import { getDatabase } from './database';  // Importar la base de vistas
 import { existsSync } from 'fs';
 import path from 'path';
 
@@ -45,6 +47,23 @@ export interface Group {
   saved_views: string; // JSON array of view IDs
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Define los permisos disponibles en el sistema
+ */
+export interface Permission {
+  module: 'live' | 'events' | 'recordings' | 'settings' | 'users' | 'servers' | 'statistics';
+  action: 'view' | 'create' | 'edit' | 'delete' | 'manage';
+  allowed: boolean;
+}
+
+/**
+ * Define el conjunto completo de permisos para un rol
+ */
+export interface RolePermissions {
+  role: 'admin' | 'operator' | 'viewer';
+  permissions: Permission[];
 }
 
 export interface BackendConfig {
@@ -143,6 +162,19 @@ class ConfigDatabase {
       )
     `);
 
+    // Tabla de relación usuario-grupo
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS user_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        group_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE,
+        UNIQUE(user_id, group_id)
+      )
+    `);
+
     // Tabla de configuración de backend
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS backend_config (
@@ -211,8 +243,8 @@ class ConfigDatabase {
     const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
     
     if (userCount.count === 0) {
-      // Hash simple para "admin" (en producción usar bcrypt)
-      const passwordHash = Buffer.from('admin').toString('base64');
+      // Hash simple para "admin123" (en producción usar bcrypt)
+      const passwordHash = Buffer.from('admin123').toString('base64');
       
       this.db.prepare(`
         INSERT INTO users (username, password_hash, role, enabled)
@@ -220,6 +252,48 @@ class ConfigDatabase {
       `).run('admin', passwordHash, 'admin', 1);
       
       console.log('👤 Usuario admin por defecto creado');
+    } else {
+      // Actualizar contraseña del admin existente si es necesario
+      const existingAdmin = this.db.prepare('SELECT * FROM users WHERE username = ?').get('admin') as User | undefined;
+      if (existingAdmin && existingAdmin.password_hash === Buffer.from('admin').toString('base64')) {
+        const newPasswordHash = Buffer.from('admin123').toString('base64');
+        this.db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(newPasswordHash, 'admin');
+        console.log('🔐 Contraseña de admin actualizada a admin123');
+      }
+    }
+
+    // Insertar grupos por defecto si no existen
+    const groupCount = this.db.prepare('SELECT COUNT(*) as count FROM groups').get() as { count: number };
+    
+    if (groupCount.count === 0) {
+      const defaultGroups = [
+        {
+          name: 'admins',
+          description: 'Administradores con acceso completo a todas las funciones del sistema',
+          saved_views: '[]'
+        },
+        {
+          name: 'usuarios',
+          description: 'Usuarios con acceso a todas las funciones excepto configuración',
+          saved_views: '[]'
+        },
+        {
+          name: 'viewers',
+          description: 'Visualizadores con acceso únicamente a las vistas en vivo',
+          saved_views: '[]'
+        }
+      ];
+
+      const insertGroup = this.db.prepare(`
+        INSERT INTO groups (name, description, saved_views)
+        VALUES (?, ?, ?)
+      `);
+
+      for (const group of defaultGroups) {
+        insertGroup.run(group.name, group.description, group.saved_views);
+      }
+      
+      console.log('👥 Grupos por defecto creados (admins, usuarios, viewers)');
     }
 
     // Insertar configuraciones de backend por defecto
@@ -404,32 +478,74 @@ class ConfigDatabase {
   // === MÉTODOS PARA USUARIOS ===
   
   getAllUsers(): User[] {
-    return this.db.prepare('SELECT * FROM users ORDER BY username').all() as User[];
+    const users = this.db.prepare('SELECT * FROM users ORDER BY username').all() as any[];
+    return users.map(user => ({
+      ...user,
+      enabled: Boolean(user.enabled)
+    })) as User[];
   }
 
   getUserById(id: number): User | undefined {
-    return this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+    const user = this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+    if (!user) return undefined;
+    return {
+      ...user,
+      enabled: Boolean(user.enabled)
+    } as User;
   }
 
   getUserByUsername(username: string): User | undefined {
-    return this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
+    const user = this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+    if (!user) return undefined;
+    return {
+      ...user,
+      enabled: Boolean(user.enabled)
+    } as User;
   }
 
   createUser(data: Omit<User, 'id' | 'created_at' | 'updated_at'>): number {
     const result = this.db.prepare(`
       INSERT INTO users (username, password_hash, role, enabled)
       VALUES (?, ?, ?, ?)
-    `).run(data.username, data.password_hash, data.role, data.enabled);
+    `).run(data.username, data.password_hash, data.role, data.enabled ? 1 : 0);
     
     return result.lastInsertRowid as number;
   }
 
   updateUser(id: number, data: Partial<User>): boolean {
-    const result = this.db.prepare(`
-      UPDATE users 
-      SET username = ?, password_hash = ?, role = ?, enabled = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(data.username, data.password_hash, data.role, data.enabled, id);
+    // Construir la consulta dinámicamente según los campos proporcionados
+    const fields: string[] = [];
+    const values: any[] = [];
+    
+    if (data.username !== undefined) {
+      fields.push('username = ?');
+      values.push(data.username);
+    }
+    
+    if (data.password_hash !== undefined) {
+      fields.push('password_hash = ?');
+      values.push(data.password_hash);
+    }
+    
+    if (data.role !== undefined) {
+      fields.push('role = ?');
+      values.push(data.role);
+    }
+    
+    if (data.enabled !== undefined) {
+      fields.push('enabled = ?');
+      values.push(data.enabled ? 1 : 0);
+    }
+    
+    if (fields.length === 0) {
+      return false; // No hay campos para actualizar
+    }
+    
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id); // ID va al final
+    
+    const query = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    const result = this.db.prepare(query).run(...values);
     
     return result.changes > 0;
   }
@@ -442,7 +558,21 @@ class ConfigDatabase {
   // === MÉTODOS PARA GRUPOS ===
   
   getAllGroups(): Group[] {
-    return this.db.prepare('SELECT * FROM groups ORDER BY name').all() as Group[];
+    const groups = this.db.prepare('SELECT * FROM groups ORDER BY name').all() as Group[];
+    
+    // Ordenar para que los grupos predefinidos aparezcan primero
+    const predefinedOrder = ['admins', 'usuarios', 'viewers'];
+    const predefinedGroups = groups.filter(g => predefinedOrder.includes(g.name));
+    const customGroups = groups.filter(g => !predefinedOrder.includes(g.name));
+    
+    // Ordenar grupos predefinidos según el orden especificado
+    predefinedGroups.sort((a, b) => {
+      const aIndex = predefinedOrder.indexOf(a.name);
+      const bIndex = predefinedOrder.indexOf(b.name);
+      return aIndex - bIndex;
+    });
+    
+    return [...predefinedGroups, ...customGroups];
   }
 
   getGroupById(id: number): Group | undefined {
@@ -471,6 +601,117 @@ class ConfigDatabase {
   deleteGroup(id: number): boolean {
     const result = this.db.prepare('DELETE FROM groups WHERE id = ?').run(id);
     return result.changes > 0;
+  }
+
+  // === MÉTODOS PARA PERMISOS ===
+
+  /**
+   * Obtiene los permisos completos para un rol específico
+   * @param role - Rol del usuario: 'admin', 'operator' o 'viewer'
+   * @returns Objeto con el rol y array de permisos
+   */
+  get_role_permissions(role: 'admin' | 'operator' | 'viewer'): RolePermissions {
+    const basePermissions: Permission[] = [
+      // Módulo Live (Vista en vivo)
+      { module: 'live', action: 'view', allowed: true },
+
+      // Módulo Events (Eventos)
+      { module: 'events', action: 'view', allowed: role !== 'viewer' },
+      { module: 'events', action: 'create', allowed: role === 'admin' },
+      { module: 'events', action: 'edit', allowed: role === 'admin' },
+      { module: 'events', action: 'delete', allowed: role === 'admin' },
+
+      // Módulo Recordings (Grabaciones)
+      { module: 'recordings', action: 'view', allowed: role !== 'viewer' },
+      { module: 'recordings', action: 'create', allowed: role === 'admin' },
+      { module: 'recordings', action: 'edit', allowed: role === 'admin' },
+      { module: 'recordings', action: 'delete', allowed: role === 'admin' },
+
+      // Módulo Settings (Configuración general)
+      { module: 'settings', action: 'view', allowed: role === 'admin' },
+      { module: 'settings', action: 'edit', allowed: role === 'admin' },
+      { module: 'settings', action: 'manage', allowed: role === 'admin' },
+
+      // Módulo Users (Gestión de usuarios)
+      { module: 'users', action: 'view', allowed: role === 'admin' },
+      { module: 'users', action: 'create', allowed: role === 'admin' },
+      { module: 'users', action: 'edit', allowed: role === 'admin' },
+      { module: 'users', action: 'delete', allowed: role === 'admin' },
+      { module: 'users', action: 'manage', allowed: role === 'admin' },
+
+      // Módulo Servers (Gestión de servidores)
+      { module: 'servers', action: 'view', allowed: role === 'admin' },
+      { module: 'servers', action: 'create', allowed: role === 'admin' },
+      { module: 'servers', action: 'edit', allowed: role === 'admin' },
+      { module: 'servers', action: 'delete', allowed: role === 'admin' },
+      { module: 'servers', action: 'manage', allowed: role === 'admin' },
+
+      // Módulo Statistics (Estadísticas)
+      { module: 'statistics', action: 'view', allowed: role !== 'viewer' }
+    ];
+
+    return {
+      role,
+      permissions: basePermissions
+    };
+  }
+
+  /**
+   * Verifica si un usuario tiene un permiso específico
+   * @param user_id - ID del usuario a verificar
+   * @param module - Módulo del sistema a verificar
+   * @param action - Acción específica dentro del módulo
+   * @returns true si el usuario tiene el permiso, false en caso contrario
+   */
+  check_user_permission(user_id: number, module: Permission['module'], action: Permission['action']): boolean {
+    const user = this.getUserById(user_id);
+    if (!user || !user.enabled) {
+      return false;
+    }
+
+    const rolePermissions = this.get_role_permissions(user.role);
+    const permission = rolePermissions.permissions.find(p => p.module === module && p.action === action);
+    
+    return permission?.allowed || false;
+  }
+
+  /**
+   * Verifica si un usuario por nombre de usuario tiene un permiso específico
+   * @param username - Nombre de usuario a verificar
+   * @param module - Módulo del sistema a verificar
+   * @param action - Acción específica dentro del módulo
+   * @returns true si el usuario tiene el permiso, false en caso contrario
+   */
+  check_user_permission_by_username(username: string, module: Permission['module'], action: Permission['action']): boolean {
+    const user = this.getUserByUsername(username);
+    if (!user || !user.enabled) {
+      return false;
+    }
+
+    return this.check_user_permission(user.id, module, action);
+  }
+
+  /**
+   * Obtiene todos los módulos a los que un usuario tiene acceso
+   * @param user_id - ID del usuario
+   * @returns Array con los nombres de los módulos accesibles
+   */
+  get_user_accessible_modules(user_id: number): string[] {
+    const user = this.getUserById(user_id);
+    if (!user || !user.enabled) {
+      return [];
+    }
+
+    const rolePermissions = this.get_role_permissions(user.role);
+    const accessibleModules = new Set<string>();
+
+    rolePermissions.permissions.forEach(permission => {
+      if (permission.allowed && permission.action === 'view') {
+        accessibleModules.add(permission.module);
+      }
+    });
+
+    return Array.from(accessibleModules);
   }
 
   // === MÉTODOS PARA CONFIGURACIÓN DE BACKEND ===
@@ -587,6 +828,144 @@ class ConfigDatabase {
 
   getAllServerStatuses(): ServerStatus[] {
     return this.db.prepare('SELECT * FROM server_status').all() as ServerStatus[];
+  }
+
+  // === MÉTODOS PARA RELACIONES USUARIO-GRUPO ===
+  
+  /**
+   * Asigna un grupo a un usuario
+   */
+  assignUserToGroup(userId: number, groupId: number): boolean {
+    try {
+      const result = this.db.prepare(`
+        INSERT INTO user_groups (user_id, group_id)
+        VALUES (?, ?)
+      `).run(userId, groupId);
+      return result.changes > 0;
+    } catch (error) {
+      // Si ya existe la relación, ignorar
+      return false;
+    }
+  }
+
+  /**
+   * Remueve un usuario de un grupo
+   */
+  removeUserFromGroup(userId: number, groupId: number): boolean {
+    const result = this.db.prepare(`
+      DELETE FROM user_groups 
+      WHERE user_id = ? AND group_id = ?
+    `).run(userId, groupId);
+    return result.changes > 0;
+  }
+
+  /**
+   * Obtiene los grupos asignados a un usuario
+   */
+  getUserGroups(userId: number): Group[] {
+    return this.db.prepare(`
+      SELECT g.* FROM groups g
+      INNER JOIN user_groups ug ON g.id = ug.group_id
+      WHERE ug.user_id = ?
+      ORDER BY g.name
+    `).all(userId) as Group[];
+  }
+
+  /**
+   * Obtiene los usuarios asignados a un grupo
+   */
+  getGroupUsers(groupId: number): User[] {
+    const users = this.db.prepare(`
+      SELECT u.* FROM users u
+      INNER JOIN user_groups ug ON u.id = ug.user_id
+      WHERE ug.group_id = ?
+      ORDER BY u.username
+    `).all(groupId) as any[];
+    
+    return users.map(user => ({
+      ...user,
+      enabled: Boolean(user.enabled)
+    })) as User[];
+  }
+
+  /**
+   * Actualiza los grupos asignados a un usuario (reemplaza todos)
+   */
+  updateUserGroups(userId: number, groupIds: number[]): boolean {
+    const deleteExisting = this.db.prepare('DELETE FROM user_groups WHERE user_id = ?');
+    const insertNew = this.db.prepare('INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)');
+    
+    const transaction = this.db.transaction((userId: number, groupIds: number[]) => {
+      deleteExisting.run(userId);
+      for (const groupId of groupIds) {
+        insertNew.run(userId, groupId);
+      }
+    });
+    
+    try {
+      transaction(userId, groupIds);
+      return true;
+    } catch (error) {
+      console.error('Error updating user groups:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene todas las vistas disponibles para un usuario (propias + de grupos)
+   */
+  getUserAvailableViews(userId: number): string[] {
+    const user = this.getUserById(userId);
+    if (!user) return [];
+
+    // Admin tiene acceso a todas las vistas
+    if (user.role === 'admin') {
+      try {
+        const viewsDb = getDatabase();
+        const allViews = viewsDb.getAllViews();
+        return allViews.map(view => view.id.toString());
+      } catch (error) {
+        console.warn('Error accessing views database:', error);
+        return [];
+      }
+    }
+
+    // Para otros usuarios, obtener vistas de sus grupos
+    const userGroups = this.getUserGroups(userId);
+    const allViews = new Set<string>();
+
+    for (const group of userGroups) {
+      try {
+        const groupViews = JSON.parse(group.saved_views);
+        if (Array.isArray(groupViews)) {
+          groupViews.forEach(viewId => allViews.add(viewId));
+        }
+      } catch (error) {
+        console.warn(`Error parsing views for group ${group.name}:`, error);
+      }
+    }
+
+    return Array.from(allViews);
+  }
+
+  /**
+   * Obtiene el conteo de vistas disponibles para un usuario
+   */
+  getUserAvailableViewsCount(userId: number): number {
+    return this.getUserAvailableViews(userId).length;
+  }
+
+  /**
+   * Obtiene todas las vistas del sistema (desde la base de vistas)
+   */
+  getAllSystemViews() {
+    try {
+      const viewsDb = getDatabase();
+      return viewsDb.getAllViews();
+    } catch (error) {
+      console.warn('Error accessing views database:', error);
+      return [];
+    }
   }
 
   close() {

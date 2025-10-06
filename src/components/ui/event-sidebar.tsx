@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import type { FrigateEvent } from '@/lib/frigate-api';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Play, Download, ExternalLink, ZoomIn } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, X } from 'lucide-react';
 import {
   IconUser, IconCar, IconTruck, IconBike, IconMotorbike, IconBus,
   IconDog, IconCat, IconPackage, IconQuestionMark, IconSearch
@@ -59,13 +61,15 @@ function EventCard({
   isSelected, 
   onSelect, 
   onPlay, 
-  onDownload 
+  onDownload,
+  onImageClick
 }: {
   event: FrigateEvent;
   isSelected: boolean;
   onSelect?: (event: FrigateEvent) => void;
   onPlay?: (event: FrigateEvent) => void;
   onDownload?: (event: FrigateEvent) => void;
+  onImageClick?: (event: FrigateEvent) => void;
 }) {
   const IconComponent = OBJECT_ICONS[event.label] || OBJECT_ICONS.unknown;
   const colorClass = OBJECT_COLORS[event.label] || OBJECT_COLORS.unknown;
@@ -95,13 +99,13 @@ function EventCard({
       </div>
 
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-black rounded overflow-hidden mb-2">
+      <div className="relative aspect-video bg-black rounded overflow-hidden mb-2 cursor-pointer" onClick={() => onSelect?.(event)}>
         {event.has_snapshot || event.thumbnail ? (
           <Image
             src={event.thumbnail || `/api/frigate/events/${event.id}/snapshot.jpg`}
             alt={`${event.label} detection`}
             fill
-            className="object-cover"
+            className="object-cover hover:opacity-90 transition-opacity"
             sizes="(max-width: 300px) 100vw, 300px"
             onError={(e) => {
               // Fallback to placeholder if thumbnail fails
@@ -117,7 +121,7 @@ function EventCard({
             </div>
           </div>
         )}
-        
+
         {/* Media Type Indicators */}
         <div className="absolute top-2 left-2 flex gap-1">
           {event.has_clip && (
@@ -131,32 +135,6 @@ function EventCard({
             </Badge>
           )}
         </div>
-        
-        {/* Play Overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all flex items-center justify-center">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="opacity-0 hover:opacity-100 transition-opacity bg-white/90 hover:bg-white text-black"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlay?.(event);
-            }}
-            title={event.has_clip ? "Reproducir video" : "Ver snapshot"}
-          >
-            {event.has_clip ? (
-              <>
-                <Play className="h-4 w-4 mr-1" />
-                Play
-              </>
-            ) : (
-              <>
-                <ZoomIn className="h-4 w-4 mr-1" />
-                Ver
-              </>
-            )}
-          </Button>
-        </div>
       </div>
 
       {/* Event Actions */}
@@ -168,34 +146,19 @@ function EventCard({
             <>Solo snapshot disponible</>
           )}
         </div>
-        <div className="flex gap-1">
-          {event.has_clip && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDownload?.(event);
-              }}
-              title="Descargar clip"
-            >
-              <Download className="h-3 w-3" />
-            </Button>
-          )}
+        {event.has_snapshot && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-6 w-6 p-0"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(`/events/${event.id}`, '_blank');
+              onImageClick?.(event);
             }}
-            title="Abrir en nueva pestaña"
+            className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
           >
-            <ExternalLink className="h-3 w-3" />
+            Foto
           </Button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -209,7 +172,81 @@ export default function EventSidebar({
   onDownloadEvent,
   className 
 }: EventSidebarProps) {
+  const translate_sidebar = useTranslations('events.sidebar');
   const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImageEvent, setSelectedImageEvent] = useState<FrigateEvent | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Handle image click to open modal
+  const handleImageClick = (event: FrigateEvent) => {
+    if (event.has_snapshot) {
+      setSelectedImageEvent(event);
+      setImageModalOpen(true);
+    }
+  };
+
+  // Video controls
+  const handlePlayPause = () => {
+    if (!videoRef.current) return;
+    
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleMute = () => {
+    if (!videoRef.current) return;
+    
+    if (isMuted) {
+      videoRef.current.volume = 1;
+      setIsMuted(false);
+    } else {
+      videoRef.current.volume = 0;
+      setIsMuted(true);
+    }
+  };
+
+  const handleSeek = (direction: 'forward' | 'backward') => {
+    if (!videoRef.current) return;
+    
+    const seekAmount = 10; // 10 seconds
+    const newTime = direction === 'forward' 
+      ? Math.min(duration, currentTime + seekAmount)
+      : Math.max(0, currentTime - seekAmount);
+    
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const handleFullscreen = () => {
+    if (!videoRef.current) return;
+    
+    if (videoRef.current.requestFullscreen) {
+      videoRef.current.requestFullscreen();
+    }
+  };
+
+  // Reset video state when modal opens/closes
+  useEffect(() => {
+    if (!imageModalOpen) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsMuted(false);
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    }
+  }, [imageModalOpen]);
 
   // Group events by time periods for better organization
   const groupedEvents = events.reduce((acc, event) => {
@@ -228,7 +265,7 @@ export default function EventSidebar({
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Events</h3>
+          <h3 className="text-xl font-semibold">{translate_sidebar('title')}</h3>
           <Badge variant="secondary">{events.length}</Badge>
         </div>
       </div>
@@ -258,6 +295,7 @@ export default function EventSidebar({
                       onSelect={onEventSelect}
                       onPlay={onPlayEvent}
                       onDownload={onDownloadEvent}
+                      onImageClick={handleImageClick}
                     />
                   ))}
                 </div>
@@ -266,8 +304,8 @@ export default function EventSidebar({
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <div className="text-4xl mb-2">👁️</div>
-              <div className="text-sm">No events found</div>
-              <div className="text-xs mt-1">Try adjusting your time range or filters</div>
+              <div className="text-sm">{translate_sidebar('no_events_found')}</div>
+              <div className="text-xs mt-1">{translate_sidebar('try_adjusting_filters')}</div>
             </div>
           )}
         </div>
@@ -288,6 +326,148 @@ export default function EventSidebar({
           </div>
         </div>
       </div>
+
+      {/* Image/Video Modal */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="max-w-4xl w-full h-[90vh] p-0 bg-black border-gray-700">
+          <DialogTitle className="sr-only">
+            {selectedImageEvent ? `${selectedImageEvent.label} detection - ${selectedImageEvent.camera}` : 'Event Media'}
+          </DialogTitle>
+          <div className="relative w-full h-full flex flex-col">
+            {/* Close Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setImageModalOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-black/80 hover:bg-black/90 text-white"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            
+            {/* Event Info Header */}
+            <div className="absolute top-4 left-4 z-10 bg-black/80 text-white px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2 text-sm">
+                {selectedImageEvent && (
+                  <>
+                    {(() => {
+                      const IconComp = OBJECT_ICONS[selectedImageEvent.label] || OBJECT_ICONS.unknown;
+                      return <IconComp size={16} />;
+                    })()}
+                    <span className="font-medium">{selectedImageEvent.label}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-gray-300">{selectedImageEvent.camera}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-gray-300">
+                      {format(new Date(selectedImageEvent.start_time * 1000), 'PPP p')}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* Media Content */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              {selectedImageEvent?.has_clip ? (
+                <video
+                  ref={videoRef}
+                  className="max-w-full max-h-full object-contain"
+                  src={`/api/frigate/events/${selectedImageEvent.id}/clip.mp4`}
+                  onLoadedMetadata={() => {
+                    if (videoRef.current) {
+                      setDuration(videoRef.current.duration);
+                    }
+                  }}
+                  onTimeUpdate={() => {
+                    if (videoRef.current) {
+                      setCurrentTime(videoRef.current.currentTime);
+                    }
+                  }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                />
+              ) : (
+                selectedImageEvent && (
+                  <Image
+                    src={selectedImageEvent.thumbnail || `/api/frigate/events/${selectedImageEvent.id}/snapshot.jpg`}
+                    alt={`${selectedImageEvent.label} detection - Full size`}
+                    width={800}
+                    height={600}
+                    className="max-w-full max-h-full object-contain"
+                    priority
+                  />
+                )
+              )}
+            </div>
+            
+            {/* Video Controls */}
+            {selectedImageEvent?.has_clip && (
+              <div className="bg-gray-900 border-t border-gray-700 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  {/* Left - Playback Controls */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSeek('backward')}
+                      className="text-white hover:bg-white/20 h-8 w-8 rounded-full"
+                    >
+                      <SkipBack className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handlePlayPause}
+                      className="text-white hover:bg-white/20 h-10 w-12 rounded-lg bg-white/10 border border-white/20"
+                    >
+                      {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSeek('forward')}
+                      className="text-white hover:bg-white/20 h-8 w-8 rounded-full"
+                    >
+                      <SkipForward className="h-4 w-4" />
+                    </Button>
+                    
+                    {/* Volume Control */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleMute}
+                      className="text-white hover:bg-white/20 h-8 w-8 ml-4"
+                    >
+                      {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  
+                  {/* Center - Time Info */}
+                  <div className="flex flex-col items-center text-white">
+                    <div className="text-xs text-gray-400">
+                      {format(new Date(currentTime * 1000), 'mm:ss')} / {format(new Date(duration * 1000), 'mm:ss')}
+                    </div>
+                  </div>
+                  
+                  {/* Right - Fullscreen */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleFullscreen}
+                      className="text-white hover:bg-white/20 h-8 w-8"
+                    >
+                      <Maximize className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

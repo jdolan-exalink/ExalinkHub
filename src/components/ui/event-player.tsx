@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,7 @@ export default function EventPlayer({
   className 
 }: EventPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const translate_player = useTranslations('events.player');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -224,15 +226,15 @@ export default function EventPlayer({
         <div className="aspect-video bg-black rounded-t-lg flex items-center justify-center">
           <div className="text-center text-white">
             <div className="text-4xl mb-4">👁️</div>
-            <div className="text-lg">No Event Selected</div>
+            <div className="text-lg">{translate_player('no_event_selected')}</div>
             <div className="text-sm text-gray-400 mt-2">
-              Select an event from the timeline or sidebar to view
+              {translate_player('select_event_prompt')}
             </div>
           </div>
         </div>
         <div className="p-4">
           <div className="text-sm text-muted-foreground text-center">
-            Events will appear here when selected
+            {translate_player('events_will_appear')}
           </div>
         </div>
       </div>
@@ -302,7 +304,7 @@ export default function EventPlayer({
         {/* Loading Overlay */}
         {isLoading && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <div className="text-white">Loading clip...</div>
+            <div className="text-white">{translate_player('loading_clip')}</div>
           </div>
         )}
 
@@ -325,7 +327,7 @@ export default function EventPlayer({
               onClick={handlePlayPause}
             >
               <Play className="h-6 w-6 mr-2" />
-              Reproducir Video
+              {translate_player('play_video')}
             </Button>
           </div>
         )}
@@ -334,8 +336,8 @@ export default function EventPlayer({
         {showThumbnail && !event.has_clip && event.has_snapshot && (
           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
             <div className="bg-black/80 text-white px-4 py-2 rounded-lg text-center">
-              <div className="text-sm font-medium mb-1">📸 Solo Snapshot Disponible</div>
-              <div className="text-xs text-gray-300">Haz clic en 🔍 para ampliar</div>
+              <div className="text-sm font-medium mb-1">{translate_player('snapshot_only')}</div>
+              <div className="text-xs text-gray-300">{translate_player('click_to_enlarge')}</div>
             </div>
           </div>
         )}
@@ -358,14 +360,14 @@ export default function EventPlayer({
           <div>
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <IconComponent size={20} className={colorClass} />
-              {event.label} Detection
+              {event.label} {translate_player('detection')}
             </h3>
             <p className="text-sm text-muted-foreground">
               {event.camera} • {format(new Date(event.start_time * 1000), 'PPP p')}
             </p>
           </div>
           <div className="text-right">
-            <div className="text-sm text-muted-foreground">Duración</div>
+            <div className="text-sm text-muted-foreground">{translate_player('duration')}</div>
             <div className="font-mono">
               {event.end_time ? Math.round(event.end_time - event.start_time) : '?'}s
             </div>
@@ -376,17 +378,17 @@ export default function EventPlayer({
         <div className="flex gap-2">
           {event.has_clip && (
             <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-              🎥 Video Disponible
+              {translate_player('video_available')}
             </Badge>
           )}
           {event.has_snapshot && (
             <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-              📸 Snapshot Disponible
+              {translate_player('snapshot_available')}
             </Badge>
           )}
           {!event.has_clip && !event.has_snapshot && (
             <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
-              ⚠️ Sin Media
+              {translate_player('no_media')}
             </Badge>
           )}
         </div>
@@ -402,7 +404,7 @@ export default function EventPlayer({
               onClick={onPreviousEvent}
               className="text-white hover:bg-gray-800"
               disabled={!onPreviousEvent}
-              title="Evento anterior"
+              title={translate_player('previous_event')}
             >
               <SkipBack className="h-4 w-4" />
             </Button>
@@ -413,7 +415,7 @@ export default function EventPlayer({
               onClick={handlePlayPause}
               className="text-white hover:bg-gray-800"
               disabled={!event.has_clip}
-              title={event.has_clip ? (isPlaying ? "Pausar" : "Reproducir") : "No hay video disponible"}
+              title={event.has_clip ? (isPlaying ? translate_player('pause') : translate_player('play')) : translate_player('no_video_available')}
             >
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
@@ -424,7 +426,7 @@ export default function EventPlayer({
               onClick={handleReplay}
               className="text-white hover:bg-gray-800"
               disabled={!event.has_clip}
-              title={event.has_clip ? "Repetir video" : "No hay video disponible"}
+              title={event.has_clip ? translate_player('replay') : translate_player('no_video_available')}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -435,7 +437,7 @@ export default function EventPlayer({
               onClick={onNextEvent}
               className="text-white hover:bg-gray-800"
               disabled={!onNextEvent}
-              title="Siguiente evento"
+              title={translate_player('next_event')}
             >
               <SkipForward className="h-4 w-4" />
             </Button>
@@ -447,10 +449,10 @@ export default function EventPlayer({
                 size="sm"
                 onClick={handleEnlargeSnapshot}
                 className="text-white hover:bg-gray-800 border border-gray-600"
-                title="Ampliar snapshot"
+                title={translate_player('enlarge_snapshot')}
               >
                 <ZoomIn className="h-4 w-4 mr-1" />
-                Ampliar
+                {translate_player('enlarge')}
               </Button>
             )}
           </div>
@@ -463,7 +465,7 @@ export default function EventPlayer({
               onClick={handleMute}
               className="text-white hover:bg-gray-800"
               disabled={!event.has_clip}
-              title={event.has_clip ? (isMuted ? "Activar sonido" : "Silenciar") : "No hay audio disponible"}
+              title={event.has_clip ? (isMuted ? translate_player('unmute') : translate_player('mute')) : translate_player('no_audio_available')}
             >
               {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </Button>
@@ -477,7 +479,7 @@ export default function EventPlayer({
               onClick={handleDownload}
               className="text-white hover:bg-gray-800"
               disabled={!event.has_clip}
-              title={event.has_clip ? "Descargar video" : "No hay video para descargar"}
+              title={event.has_clip ? translate_player('download_video') : translate_player('no_video_to_download')}
             >
               <Download className="h-4 w-4" />
             </Button>
@@ -488,7 +490,7 @@ export default function EventPlayer({
               onClick={handleFullscreen}
               className="text-white hover:bg-gray-800"
               disabled={showThumbnail || !event.has_clip}
-              title={event.has_clip ? "Pantalla completa" : "No disponible"}
+              title={event.has_clip ? translate_player('fullscreen') : translate_player('not_available')}
             >
               <Maximize className="h-4 w-4" />
             </Button>

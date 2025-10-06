@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -80,10 +81,18 @@ export default function RecordingPlayer({
 
   // Apply playback speed when video loads or speed changes
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = playbackSpeed;
-    }
-  }, [playbackSpeed]);
+      if (videoRef.current) {
+        videoRef.current.playbackRate = playbackSpeed;
+      }
+    }, [playbackSpeed]);
+
+    /**
+     * Get translated strings for the recording player.
+     * Uses the `player` namespace in the translations files.
+     *
+     * @returns translator function (key -> translated string)
+     */
+    const translate = useTranslations('player');
 
   // Generate recording URL based on timestamp
   const getRecordingUrl = (time: number) => {
@@ -653,7 +662,7 @@ export default function RecordingPlayer({
   };
 
   return (
-    <div className={`bg-black rounded-lg overflow-hidden w-full h-full flex flex-col ${className}`}>
+  <div className={`bg-black rounded-lg overflow-hidden w-full h-full flex flex-col ${className}`}>
       {/* Video Element - Área principal del video */}
       <div 
         className="relative flex-1 bg-black flex items-center justify-center overflow-hidden"
@@ -688,7 +697,7 @@ export default function RecordingPlayer({
         
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <div className="text-white">Loading recording...</div>
+            <div className="text-white">{translate('loading')}</div>
           </div>
         )}
         
@@ -748,33 +757,13 @@ export default function RecordingPlayer({
             <div>
               <div className="text-2xl mb-4">📹</div>
               <div className="text-sm text-gray-400">
-                Select a time on the timeline to view recording
+                {translate('select_time_prompt')}
               </div>
             </div>
           </div>
         )}
         
-        {/* Central Play/Pause Control */}
-        {(!isPlaying || isLoading) && timestamp && !error && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={handlePlayPause}
-              className="text-white hover:bg-white/20 h-20 w-20 rounded-full bg-black/60 backdrop-blur-sm border border-white/30 transition-all duration-300 hover:scale-105"
-              disabled={isLoading}
-              title={isLoading ? 'Cargando...' : (isPlaying ? 'Pausar' : 'Reproducir')}
-            >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-              ) : isPlaying ? (
-                <Pause className="h-8 w-8" />
-              ) : (
-                <Play className="h-8 w-8 ml-1" />
-              )}
-            </Button>
-          </div>
-        )}
+        {/* central play button removed per UX request; use control bar below */}
 
         {/* Zoom Level Indicator */}
         {zoomLevel > 1 && (
@@ -955,21 +944,19 @@ export default function RecordingPlayer({
             {/* Action Buttons */}
             <div className="flex items-center gap-2">{showExportButton ? (
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={onExportClick}
-                  className="text-white border-white/30 hover:bg-white/20 h-8 px-3"
+                  className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3 text-sm"
                   title="Abrir opciones de exportación"
                 >
                   <Download className="h-3.5 w-3.5 mr-1.5" />
-                  <span className="font-medium text-xs">Exportar</span>
+                    <span className="font-medium text-xs">{translate('export')}</span>
                 </Button>
               ) : (
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={handleDownload}
-                  className="text-white border-white/30 hover:bg-white/20 h-8 px-3"
+                  className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3 text-sm"
                   disabled={!selectionRange && !timestamp}
                   title={selectionRange ? 
                     `Download selected range` :
@@ -977,7 +964,7 @@ export default function RecordingPlayer({
                   }
                 >
                   <Download className="h-3.5 w-3.5 mr-1.5" />
-                  <span className="font-medium text-xs">Download</span>
+                  <span className="font-medium text-xs">{translate('download')}</span>
                 </Button>
               )}
               

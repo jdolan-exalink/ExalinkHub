@@ -27,10 +27,10 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   // Validate cameras prop
   if (!cameras || !Array.isArray(cameras)) {
     return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
+      <div className="h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center">
           <div className="text-lg font-medium mb-2">{translate_recordings_browser('no_camera_title')}</div>
-          <div className="text-sm text-gray-400">{translate_recordings_browser('no_camera_message')}</div>
+          <div className="text-sm text-muted-foreground">{translate_recordings_browser('no_camera_message')}</div>
         </div>
       </div>
     );
@@ -148,10 +148,25 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       });
       
       // Auto-play the video
-      const videoElement = document.querySelector('video');
-      if (videoElement) {
-        setTimeout(() => {
-          videoElement.play().catch(console.error);
+      const video_element = document.querySelector('video') as HTMLVideoElement | null;
+      if (video_element) {
+        // Try muted autoplay first (most browsers allow autoplay when muted).
+        setTimeout(async () => {
+          try {
+            const was_muted = video_element.muted;
+            // Ensure muted to increase chance of autoplay being allowed.
+            video_element.muted = true;
+            await video_element.play();
+            // Autoplay succeeded. Leave muted state as-is to avoid autoplay being blocked.
+            if (!was_muted) {
+              // We intentionally keep it muted after autoplay to avoid being paused by policy.
+              // The user can unmute via UI controls in the player.
+              console.debug('RecordingBrowser: autoplay succeeded while muted');
+            }
+          } catch (err) {
+            // Autoplay was blocked. Do not call play again — wait for user interaction.
+            console.debug('RecordingBrowser: autoplay blocked, waiting for user interaction');
+          }
         }, 500);
       }
     }
@@ -489,19 +504,19 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col">
-      {/* Barra de Controles Superiores */}
-      <div className="bg-gray-900 border-b border-gray-700 flex-shrink-0">
+    <div className="h-screen bg-background text-foreground flex flex-col">
+  {/* Barra de Controles Superiores */}
+  <div className="bg-card border-b border-border flex-shrink-0">
         {/* Controles */}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Controles Izquierda: Cámara, Hora, Fecha */}
             <div className="flex items-center gap-6">
-              <h1 className="text-white font-semibold text-lg mr-4">Grabaciones</h1>
+              <h1 className="font-semibold text-lg mr-4">{translate_recordings_browser('title')}</h1>
               
               {/* Selector de Cámara */}
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Cámara:</span>
+                <span className="font-medium text-sm">{translate_recordings_browser('camera_label')}</span>
                 <Select value={selectedCamera} onValueChange={setSelectedCamera}>
                   <SelectTrigger className="w-48 h-9 bg-blue-600 border-blue-500 text-white font-medium hover:bg-blue-700">
                     <SelectValue placeholder="Seleccionar cámara" />
@@ -526,7 +541,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
               {/* Selector de Hora */}
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Hora:</span>
+                <span className="font-medium text-sm">{translate_recordings_browser('hour_label')}</span>
                 <Select value={selectedHour.toString()} onValueChange={(value) => setSelectedHour(parseInt(value))}>
                   <SelectTrigger className="w-24 h-9 bg-green-600 border-green-500 text-white font-medium hover:bg-green-700">
                     <SelectValue />
@@ -547,7 +562,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
               {/* Calendario */}
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Fecha:</span>
+                <span className="font-medium text-sm">{translate_recordings_browser('date_label')}</span>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -590,8 +605,8 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
             <div className="flex items-center gap-4">
               {/* Filtro de Detecciones */}
               <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-white" />
-                <span className="text-white font-medium text-sm">Filtros:</span>
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-sm">{translate_recordings_browser('filters_label')}</span>
                 <Select value={selectedFilter} onValueChange={setSelectedFilter}>
                   <SelectTrigger className="w-40 h-9 bg-orange-600 border-orange-500 text-white font-medium hover:bg-orange-700">
                     <SelectValue />
@@ -619,7 +634,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                 )}
                 {recordingData && (
                   <div className="text-green-400 text-sm font-medium">
-                    📹 {recordingData.segments?.length || 0} grabaciones • 🎯 {recordingData.events?.length || 0} eventos
+                    📹 {recordingData.segments?.length || 0} {translate_recordings_browser('recordings_count_label')} • 🎯 {recordingData.events?.length || 0} {translate_recordings_browser('events_count_label')}
                   </div>
                 )}
               </div>
@@ -650,17 +665,15 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         </div>
       )}
 
-      {/* Main Content Area - Video Player y Timeline */}
-      <div className="flex-1 flex items-start justify-start bg-black px-4 py-2 min-h-0 overflow-hidden">
-        {/* Contenedor principal alineado a la izquierda */}
-        <div className="flex flex-col items-start justify-start gap-2">
-          {/* Video container con aspecto 16:9 */}
+      {/* Main Content Area - Video Player y Timeline (centered) */}
+      <div className="flex-1 flex items-center justify-center bg-background px-4 py-2 min-h-0 overflow-hidden">
+        {/* Contenedor principal centrado */}
+        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[1120px]">
+          {/* Video container con aspecto 16:9 (responsive) */}
           <div 
-            className="bg-black relative"
+            className="relative w-full"
             style={{
-              width: 'calc((100vh - 280px - 80px) * 16 / 9)', // Calculamos ancho basado en altura disponible (header ~80px)
-              height: 'calc(100vh - 280px - 80px)', // Altura disponible para video (restamos header y controles de video)
-              maxWidth: '100%',
+              maxWidth: '1120px',
               aspectRatio: '16/9'
             }}
             onMouseMove={handleMouseMove}
@@ -678,49 +691,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               className="w-full h-full"
             />
             
-            {/* Controles de Video Overlay - Auto-ocultables */}
-            <div className={`absolute top-4 left-4 right-4 transition-opacity duration-300 z-20 ${
-              showVideoControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}>
-              <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  {/* Información de la cámara */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span className="text-white font-semibold">{selectedCamera}</span>
-                    <span className="text-gray-300 text-sm">
-                      {selectedTime ? detailed_datetime_formatter.format(new Date(selectedTime * 1000)) : ''}
-                    </span>
-                  </div>
-                  
-                  {/* Controles de reproducción */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">Velocidad:</span>
-                    <Select value={playbackSpeed.toString()} onValueChange={(value) => setPlaybackSpeed(parseFloat(value))}>
-                      <SelectTrigger className="w-20 h-8 bg-gray-700 border-gray-600 text-white text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-600">
-                        <SelectItem value="0.25" className="text-white hover:bg-gray-700">0.25x</SelectItem>
-                        <SelectItem value="0.5" className="text-white hover:bg-gray-700">0.5x</SelectItem>
-                        <SelectItem value="1" className="text-white hover:bg-gray-700">1x</SelectItem>
-                        <SelectItem value="2" className="text-white hover:bg-gray-700">2x</SelectItem>
-                        <SelectItem value="4" className="text-white hover:bg-gray-700">4x</SelectItem>
-                        <SelectItem value="6" className="text-white hover:bg-gray-700">6x</SelectItem>
-                        <SelectItem value="8" className="text-white hover:bg-gray-700">8x</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    <Button
-                      onClick={() => setShowExportModal(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3 text-sm"
-                    >
-                      Exportar
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* top overlay removed per UX request (camera/date/speed controls were here) */}
             
             {/* Overlay para preview time */}
             {timelineSelectionMode && previewTime && (
@@ -762,14 +733,8 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
             )}
           </div>
 
-          {/* Timeline Section - Mismo ancho que el video */}
-          <div 
-            className="bg-gray-800 border border-gray-600 rounded-lg p-3"
-            style={{
-              width: 'calc((100vh - 280px - 80px) * 16 / 9)', // Mismo ancho que el video
-              maxWidth: '100%'
-            }}
-          >
+          {/* Timeline Section - matched to player width */}
+          <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '1120px' }}>
             <div className="h-16">
               <FrigateTimeline
                 data={filteredRecordingData}

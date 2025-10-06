@@ -85,8 +85,28 @@
     },
     "browser": {
       "no_camera_title": "Nenhuma camera disponivel",
-      "no_camera_message": "Verifique a configuracao das cameras e tente novamente."
+      "no_camera_message": "Verifique a configuracao das cameras e tente novamente.",
+      "title": "Gravacoes",
+      "camera_label": "Câmera:",
+      "hour_label": "Hora:",
+      "date_label": "Data:",
+      "filters_label": "Filtros:",
+      "recordings_count_label": "gravações",
+      "events_count_label": "eventos"
     }
+  ,
+    "player": {
+      "loading": "Carregando gravação...",
+      "select_time_prompt": "Selecione um horário na linha do tempo para ver a gravação",
+      "download": "Baixar",
+      "export": "Exportar"
+    }
+  },
+  "player": {
+    "loading": "Carregando gravação...",
+    "select_time_prompt": "Selecione um horário na linha do tempo para ver a gravação",
+    "download": "Baixar",
+    "export": "Exportar"
   },
   "live": {
     "heading": "Visualizacao ao vivo",

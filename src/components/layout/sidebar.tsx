@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useMemo, memo } from 'react'
+import { useTranslations } from 'next-intl';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInput, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Server, Video, Search, Grid, Circle, AlertTriangle, MoreHorizontal, Edit, Trash2, Plus } from 'lucide-react';
@@ -86,7 +87,7 @@ function DraggableServerItem({ server, serverCameras, onDoubleClick }: {
             {/* Badge con número de cámaras durante drag */}
             {isDragging && (
                 <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-lg z-20 font-semibold">
-                    {enabledCameras.length} cámaras
+                    {enabledCameras.length}
                 </div>
             )}
             
@@ -219,13 +220,15 @@ const ServerAccordionItem = memo(({
     serverCameras, 
     searchTerm, 
     loading, 
-    onCameraDoubleClick 
+    onCameraDoubleClick,
+    translate 
 }: {
     server: any;
     serverCameras: Camera[];
     searchTerm: string;
     loading: boolean;
     onCameraDoubleClick: (camera: Camera) => void;
+    translate: any;
 }) => {
     const handleServerDoubleClick = useCallback(() => {
         console.log('Server double-click handler called for:', server.name);
@@ -269,10 +272,10 @@ const ServerAccordionItem = memo(({
             <AccordionContent className="pl-4">
                 <SidebarMenu>
                     {loading ? (
-                        <p className="px-2 py-1 text-xs text-muted-foreground">Cargando cámaras...</p>
+                        <p className="px-2 py-1 text-xs text-muted-foreground">{translate('loading_cameras')}</p>
                     ) : serverFilteredCameras.length === 0 ? (
                         <p className="px-2 py-1 text-xs text-muted-foreground">
-                            {searchTerm ? 'No se encontraron cámaras.' : 'No hay cámaras disponibles.'}
+                            {searchTerm ? translate('no_cameras_found') : translate('no_cameras_available')}
                         </p>
                     ) : (
                         serverFilteredCameras.map(camera => (
@@ -294,6 +297,7 @@ ServerAccordionItem.displayName = 'ServerAccordionItem';
 export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClick: (camera: Camera) => void }) {
   console.log('🟡 SIDEBAR COMPONENT RENDERING');
   
+  const translate = useTranslations('sidebar');
   const [servers, setServers] = useState<FrigateServer[]>([]);
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [savedViews, setSavedViews] = useState<any[]>([]);
@@ -392,7 +396,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
   }, []);
 
   const handleRenameView = useCallback(async (view: any) => {
-    const newName = window.prompt('Nuevo nombre para la vista:', view.name);
+    const newName = window.prompt(translate('rename_prompt'), view.name);
     if (newName && newName.trim() && newName !== view.name) {
       try {
         const response = await fetch(`/api/views/${view.id}`, {
@@ -428,7 +432,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
   }, []);
 
   const handleDeleteView = useCallback(async (view: any) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar la vista "${view.name}"?`)) {
+    if (window.confirm(translate('delete_confirm', { name: view.name }))) {
       try {
         const response = await fetch(`/api/views/${view.id}`, {
           method: 'DELETE'
@@ -460,7 +464,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
         <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <SidebarInput 
-                placeholder="Search cameras..." 
+                placeholder={translate('search_placeholder')} 
                 className="pl-8" 
                 value={searchTerm}
                 onChange={handleSearchChange}
@@ -471,20 +475,20 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
         <SidebarContent>
             {/* System Stats Section */}
             <SidebarGroup>
-                <SidebarGroupLabel>Estado del Sistema</SidebarGroupLabel>
+                <SidebarGroupLabel>{translate('system_status')}</SidebarGroupLabel>
                 <div className="px-2 space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span>Ancho de banda:</span>
+                    <span>{translate('bandwidth')}:</span>
                     <span className="font-medium">{bandwidth}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span>FPS Activos:</span>
+                    <span>{translate('active_fps')}:</span>
                     <span className="font-medium">{activeFrames}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span>Estado:</span>
+                    <span>{translate('status')}:</span>
                     <Badge variant={error ? "destructive" : "default"} className="text-xs pointer-events-none">
-                      {error ? "Error" : "ONLINE"}
+                      {error ? translate('status_error') : translate('status_online')}
                     </Badge>
                   </div>
                 </div>
@@ -492,7 +496,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
 
             {/* Servers Section */}
             <SidebarGroup>
-                <SidebarGroupLabel>Servers</SidebarGroupLabel>
+                <SidebarGroupLabel>{translate('servers')}</SidebarGroupLabel>
                 
                 {error && (
                   <div className="px-2 pb-2">
@@ -519,6 +523,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                                 searchTerm={searchTerm}
                                 loading={loading}
                                 onCameraDoubleClick={onCameraDoubleClick}
+                                translate={translate}
                             />
                         );
                     })}
@@ -528,7 +533,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
             {/* Saved Views Section */}
             <SidebarGroup>
                 <div className="flex items-center justify-between px-3 py-2">
-                    <SidebarGroupLabel>Vistas Guardadas</SidebarGroupLabel>
+                    <SidebarGroupLabel>{translate('saved_views')}</SidebarGroupLabel>
                     <SaveViewDialog onSave={handleSaveView}>
                         <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                             <Plus className="h-3 w-3" />
@@ -540,7 +545,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                         <AccordionTrigger className="py-2 px-2 text-sm hover:no-underline hover:bg-sidebar-accent rounded-md">
                             <div className="flex items-center gap-2">
                                 <Grid className="h-4 w-4" />
-                                <span>Mis Vistas</span>
+                                <span>{translate('my_views')}</span>
                                 <Badge variant="outline" className="text-xs">
                                     {savedViews.length}
                                 </Badge>
@@ -575,11 +580,11 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem onClick={() => handleLoadView(view)}>
                                                             <Grid className="h-4 w-4 mr-2" />
-                                                            Cargar Vista
+                                                            {translate('load_view')}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleRenameView(view)}>
                                                             <Edit className="h-4 w-4 mr-2" />
-                                                            Renombrar
+                                                            {translate('rename')}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem 
@@ -587,7 +592,7 @@ export default function AppSidebar({ onCameraDoubleClick }: { onCameraDoubleClic
                                                             className="text-destructive focus:text-destructive"
                                                         >
                                                             <Trash2 className="h-4 w-4 mr-2" />
-                                                            Eliminar
+                                                            {translate('delete')}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

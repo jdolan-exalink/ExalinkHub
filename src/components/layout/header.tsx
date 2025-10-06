@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { use_auth } from '@/contexts/auth-context';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,7 @@ const Header: FC = () => {
   const locale = useLocale();
   const { toggleSidebar } = useSidebar();
   const translate_navigation = useTranslations('navigation');
+  const translate_user_menu = useTranslations('user_menu');
   const { user, logout, has_module_access } = use_auth();
 
   const locale_prefix = `/${locale}`;
@@ -145,9 +148,21 @@ const Header: FC = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              
+              {/* Selector de tema */}
+              <div className="px-2 py-1.5">
+                <ThemeToggle />
+              </div>
+              
+              {/* Selector de idioma */}
+              <div className="px-2 py-1.5">
+                <LanguageSwitcher />
+              </div>
+              
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Cerrar Sesión</span>
+                <span>{translate_user_menu('logout')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

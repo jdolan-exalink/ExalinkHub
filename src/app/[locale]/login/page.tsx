@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { use_auth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
   const { login, user, loading: auth_loading } = use_auth();
   const router = useRouter();
   const { locale } = use(params);
+  const translate = useTranslations('login');
 
   // Si ya está autenticado, redirigir a /live
   useEffect(() => {
@@ -67,9 +69,9 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
               <Shield className="w-12 h-12 text-blue-500" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">ExalinkHub</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">{translate('title')}</CardTitle>
           <CardDescription className="text-slate-400">
-            Ingresa tus credenciales para acceder al sistema
+            {translate('subtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -81,11 +83,11 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-slate-300">Usuario</Label>
+              <Label htmlFor="username" className="text-slate-300">{translate('username')}</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Ingresa tu usuario"
+                placeholder={translate('username_placeholder')}
                 value={username}
                 onChange={(e) => set_username(e.target.value)}
                 required
@@ -95,11 +97,11 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300">Contraseña</Label>
+              <Label htmlFor="password" className="text-slate-300">{translate('password')}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Ingresa tu contraseña"
+                placeholder={translate('password_placeholder')}
                 value={password}
                 onChange={(e) => set_password(e.target.value)}
                 required
@@ -116,17 +118,17 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
               {is_loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Iniciando sesión...
+                  {translate('submitting')}
                 </>
               ) : (
-                'Iniciar Sesión'
+                translate('submit')
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-400">
-            <p>Usuario por defecto: <span className="text-blue-400 font-mono">admin</span></p>
-            <p>Contraseña: <span className="text-blue-400 font-mono">admin123</span></p>
+            <p>{translate('default_user')}: <span className="text-blue-400 font-mono">admin</span></p>
+            <p>{translate('default_password')}: <span className="text-blue-400 font-mono">admin123</span></p>
           </div>
         </CardContent>
       </Card>

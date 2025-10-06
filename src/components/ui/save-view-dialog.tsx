@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ interface SaveViewDialogProps {
 }
 
 export default function SaveViewDialog({ onSave, children }: SaveViewDialogProps) {
+  const translate = useTranslations('save_view_dialog');
   const [open, setOpen] = useState(false);
   const [viewName, setViewName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -45,22 +47,22 @@ export default function SaveViewDialog({ onSave, children }: SaveViewDialogProps
         {children || (
           <Button variant="outline" size="sm">
             <Save className="h-4 w-4 mr-2" />
-            Guardar Vista
+            {translate('save')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Guardar Vista</DialogTitle>
+          <DialogTitle>{translate('title')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="view-name">
-              Nombre de la vista
+              {translate('name_label')}
             </Label>
             <Input
               id="view-name"
-              placeholder="Ej: Vista Principal, Exterior, etc."
+              placeholder={translate('name_placeholder')}
               value={viewName}
               onChange={(e) => setViewName(e.target.value)}
               onKeyDown={(e) => {
@@ -78,13 +80,13 @@ export default function SaveViewDialog({ onSave, children }: SaveViewDialogProps
             onClick={() => setOpen(false)}
             disabled={isLoading}
           >
-            Cancelar
+            {translate('cancel')}
           </Button>
           <Button 
             onClick={handleSave} 
             disabled={!viewName.trim() || isLoading}
           >
-            {isLoading ? "Guardando..." : "Guardar"}
+            {isLoading ? translate('saving') : translate('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

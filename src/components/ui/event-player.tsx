@@ -92,16 +92,22 @@ export default function EventPlayer({
   const IconComponent = event ? (OBJECT_ICONS[event.label] || OBJECT_ICONS.unknown) : IconSearch;
   const colorClass = event ? (OBJECT_COLORS[event.label] || OBJECT_COLORS.unknown) : OBJECT_COLORS.unknown;
 
-  // Load event clip when event changes
+  /**
+   * Resetea el estado interno del reproductor cada vez que cambia el evento seleccionado.
+   * Esto asegura que los controles y layout se mantengan visibles y solo el video cambie.
+   * @param event Evento seleccionado
+   */
   useEffect(() => {
+    setShowThumbnail(true); // Siempre mostrar thumbnail al cambiar evento
+    setIsPlaying(false);
+    setError(null);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsMuted(false);
+    setVolume(1);
     if (event) {
       if (event.has_clip) {
         loadEventClip();
-      } else {
-        // Solo mostrar snapshot si no hay clip
-        setShowThumbnail(true);
-        setIsPlaying(false);
-        setError(null);
       }
     }
   }, [event?.id]);
@@ -242,9 +248,9 @@ export default function EventPlayer({
   }
 
   return (
-    <div className={`bg-card border rounded-lg overflow-hidden ${className}`}>
+  <div className={`bg-card border rounded-lg overflow-hidden flex flex-col min-h-[620px] ${className}`}>
       {/* Video/Thumbnail Area */}
-      <div className="relative aspect-video bg-black">
+  <div className="relative bg-black aspect-video min-h-[420px] max-h-[560px] w-full">
         {/* Thumbnail */}
         {showThumbnail && event.has_snapshot && (
           <div className="relative w-full h-full">
@@ -354,49 +360,11 @@ export default function EventPlayer({
         </div>
       </div>
 
-      {/* Event Details */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              <IconComponent size={20} className={colorClass} />
-              {event.label} {translate_player('detection')}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {event.camera} • {format(new Date(event.start_time * 1000), 'PPP p')}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-muted-foreground">{translate_player('duration')}</div>
-            <div className="font-mono">
-              {event.end_time ? Math.round(event.end_time - event.start_time) : '?'}s
-            </div>
-          </div>
-        </div>
-
-        {/* Capabilities */}
-        <div className="flex gap-2">
-          {event.has_clip && (
-            <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-              {translate_player('video_available')}
-            </Badge>
-          )}
-          {event.has_snapshot && (
-            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-              {translate_player('snapshot_available')}
-            </Badge>
-          )}
-          {!event.has_clip && !event.has_snapshot && (
-            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
-              {translate_player('no_media')}
-            </Badge>
-          )}
-        </div>
-      </div>
+      {/* Barra de información removida para dejar solo el video y controles */}
       
-      {/* Controls */}
-      <div className="bg-gray-900 p-4">
-        <div className="flex items-center justify-between">
+      {/* Controles siempre debajo del video, nunca superpuestos */}
+  <div className="bg-gray-900 p-4 w-full flex-shrink-0 min-h-[80px]">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"

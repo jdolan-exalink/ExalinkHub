@@ -30,7 +30,12 @@ export default function EventsPage() {
   const translate_events_page = useTranslations('events.page');
   const [events, setEvents] = useState<FrigateEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<FrigateEvent | null>(null);
-  const [selectedTime, setSelectedTime] = useState<number>(Math.floor(Date.now() / 1000));
+  // Por defecto, tomar la hora anterior a la actual
+  const now = new Date();
+  const previousHour = new Date(now.getTime());
+  previousHour.setMinutes(0, 0, 0);
+  previousHour.setHours(now.getHours() - 1);
+  const [selectedTime, setSelectedTime] = useState<number>(Math.floor(previousHour.getTime() / 1000));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +43,15 @@ export default function EventsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const default_time_range: TimeRange = { translation_key: 'last_hour', hours: 1, value: '1h' };
   const [timeRange, setTimeRange] = useState<TimeRange>(default_time_range);
+
+  // Actualiza la hora seleccionada y el timestamp
+  const handleTimeRangeChange = (range: TimeRange) => {
+    setTimeRange(range);
+    // Calcula el timestamp del inicio de la hora seleccionada
+    const date = new Date(selectedDate);
+    date.setHours(parseInt(range.value.split(':')[0], 10), 0, 0, 0);
+    setSelectedTime(Math.floor(date.getTime() / 1000));
+  };
   const [filters, setFilters] = useState<EventFilters>({
     cameras: [],
     labels: [],
@@ -45,29 +59,16 @@ export default function EventsPage() {
   });
 
   // Calculate time bounds
-  const centerTime = useMemo(() => {
-    if (timeRange.value === 'today') {
-      return Math.floor(Date.now() / 1000);
-    }
-    return Math.floor(Date.now() / 1000);
-  }, [timeRange, selectedDate]);
-
+  // Calcular el rango de tiempo según la hora seleccionada
+  // Filtrar solo por el día seleccionado
   const { startTime, endTime } = useMemo(() => {
-    if (timeRange.value === 'today') {
-      const start = startOfDay(selectedDate);
-      const end = endOfDay(selectedDate);
-      return {
-        startTime: Math.floor(start.getTime() / 1000),
-        endTime: Math.floor(end.getTime() / 1000)
-      };
-    } else {
-      const now = Math.floor(Date.now() / 1000);
-      return {
-        startTime: now - (timeRange.hours * 3600),
-        endTime: now
-      };
-    }
-  }, [timeRange, selectedDate]);
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
+    return {
+      startTime: Math.floor(start.getTime() / 1000),
+      endTime: Math.floor(end.getTime() / 1000)
+    };
+  }, [selectedDate]);
 
   // Filter events based on current filters
   const filteredEvents = useMemo(() => {
@@ -169,7 +170,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     fetchEvents();
-  }, [startTime, endTime]);
+  }, [startTime, endTime, selectedTime, filters.cameras]);
 
   // Event navigation
   const navigateToEvent = (direction: 'previous' | 'next') => {
@@ -266,7 +267,7 @@ export default function EventsPage() {
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
+          onTimeRangeChange={handleTimeRangeChange}
           filters={filters}
           onFiltersChange={setFilters}
           availableCameras={availableCameras}
@@ -294,15 +295,9 @@ export default function EventsPage() {
           {/* Player - moved above timeline to prioritize viewing */}
           <div className="flex-1 mb-6 flex items-center justify-center">
             {/* Contenedor principal centrado como en grabaciones */}
-            <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[900px]">
+            <div className="flex flex-col items-center justify-center w-full max-w-[1100px]">
               {/* Video container con aspecto 16:9 (responsive) */}
-              <div
-                className="relative w-full border-0"
-                style={{
-                  maxWidth: '900px',
-                  aspectRatio: '16/9'
-                }}
-              >
+              <div className="relative w-full aspect-video">
                 {/* Use EventPlayer for specific events with clips, RecordingPlayer for time navigation */}
                 {selectedEvent && selectedEvent.has_clip ? (
                   <EventPlayer
@@ -320,28 +315,25 @@ export default function EventsPage() {
                   />
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="flex-shrink-0 flex justify-center">
-            <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '900px' }}>
-              {isLoading ? (
-                <div className="h-32 bg-card rounded-lg border flex items-center justify-center">
-                  <div className="text-muted-foreground">{translate_events_page('loading')}</div>
-                </div>
-              ) : (
-                <FrigateTimeline
-                  data={{
-                    segments: [], // No tenemos segmentos en eventos
-                    events: filteredEvents
-                  }}
-                  camera={selectedEvent?.camera || ''}
-                  onTimeSelect={handleTimeSelect}
-                  selectedTime={selectedTime}
-                  className="h-32"
-                />
-              )}
+              {/* Timeline justo debajo y mismo ancho */}
+              <div className="bg-popover border border-border rounded-lg p-3 w-full mt-1">
+                {isLoading ? (
+                  <div className="h-32 bg-card rounded-lg border flex items-center justify-center">
+                    <div className="text-muted-foreground">{translate_events_page('loading')}</div>
+                  </div>
+                ) : (
+                  <FrigateTimeline
+                    data={{
+                      segments: [], // No tenemos segmentos en eventos
+                      events: filteredEvents
+                    }}
+                    camera={selectedEvent?.camera || ''}
+                    onTimeSelect={handleTimeSelect}
+                    selectedTime={selectedTime}
+                    className="h-32"
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

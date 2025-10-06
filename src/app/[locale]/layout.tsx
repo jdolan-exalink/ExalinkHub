@@ -1,9 +1,10 @@
-﻿import type { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 import { supported_locales } from '@/i18n';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import '../globals.css';
 
@@ -31,8 +32,10 @@ export default async function locale_layout({ children, params }: LocaleLayoutPr
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {children}
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </ThemeProvider>
     </NextIntlClientProvider>
   );

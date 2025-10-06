@@ -3,10 +3,19 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, Badge } from 'lucide-react';
+import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, Badge, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
+import { use_auth } from '@/contexts/auth-context';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { FC } from 'react';
 
 type NavigationItem = {
@@ -29,9 +38,41 @@ const Header: FC = () => {
   const locale = useLocale();
   const { toggleSidebar } = useSidebar();
   const translate_navigation = useTranslations('navigation');
+  const { user, logout, has_module_access } = use_auth();
 
   const locale_prefix = `/${locale}`;
   const show_sidebar_toggle = pathname.startsWith(`${locale_prefix}/live`);
+
+  // Filtrar navegación según permisos del usuario
+  const accessible_navigation = navigation_item_definitions.filter(({ slug }) => {
+    // Mapear slugs a módulos
+    const module_map: Record<string, string> = {
+      'live': 'live',
+      'recordings': 'recordings',
+      'events': 'events',
+      'plates-lpr': 'events', // LPR requiere acceso a eventos
+      'counting': 'statistics',
+      'settings': 'settings'
+    };
+    
+    const required_module = module_map[slug];
+    return required_module ? has_module_access(required_module) : true;
+  });
+
+  /**
+   * Obtiene el badge de rol del usuario
+   */
+  const get_role_badge = (role: string) => {
+    const role_config = {
+      admin: { label: 'Admin', className: 'bg-red-500/10 text-red-500 border-red-500/20' },
+      operator: { label: 'Usuario', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+      viewer: { label: 'Viewer', className: 'bg-green-500/10 text-green-500 border-green-500/20' }
+    };
+    
+    return role_config[role as keyof typeof role_config] || role_config.viewer;
+  };
+
+  const role_badge = user ? get_role_badge(user.role) : null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -54,8 +95,8 @@ const Header: FC = () => {
             </span>
           </Link>
         </div>
-        <nav className="flex items-center space-x-4 lg:space-x-6 h-full">
-          {navigation_item_definitions.map(({ slug, label_key, icon: Icon }) => {
+        <nav className="flex items-center space-x-4 lg:space-x-6 h-full flex-1">
+          {accessible_navigation.map(({ slug, label_key, icon: Icon }) => {
             const target_path = `${locale_prefix}/${slug}`;
             const is_active = pathname.startsWith(target_path);
 
@@ -76,6 +117,41 @@ const Header: FC = () => {
             );
           })}
         </nav>
+
+        {/* Menú de usuario */}
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden md:inline">{user.username}</span>
+                {role_badge && (
+                  <span className={cn(
+                    "hidden lg:inline px-2 py-0.5 text-xs font-medium rounded-full border",
+                    role_badge.className
+                  )}>
+                    {role_badge.label}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{user.username}</p>
+                  {role_badge && (
+                    <p className="text-xs text-muted-foreground">{role_badge.label}</p>
+                  )}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar Sesión</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </header>
   );

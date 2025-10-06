@@ -10,6 +10,7 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import type { Camera } from '@/lib/types';
 import { DragProvider, useDragContext } from '@/contexts/drag-context';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   console.log('=== LAYOUT COMPONENT RENDERING ===');
@@ -17,8 +18,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   return (
     <DragProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
+      <ProtectedRouteWrapper>
+        <AppLayoutContent>{children}</AppLayoutContent>
+      </ProtectedRouteWrapper>
     </DragProvider>
+  );
+}
+
+function ProtectedRouteWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      {children}
+    </ProtectedRoute>
   );
 }
 

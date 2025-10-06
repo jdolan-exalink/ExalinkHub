@@ -547,13 +547,13 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
-                    {Array.from({ length: 24 }, (_, i) => (
+                    {[0, 6, 12, 18].map(hour => (
                       <SelectItem 
-                        key={i} 
-                        value={i.toString()}
+                        key={hour} 
+                        value={hour.toString()}
                         className="text-white hover:bg-green-600"
                       >
-                        {i.toString().padStart(2, '0')}:00
+                        {hour.toString().padStart(2, '0')}:00
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -668,12 +668,12 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       {/* Main Content Area - Video Player y Timeline (centered) */}
       <div className="flex-1 flex items-center justify-center bg-background px-4 py-2 min-h-0 overflow-hidden">
         {/* Contenedor principal centrado */}
-        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[1120px]">
+        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-[900px]">
           {/* Video container con aspecto 16:9 (responsive) */}
           <div 
-            className="relative w-full"
+            className="relative w-full border-0"
             style={{
-              maxWidth: '1120px',
+              maxWidth: '900px',
               aspectRatio: '16/9'
             }}
             onMouseMove={handleMouseMove}
@@ -734,7 +734,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
           </div>
 
           {/* Timeline Section - matched to player width */}
-          <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '1120px' }}>
+          <div className="bg-popover border border-border rounded-lg p-3 w-full" style={{ maxWidth: '900px' }}>
             <div className="h-16">
               <FrigateTimeline
                 data={filteredRecordingData}

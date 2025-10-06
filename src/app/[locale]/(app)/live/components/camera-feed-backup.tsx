@@ -5,20 +5,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Minimize2, Rss, X, AlertCircle, Minimize, Volume2, VolumeX } from 'lucide-react';
-import { useDraggable            <Badge 
-              className={`cursor-pointer transition-all duration-200 ${manualQuality === 'main' ? 'bg-green-500 border-green-500 hover:bg-green-600' : 'bg-blue-500 border-blue-500 hover:bg-blue-600'} text-white text-sm font-medium`}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const timestamp = new Date().toLocaleTimeString('es-ES', { hour12: false, fractionalSecondDigits: 3 });
-                console.log(`🖱️ [${timestamp}] Badge clicked! Current state: ${manualQuality} → ${manualQuality === 'sub' ? 'main' : 'sub'}`);
-                handleQualityChange();
-                setForceRender(prev => prev + 1); // Forzar re-render
-              }}
-              title={`Click para cambiar a ${manualQuality === 'sub' ? 'Main (HD)' : 'Sub (SD)'}`}
-            >
-              {manualQuality === 'main' ? 'HD' : 'SD'} • LIVE
-            </Badge>-kit/core';
+import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect, useCallback } from 'react';

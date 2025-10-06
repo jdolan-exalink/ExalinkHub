@@ -70,6 +70,9 @@ export default function RecordingPlayer({
   const [error, setError] = useState<string | null>(null);
   const [streamType, setStreamType] = useState<'hls' | 'mp4' | null>(null);
   
+  // Client-side only time for hydration-safe rendering
+  const [clientCurrentTime, setClientCurrentTime] = useState(0);
+  
   // Zoom and pan states
   const [zoomLevel, setZoomLevel] = useState(1); // 1x to 5x zoom
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
@@ -79,12 +82,10 @@ export default function RecordingPlayer({
   // Speed options with more granular control
   const speedOptions = [0.25, 0.5, 1, 1.5, 2, 4, 6, 8];
 
-  // Apply playback speed when video loads or speed changes
+  // Synchronize client-side time for hydration-safe rendering
   useEffect(() => {
-      if (videoRef.current) {
-        videoRef.current.playbackRate = playbackSpeed;
-      }
-    }, [playbackSpeed]);
+    setClientCurrentTime(currentTime);
+  }, [currentTime]);
 
     /**
      * Get translated strings for the recording player.
@@ -203,28 +204,39 @@ export default function RecordingPlayer({
         // First try HLS streaming (preferred for Frigate 0.16+)
         const hlsUrl = getHLSUrl(time);
         console.log('RecordingPlayer: Trying HLS stream:', hlsUrl);
-        
+
         if (!hlsUrl) {
           console.warn('RecordingPlayer: No HLS URL generated');
           throw new Error('no_hls_url');
         }
-        
-        const hlsResponse = await fetch(hlsUrl);
-        
+
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const hlsResponse = await fetch(hlsUrl, {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+
+        clearTimeout(timeoutId);
+
         if (hlsResponse.ok) {
           const hlsData = await hlsResponse.json();
           console.log('RecordingPlayer: HLS data:', hlsData);
-          
+
           if (hlsData.success && hlsData.streamUrl) {
             console.log('RecordingPlayer: Loading HLS stream:', hlsData.streamUrl);
-            
+
             // Final check before loading
             if (requestId !== currentLoadRequestRef.current) {
               console.log('🚫 RecordingPlayer: Request cancelled before HLS load:', requestId);
               setIsLoading(false);
               return;
             }
-            
+
             // Use HLS.js to load the stream
             await loadHLSStream(hlsData.streamUrl);
             setStreamType('hls');
@@ -232,15 +244,27 @@ export default function RecordingPlayer({
             return;
           }
         }
-        
+
         // Fallback to legacy MP4 streaming
         console.log('RecordingPlayer: HLS not available, trying legacy MP4');
         await loadRecordingLegacy(time);
         setStreamType('mp4');
-        
+
       } catch (err) {
         console.error('RecordingPlayer: Load error:', err);
-        setError('Failed to load recording');
+
+        // Provide more specific error messages
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            setError('Request timeout - server may be busy or unavailable');
+          } else if (err.message.includes('Failed to fetch')) {
+            setError('Network error - unable to connect to Frigate server. Check server status and network connection.');
+          } else {
+            setError(`Failed to load recording: ${err.message}`);
+          }
+        } else {
+          setError('Failed to load recording');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -486,7 +510,39 @@ export default function RecordingPlayer({
             }
           } else {
             const recording = data.recording;
-            setError(`Recording found: ${recording.camera} from ${new Date(recording.start_time * 1000).toLocaleTimeString()} to ${new Date(recording.end_time * 1000).toLocaleTimeString()}. ${data.error || 'Video playback requires full Frigate integration.'}`);
+            console.log('RecordingPlayer: Found recording info, attempting to load video:', recording);
+            
+            // Try to load the recording using the direct video URL
+            const videoUrl = getVideoUrl(recording.start_time, recording.end_time);
+            console.log('RecordingPlayer: Attempting to load recording video from:', videoUrl);
+            
+            try {
+              const videoResponse = await fetch(videoUrl);
+              if (videoResponse.ok && videoResponse.headers.get('content-type')?.includes('video/mp4')) {
+                const videoBlob = await videoResponse.blob();
+                const blobUrl = URL.createObjectURL(videoBlob);
+                
+                if (videoRef.current) {
+                  if (videoRef.current.src && videoRef.current.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(videoRef.current.src);
+                  }
+                  
+                  videoRef.current.src = blobUrl;
+                  setError(null);
+                  
+                  videoRef.current.onended = () => {
+                    URL.revokeObjectURL(blobUrl);
+                  };
+                }
+              } else {
+                // If direct video fails, show informative message but don't block the player
+                console.warn('RecordingPlayer: Could not load direct video, showing info message');
+                setError(`Recording found: ${recording.camera} from ${new Date(recording.start_time * 1000).toLocaleTimeString()} to ${new Date(recording.end_time * 1000).toLocaleTimeString()}. Video may still be processing or requires different playback method.`);
+              }
+            } catch (videoError) {
+              console.error('RecordingPlayer: Error loading recording video:', videoError);
+              setError(`Recording found: ${recording.camera} from ${new Date(recording.start_time * 1000).toLocaleTimeString()} to ${new Date(recording.end_time * 1000).toLocaleTimeString()}. ${data.error || 'Video playback requires full Frigate integration.'}`);
+            }
           }
         } else {
           setError(data.message || data.error || 'Recording info available but video playback not implemented');
@@ -673,53 +729,63 @@ export default function RecordingPlayer({
         onWheel={handleWheel}
         style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
       >
-        <video
-          ref={videoRef}
-          className="w-full h-full object-contain bg-black transition-transform duration-200"
-          style={{ 
-            aspectRatio: '16/9',
-            transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`
+        {/* Video Container with Zoom */}
+        <div 
+          className="relative w-full h-full flex items-center justify-center"
+          style={{
+            transform: `scale(${zoomLevel})`,
+            transformOrigin: 'center center',
+            transition: 'transform 0.2s ease-out'
           }}
-          onLoadedMetadata={() => {
-            if (videoRef.current) {
-              setDuration(videoRef.current.duration);
-            }
-          }}
-          onTimeUpdate={() => {
-            if (videoRef.current) {
-              setCurrentTime(videoRef.current.currentTime);
-            }
-          }}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onError={() => setError('Failed to play recording')}
-        />
+        >
+          <video
+            ref={videoRef}
+            className="w-full h-full object-contain bg-black"
+            style={{ 
+              aspectRatio: '16/9',
+              transform: `translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`
+            }}
+            onLoadedMetadata={() => {
+              if (videoRef.current) {
+                setDuration(videoRef.current.duration);
+              }
+            }}
+            onTimeUpdate={() => {
+              if (videoRef.current) {
+                setCurrentTime(videoRef.current.currentTime);
+              }
+            }}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onError={() => setError('Failed to play recording')}
+          />
+        </div>
         
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
             <div className="text-white">{translate('loading')}</div>
           </div>
         )}
         
         {/* Indicador de tiempo sutil - esquina inferior derecha */}
         {timestamp && (
-          <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg border border-white/20">
+          <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg border border-white/20 z-10">
             <div className="text-xs font-mono leading-none">
               <div className="text-gray-300 mb-1">
-                {format(new Date((timestamp + currentTime) * 1000), 'EEE, MMM dd')}
+                {format(new Date((timestamp + clientCurrentTime) * 1000), 'EEE, MMM dd')}
               </div>
               <div className="text-sm font-semibold">
-                {format(new Date((timestamp + currentTime) * 1000), 'HH:mm:ss')}
+                {format(new Date((timestamp + clientCurrentTime) * 1000), 'HH:mm:ss')}
               </div>
               <div className="text-xs text-gray-400 mt-1">
-                {format(new Date((timestamp + currentTime) * 1000), 'yyyy')}
+                {format(new Date((timestamp + clientCurrentTime) * 1000), 'yyyy')}
               </div>
             </div>
           </div>
         )}
         
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black text-white text-center p-4">
+          <div className={`absolute inset-0 flex items-center justify-center bg-black text-white text-center p-4 ${error.includes('Recording found') ? 'z-10 bg-black/80' : 'z-20'}`}>
             <div className="max-w-md">
               <div className="text-lg mb-2">
                 {error.includes('Recording found') ? '🎬' : 
@@ -753,7 +819,7 @@ export default function RecordingPlayer({
         )}
         
         {!timestamp && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black text-white text-center p-4">
+          <div className="absolute inset-0 flex items-center justify-center bg-black text-white text-center p-4 z-10">
             <div>
               <div className="text-2xl mb-4">📹</div>
               <div className="text-sm text-gray-400">
@@ -767,7 +833,7 @@ export default function RecordingPlayer({
 
         {/* Zoom Level Indicator */}
         {zoomLevel > 1 && (
-          <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg border border-white/20">
+          <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg border border-white/20 z-10">
             <div className="text-xs font-medium">
               🔍 Zoom: {zoomLevel}x
               {zoomLevel > 1 && <span className="text-gray-300 ml-2">Arrastra para mover</span>}

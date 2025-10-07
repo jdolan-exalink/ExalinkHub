@@ -1,0 +1,176 @@
+# Docker Compose para Sistema LPR Backend
+# Configuración completa con servicios, redes y volúmenes
+
+services:
+  # Servicio principal LPR Backend
+  lpr-backend:
+    build:
+      context: ./lpr_backend
+      dockerfile: Dockerfile
+    image: exalink/lpr-backend:latest
+    container_name: exalink-lpr-backend
+    restart: unless-stopped
+    ports:
+      - "${LPR_PORT:-2221}:2221"
+    environment:
+      # Configuración del servidor
+      - LPR_HOST=0.0.0.0
+      - LPR_PORT=2221
+      - LPR_DEBUG=${LPR_DEBUG:-false}
+      
+      # Base de datos
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./DB/matriculas.db}
+      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
+      - DATABASE_PATH=${DATABASE_PATH:-./DB/matriculas.db}
+      - DATABASE_AUTO_BACKUP=${DATABASE_AUTO_BACKUP:-true}
+      - DATABASE_BACKUP_RETENTION_DAYS=${DATABASE_BACKUP_RETENTION_DAYS:-7}
+      
+      # Configuración de retención
+      - RETENTION_EVENTS_DAYS=${RETENTION_EVENTS_DAYS:-30}
+      - RETENTION_CLIPS_DAYS=${RETENTION_CLIPS_DAYS:-7}
+      - RETENTION_SNAPSHOTS_DAYS=${RETENTION_SNAPSHOTS_DAYS:-14}
+      - RETENTION_AUTO_CLEANUP=${RETENTION_AUTO_CLEANUP:-true}
+      - RETENTION_MAX_STORAGE_GB=${RETENTION_MAX_STORAGE_GB:-50}
+      
+      # MQTT Configuration
+      - MQTT_HOST=${MQTT_HOST:-localhost}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - MQTT_TOPIC_PREFIX=${MQTT_TOPIC_PREFIX:-frigate}
+      - MQTT_USE_SSL=${MQTT_USE_SSL:-false}
+      - MQTT_KEEPALIVE=${MQTT_KEEPALIVE:-60}
+      
+      # Frigate Configuration
+      - FRIGATE_HOST=${FRIGATE_HOST:-localhost}
+      - FRIGATE_PORT=${FRIGATE_PORT:-5000}
+      - FRIGATE_PROTOCOL=${FRIGATE_PROTOCOL:-http}
+      - FRIGATE_USERNAME=${FRIGATE_USERNAME:-}
+      - FRIGATE_PASSWORD=${FRIGATE_PASSWORD:-}
+      - FRIGATE_API_KEY=${FRIGATE_API_KEY:-}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FILE=${LOG_FILE:-logs/lpr.log}
+      
+      # Sistema
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Persistencia de datos principales
+      - lpr-data:/app/data
+      - lpr-logs:/app/logs
+      
+      # Base de datos en carpeta DB del host (para acceso directo)
+      - ./DB:/app/DB:rw
+      
+      # Configuración personalizada (opcional)
+      - ./lpr_backend/config:/app/config:ro
+      
+      # Acceso a tiempo del host para timestamps precisos
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - lpr-network
+      - frigate-network
+    depends_on:
+      - lpr-redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2221/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lpr.rule=Host(`lpr.local`)"
+      - "traefik.http.services.lpr.loadbalancer.server.port=2221"
+      - "com.exalink.service=lpr-backend"
+      - "com.exalink.version=1.0.0"
+
+  # Redis para cache y sesiones (opcional pero recomendado)
+  lpr-redis:
+    image: redis:7-alpine
+    container_name: exalink-lpr-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-exalink123}
+    volumes:
+      - lpr-redis-data:/data
+    networks:
+      - lpr-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.exalink.service=lpr-redis"
+
+  # Proxy reverso para SSL y balanceado (opcional)
+  lpr-proxy:
+    image: nginx:alpine
+    container_name: exalink-lpr-proxy
+    restart: unless-stopped
+    ports:
+      - "${LPR_HTTPS_PORT:-2443}:443"
+      - "${LPR_HTTP_PORT:-2280}:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - lpr-logs:/var/log/nginx
+    networks:
+      - lpr-network
+      - public
+    depends_on:
+      - lpr-backend
+    profiles:
+      - proxy
+    labels:
+      - "com.exalink.service=lpr-proxy"
+
+  # Monitor de logs y métricas (opcional)
+  lpr-monitor:
+    image: prom/node-exporter:latest
+    container_name: exalink-lpr-monitor
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      - lpr-network
+    profiles:
+      - monitoring
+    labels:
+      - "com.exalink.service=lpr-monitor"
+
+# Volúmenes nombrados para persistencia
+volumes:
+  lpr-data:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-data"
+  lpr-logs:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-logs"
+  lpr-redis-data:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-redis-data"
+
+# Redes para comunicación entre servicios
+networks:
+  lpr-network:
+    driver: bridge
+    name: exalink-lpr-network
+    labels:
+      - "com.exalink.network=lpr-internal"
+  
+  frigate-network:
+    external: true
+    name: frigate_default
+  
+  public:
+    driver: bridge
+    name: exalink-public
+    labels:
+      - "com.exalink.network=public"

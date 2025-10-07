@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { service: string; action: string } }
+  { params }: { params: Promise<{ service: string; action: string }> }
 ) {
   try {
-    const { service, action } = params;
+    // Await params para Next.js 15 compatibility
+    const { service, action } = await params;
     
     // Validar servicio
     if (!['lpr', 'counting', 'notifications'].includes(service)) {
@@ -23,17 +24,30 @@ export async function POST(
       );
     }
 
-    // Simular control de servicios (en producción esto controlaría servicios reales)
-    console.log(`Executing ${action} on ${service} service`);
-    
-    // Aquí iría la lógica real para controlar servicios
-    // Por ejemplo: systemctl start/stop/restart service_name
-    // O enviar señales a procesos específicos
-    
-    return NextResponse.json({ 
+    // Control real: actualizar campo enabled en la base de datos
+    const ConfigDatabase = (await import('@/lib/config-database')).default;
+    const db = new ConfigDatabase();
+    const config = db.getBackendConfigByService(service);
+    if (!config) {
+      return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 });
+    }
+
+  let enabled = !!config.enabled;
+  if (action === 'start') enabled = true;
+  if (action === 'stop') enabled = false;
+  // restart: simplemente mantener enabled como está y actualizar timestamp
+
+  db.updateBackendConfig(service, config.config, enabled);
+
+    // Simular status (en producción, consultar proceso real)
+    const status = enabled ? 'running' : 'stopped';
+
+    return NextResponse.json({
       message: `Servicio ${service} ${action}ed exitosamente`,
       service,
       action,
+      status,
+      enabled,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

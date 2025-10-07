@@ -725,13 +725,55 @@ class ConfigDatabase {
   }
 
   updateBackendConfig(serviceName: string, config: string, enabled: boolean): boolean {
-    const result = this.db.prepare(`
-      UPDATE backend_config 
-      SET config = ?, enabled = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE service_name = ?
-    `).run(config, enabled, serviceName);
-    
-    return result.changes > 0;
+    try {
+      // Validar que los parámetros sean del tipo correcto
+      if (typeof serviceName !== 'string') {
+        throw new Error(`serviceName debe ser string, recibido: ${typeof serviceName}`);
+      }
+      if (typeof config !== 'string') {
+        throw new Error(`config debe ser string, recibido: ${typeof config} - ${config}`);
+      }
+      if (typeof enabled !== 'boolean') {
+        throw new Error(`enabled debe ser boolean, recibido: ${typeof enabled}`);
+      }
+
+      console.log('=== UPDATE BACKEND CONFIG NUEVA VERSION ===');
+      console.log('Updating backend config:', { serviceName, configLength: config.length, enabled });
+
+      // Primero verificar si el registro existe
+      const exists = this.db.prepare(`
+        SELECT COUNT(*) as count FROM backend_config WHERE service_name = ?
+      `).get(serviceName) as { count: number };
+
+      console.log('Registry exists check:', exists);
+
+      if (exists.count === 0) {
+        // Insertar nuevo registro
+        console.log('Inserting new backend config for:', serviceName);
+        const insertResult = this.db.prepare(`
+          INSERT INTO backend_config (service_name, config, enabled, created_at, updated_at)
+          VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).run(serviceName, config, enabled ? 1 : 0);
+        
+        console.log('Insert result:', insertResult);
+        return insertResult.changes > 0;
+      } else {
+        // Actualizar registro existente
+        console.log('Updating existing backend config for:', serviceName);
+        const updateResult = this.db.prepare(`
+          UPDATE backend_config 
+          SET config = ?, enabled = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE service_name = ?
+        `).run(config, enabled ? 1 : 0, serviceName);
+        
+        console.log('Update result:', updateResult);
+        return updateResult.changes > 0;
+      }
+    } catch (error) {
+      console.error('Error in updateBackendConfig:', error);
+      console.error('Parameters:', { serviceName, config, enabled });
+      throw error;
+    }
   }
 
   // Método para obtener configuración consolidada de backend
@@ -747,11 +789,28 @@ class ConfigDatabase {
       lpr_regions: '',
       lpr_save_images: true,
       lpr_webhook_url: '',
+      // Configuración MQTT para LPR
+      lpr_mqtt_host: 'localhost',
+      lpr_mqtt_port: 1883,
+      lpr_mqtt_username: '',
+      lpr_mqtt_password: '',
+      lpr_mqtt_use_ssl: false,
+      lpr_mqtt_topics_prefix: 'frigate',
+      // Configuración Frigate para LPR
+      lpr_frigate_server_id: '',
+      // Configuración de retención para LPR
+      lpr_retention_events_days: 60,
+      lpr_retention_clips_days: 30,
+      lpr_retention_snapshots_days: 60,
+      lpr_retention_max_storage_gb: 50,
+      lpr_auto_cleanup: true,
+      // Configuración de conteo
       counting_enabled: false,
       counting_zones: '',
       counting_reset_interval: 24,
       counting_min_confidence: 0.7,
       counting_webhook_url: '',
+      // Configuración de notificaciones
       notifications_enabled: false,
       email_enabled: false,
       email_smtp_host: '',
@@ -765,6 +824,7 @@ class ConfigDatabase {
       telegram_enabled: false,
       telegram_bot_token: '',
       telegram_chat_id: '',
+      // Configuración de base de datos
       db_retention_days: 30,
       db_auto_cleanup: true,
       db_backup_enabled: false,
@@ -786,8 +846,16 @@ class ConfigDatabase {
 
   // Método para actualizar configuración consolidada
   updateConsolidatedBackendConfig(configData: any): void {
+    console.log('Received config data:', configData);
+    console.log('Config data type:', typeof configData);
+    
     const serviceMappings = {
-      lpr: ['lpr_enabled', 'lpr_confidence_threshold', 'lpr_max_processing_time', 'lpr_regions', 'lpr_save_images', 'lpr_webhook_url'],
+      lpr: [
+        'lpr_enabled', 'lpr_confidence_threshold', 'lpr_max_processing_time', 'lpr_regions', 'lpr_save_images', 'lpr_webhook_url',
+        'lpr_mqtt_host', 'lpr_mqtt_port', 'lpr_mqtt_username', 'lpr_mqtt_password', 'lpr_mqtt_use_ssl', 'lpr_mqtt_topics_prefix',
+        'lpr_frigate_server_id', 'lpr_retention_events_days', 'lpr_retention_clips_days', 'lpr_retention_snapshots_days', 
+        'lpr_retention_max_storage_gb', 'lpr_auto_cleanup'
+      ],
       counting: ['counting_enabled', 'counting_zones', 'counting_reset_interval', 'counting_min_confidence', 'counting_webhook_url'],
       notifications: ['notifications_enabled', 'email_enabled', 'email_smtp_host', 'email_smtp_port', 'email_username', 'email_password', 'email_recipients', 'webhook_enabled', 'webhook_url', 'webhook_secret', 'telegram_enabled', 'telegram_bot_token', 'telegram_chat_id'],
       database: ['db_retention_days', 'db_auto_cleanup', 'db_backup_enabled', 'db_backup_interval']
@@ -802,7 +870,10 @@ class ConfigDatabase {
       });
 
       if (Object.keys(serviceConfig).length > 0) {
-        this.updateBackendConfig(serviceName, JSON.stringify(serviceConfig), true);
+        console.log(`Processing service: ${serviceName}`, serviceConfig);
+        const configJson = JSON.stringify(serviceConfig);
+        console.log(`Config JSON for ${serviceName}:`, configJson);
+        this.updateBackendConfig(serviceName, configJson, true);
       }
     });
   }

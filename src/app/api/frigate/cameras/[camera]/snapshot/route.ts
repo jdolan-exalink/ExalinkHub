@@ -3,10 +3,12 @@ import { frigateAPI } from '@/lib/frigate-api';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { camera: string } }
+  { params }: { params: Promise<{ camera: string }> }
 ) {
+  let cameraName = 'unknown';
   try {
-    const cameraName = params.camera;
+    const { camera } = await params;
+    cameraName = camera;
     const blob = await frigateAPI.getCameraSnapshot(cameraName);
     
     return new NextResponse(blob, {
@@ -16,7 +18,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error(`Error getting snapshot for camera ${params.camera}:`, error);
+    console.error(`Error getting snapshot for camera ${cameraName}:`, error);
     return NextResponse.json(
       { error: 'Failed to get snapshot', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

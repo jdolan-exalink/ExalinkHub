@@ -3,11 +3,12 @@ import { getDatabase } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const { id } = await params;
+    const viewId = parseInt(id);
+    if (isNaN(viewId)) {
       return NextResponse.json(
         { error: 'Invalid view ID' },
         { status: 400 }
@@ -15,7 +16,7 @@ export async function GET(
     }
     
     const db = getDatabase();
-    const view = db.getViewById(id);
+    const view = db.getViewById(viewId);
     
     if (!view) {
       return NextResponse.json(
@@ -39,11 +40,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const { id } = await params;
+    const viewId = parseInt(id);
+    if (isNaN(viewId)) {
       return NextResponse.json(
         { error: 'Invalid view ID' },
         { status: 400 }
@@ -61,7 +63,7 @@ export async function PUT(
     }
     
     const db = getDatabase();
-    const updatedView = db.updateView(id, name, layout, cameras, icon ?? null);
+    const updatedView = db.updateView(viewId, name, layout, cameras, icon ?? null);
     
     if (!updatedView) {
       return NextResponse.json(
@@ -85,11 +87,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const { id } = await params;
+    const viewId = parseInt(id);
+    if (isNaN(viewId)) {
       return NextResponse.json(
         { error: 'Invalid view ID' },
         { status: 400 }
@@ -97,7 +100,7 @@ export async function DELETE(
     }
     
     const db = getDatabase();
-    const deleted = db.deleteView(id);
+    const deleted = db.deleteView(viewId);
     
     if (!deleted) {
       return NextResponse.json(

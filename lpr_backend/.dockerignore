@@ -1,0 +1,80 @@
+# .dockerignore específico para LPR Backend
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs y datos locales
+logs/
+data/
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Backups
+backups/
+*.bak
+
+# Variables de entorno (se pasarán como ENV)
+.env*
+
+# Base de datos de desarrollo
+*.db
+*.sqlite
+*.sqlite3
+
+# Tests
+tests/
+test/
+*_test.py
+test_*.py
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Documentación
+docs/
+*.md
+README*
+
+# Scripts de desarrollo
+install.sh
+install.bat
+# start.py - comentado porque lo necesitamos en el contenedor

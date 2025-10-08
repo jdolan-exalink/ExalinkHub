@@ -1,8 +1,6 @@
-# Docker Compose para Sistema LPR Backend
-# Configuración completa con servicios, redes y volúmenes
 
+version: '3.8'
 services:
-  # Servicio principal LPR Backend
   lpr-backend:
     build:
       context: ./backend/lpr
@@ -13,72 +11,9 @@ services:
     ports:
       - "${LPR_PORT:-2221}:2221"
     environment:
-      # Configuración del servidor
       - LPR_HOST=0.0.0.0
-      - LPR_PORT=2221
-      - LPR_DEBUG=${LPR_DEBUG:-false}
-      
-      # Base de datos
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///./DB/matriculas.db}
-      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
-      - DATABASE_PATH=${DATABASE_PATH:-./DB/matriculas.db}
-      - DATABASE_AUTO_BACKUP=${DATABASE_AUTO_BACKUP:-true}
-      - DATABASE_BACKUP_RETENTION_DAYS=${DATABASE_BACKUP_RETENTION_DAYS:-7}
-      
-      # Configuración de retención
-      - RETENTION_EVENTS_DAYS=${RETENTION_EVENTS_DAYS:-30}
-      - RETENTION_CLIPS_DAYS=${RETENTION_CLIPS_DAYS:-7}
-      - RETENTION_SNAPSHOTS_DAYS=${RETENTION_SNAPSHOTS_DAYS:-14}
-      - RETENTION_AUTO_CLEANUP=${RETENTION_AUTO_CLEANUP:-true}
-      - RETENTION_MAX_STORAGE_GB=${RETENTION_MAX_STORAGE_GB:-50}
-      
-      # MQTT Configuration
-      - MQTT_HOST=${MQTT_HOST:-localhost}
-      - MQTT_PORT=${MQTT_PORT:-1883}
-      - MQTT_USERNAME=${MQTT_USERNAME:-}
-      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
-      - MQTT_TOPIC_PREFIX=${MQTT_TOPIC_PREFIX:-frigate}
-      - MQTT_USE_SSL=${MQTT_USE_SSL:-false}
-      - MQTT_KEEPALIVE=${MQTT_KEEPALIVE:-60}
-      
-      # Frigate Configuration
-      - FRIGATE_HOST=${FRIGATE_HOST:-localhost}
-      - FRIGATE_PORT=${FRIGATE_PORT:-5000}
-      - FRIGATE_PROTOCOL=${FRIGATE_PROTOCOL:-http}
-      - FRIGATE_USERNAME=${FRIGATE_USERNAME:-}
-      - FRIGATE_PASSWORD=${FRIGATE_PASSWORD:-}
-      - FRIGATE_API_KEY=${FRIGATE_API_KEY:-}
-      
-      # Logging
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LOG_FILE=${LOG_FILE:-logs/lpr.log}
-      
-      # Sistema
-      - TZ=${TZ:-UTC}
-    volumes:
-      # Persistencia de datos principales
-      - lpr-data:/app/data
-      - lpr-logs:/app/logs
-      
-      # Base de datos en carpeta DB del host (para acceso directo)
-      - ./DB:/DB:rw
-      
-      # Configuración personalizada (opcional)
-      - ./backend/lpr/config:/backend/lpr/config:ro
-      
-      # Acceso a tiempo del host para timestamps precisos
-      - /etc/localtime:/etc/localtime:ro
     networks:
       - lpr-network
-      - frigate-network
-    depends_on:
-      - lpr-redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2221/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lpr.rule=Host(`lpr.local`)"
@@ -86,7 +21,6 @@ services:
       - "com.exalink.service=lpr-backend"
       - "com.exalink.version=1.0.0"
 
-  # Redis para cache y sesiones (opcional pero recomendado)
   lpr-redis:
     image: redis:7-alpine
     container_name: exalink-lpr-redis
@@ -104,7 +38,6 @@ services:
     labels:
       - "com.exalink.service=lpr-redis"
 
-  # Proxy reverso para SSL y balanceado (opcional)
   lpr-proxy:
     image: nginx:alpine
     container_name: exalink-lpr-proxy
@@ -113,9 +46,7 @@ services:
       - "${LPR_HTTPS_PORT:-2443}:443"
       - "${LPR_HTTP_PORT:-2280}:80"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-      - lpr-logs:/var/log/nginx
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - lpr-network
       - public
@@ -126,7 +57,6 @@ services:
     labels:
       - "com.exalink.service=lpr-proxy"
 
-  # Monitor de logs y métricas (opcional)
   lpr-monitor:
     image: prom/node-exporter:latest
     container_name: exalink-lpr-monitor
@@ -142,7 +72,111 @@ services:
     labels:
       - "com.exalink.service=lpr-monitor"
 
-# Volúmenes nombrados para persistencia
+  conteo-backend:
+    build:
+      context: ./backend/conteo
+      dockerfile: Dockerfile
+    image: exalink/conteo-backend:latest
+    container_name: exalink-conteo-backend
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    ports:
+      - "${CONTEO_PORT:-2223}:8012"
+    volumes:
+      - ./backend/conteo/config:/app/config:rw
+    networks:
+      - lpr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.exalink.service=conteo-backend"
+
+  notificaciones-backend:
+    build:
+      context: ./backend/notificaciones
+      dockerfile: Dockerfile
+    image: exalink/notificaciones-backend:latest
+    container_name: exalink-notificaciones-backend
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    ports:
+      - "${NOTIFICACIONES_PORT:-2224}:8022"
+    volumes:
+      - ./backend/notificaciones/config:/app/config:rw
+    networks:
+      - lpr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8022/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.exalink.service=notificaciones-backend"
+
+  frontend:
+    build:
+      context: ./frontend-build
+      dockerfile_inline: |
+        # syntax=docker/dockerfile:1
+        FROM node:20-alpine AS base
+        RUN apk add --no-cache libc6-compat python3 py3-pip build-base docker-cli
+        WORKDIR /app
+        COPY package.json package-lock.json* ./
+        RUN npm ci
+        COPY . .
+        RUN npm run build
+        FROM node:20-alpine AS runner
+        WORKDIR /app
+        ENV NODE_ENV production
+        ENV NEXT_TELEMETRY_DISABLED 1
+        RUN addgroup --system --gid 1001 nodejs
+        RUN adduser --system --uid 1001 nextjs
+        RUN mkdir .next
+        RUN chown nextjs:nodejs .next
+        RUN mkdir -p DB data
+        RUN chown -R nextjs:nodejs DB data
+        # Instalar dependencias de producción necesarias
+        COPY package.json package-lock.json* ./
+        RUN npm ci --only=production && npm cache clean --force
+        COPY --from=0 --chown=nextjs:nodejs /app/.next/standalone/ ./
+        RUN ls -la /app/server.js
+        COPY --from=0 --chown=nextjs:nodejs /app/.next/static ./.next/static
+        USER nextjs
+        EXPOSE 3000
+        ENV PORT 3000
+        ENV HOSTNAME "0.0.0.0"
+        CMD ["node", "server.js"]
+    image: exalink/frontend:latest
+    container_name: exalink-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-9002}:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - ./DB:/app/DB:rw
+      - ./data:/app/data:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - lpr-network
+    depends_on:
+      - lpr-backend
+      - conteo-backend
+      - notificaciones-backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.exalink.service=frontend"
+
 volumes:
   lpr-data:
     driver: local
@@ -156,21 +190,32 @@ volumes:
     driver: local
     labels:
       - "com.exalink.volume=lpr-redis-data"
+  config-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=config-db"
+  counting-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=counting-db"
+  matriculas-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=matriculas-db"
+  lpr-readings-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-readings-db"
 
-# Redes para comunicación entre servicios
 networks:
   lpr-network:
     driver: bridge
     name: exalink-lpr-network
     labels:
       - "com.exalink.network=lpr-internal"
-  
-  frigate-network:
-    external: true
-    name: frigate_default
-  
   public:
     driver: bridge
     name: exalink-public
     labels:
-      - "com.exalink.network=public"
+      com.exalink.network: public
+

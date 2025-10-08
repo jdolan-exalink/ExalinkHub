@@ -1,0 +1,88 @@
+{
+  "placeholderImages": [
+    {
+      "id": "live_driveway",
+      "description": "A view of a driveway.",
+      "imageUrl": "https://images.unsplash.com/photo-1602703250834-c3df52276d89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkcml2ZXdheSUyMHN1YnVyYnN8ZW58MHx8fHwxNzU5Mjc1MDY2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "driveway suburbs"
+    },
+    {
+      "id": "live_front_door",
+      "description": "A view of a front door.",
+      "imageUrl": "https://images.unsplash.com/photo-1560184897-ae75f418493e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmcm9udCUyMGRvb3J8ZW58MHx8fHwxNzU5Mjc1MDY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "front door"
+    },
+    {
+      "id": "live_backyard",
+      "description": "A view of a backyard.",
+      "imageUrl": "https://images.unsplash.com/photo-1684867430916-ede9dc95eca5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxiYWNreWFyZCUyMGxhd258ZW58MHx8fHwxNzU5Mjc1MDY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "backyard lawn"
+    },
+    {
+      "id": "live_garage",
+      "description": "A view of a garage interior.",
+      "imageUrl": "https://images.unsplash.com/photo-1635108198322-18c814f9b70f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxnYXJhZ2UlMjBpbnRlcmlvcnxlbnwwfHx8fDE3NTkyNzUwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "garage interior"
+    },
+    {
+      "id": "live_living_room",
+      "description": "A view of a living room.",
+      "imageUrl": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsaXZpbmclMjByb29tfGVufDB8fHx8MTc1OTI2OTIxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "living room"
+    },
+    {
+      "id": "live_kitchen",
+      "description": "A view of a kitchen.",
+      "imageUrl": "https://images.unsplash.com/photo-1699695726278-f3f57f9356c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxraXRjaGVuJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzU5MjI1ODY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kitchen interior"
+    },
+    {
+      "id": "event_car",
+      "description": "Thumbnail of a car event.",
+      "imageUrl": "https://images.unsplash.com/photo-1595806585120-d7a13bdca202?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYXIlMjBkcml2ZXdheXxlbnwwfHx8fDE3NTkyNzUwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car driveway"
+    },
+    {
+      "id": "event_person",
+      "description": "Thumbnail of a person event.",
+      "imageUrl": "https://images.unsplash.com/photo-1494959764136-6be9eb3c261e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29uJTIwd2Fsa2luZ3xlbnwwfHx8fDE3NTkyNDgxNDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person walking"
+    },
+    {
+      "id": "event_lpr",
+      "description": "Thumbnail of a license plate recognition event.",
+      "imageUrl": "https://images.unsplash.com/photo-1590456207296-1cd155acfbeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsaWNlbnNlJTIwcGxhdGV8ZW58MHx8fHwxNzU5MjM2NTQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "license plate"
+    },
+    {
+      "id": "event_dog",
+      "description": "Thumbnail of a dog event.",
+      "imageUrl": "https://images.unsplash.com/photo-1693163758907-44b0986ba105?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxkb2clMjBydW5uaW5nfGVufDB8fHx8MTc1OTI3NTA2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dog running"
+    },
+    {
+      "id": "event_person_2",
+      "description": "Thumbnail of another person event.",
+      "imageUrl": "https://images.unsplash.com/photo-1533819247973-433344de0709?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBzdGFuZGluZ3xlbnwwfHx8fDE3NTkyNzUwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person standing"
+    },
+    {
+      "id": "event_car_2",
+      "description": "Thumbnail of another car event.",
+      "imageUrl": "https://images.unsplash.com/photo-1730794175509-68c5cd0a1799?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYXIlMjBwYXJrZWR8ZW58MHx8fHwxNzU5Mjc1MDY2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car parked"
+    },
+    {
+      "id": "event_cat",
+      "description": "Thumbnail of a cat event.",
+      "imageUrl": "https://images.unsplash.com/photo-1698084196027-39f1103fc523?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYXQlMjBzaXR0aW5nfGVufDB8fHx8MTc1OTI2NzUzOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cat sitting"
+    },
+    {
+      "id": "recording_placeholder",
+      "description": "Placeholder for the recording player.",
+      "imageUrl": "https://images.unsplash.com/photo-1582072291448-5db861a71699?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjY3R2JTIwdmlld3xlbnwwfHx8fDE3NTkyNzUwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cctv view"
+    }
+  ]
+}

@@ -6,12 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   CreditCard, 
   Users as UsersIcon, 
@@ -32,8 +26,17 @@ import {
   Wifi,
   Server,
   HardDrive,
-  Calendar
+  Calendar,
+  FileText,
+  Eye
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { BackendConfig } from '@/lib/config-database';
 import { FRIGATE_SERVERS, type FrigateServer } from '@/lib/frigate-servers';
 import { toast } from '@/hooks/use-toast';
@@ -50,9 +53,22 @@ export default function BackendTab() {
   const [frigateTesting, setFrigateTesting] = useState(false);
   const [frigateStatus, setFrigateStatus] = useState<'unknown' | 'connected' | 'error' | 'testing'>('unknown');
   const [services, setServices] = useState<Record<string, any>>({
-    'LPR (Matrículas)': { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0 },
-    'Conteo': { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0 },
-    'Notificaciones': { status: 'stopped', uptime: 0, sent: 0, memory_mb: 0, cpu_percent: 0 }
+    'LPR (Matrículas)': { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0, enabled: false },
+    'Conteo': { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0, enabled: false },
+    'Notificaciones': { status: 'stopped', uptime: 0, sent: 0, memory_mb: 0, cpu_percent: 0, enabled: false }
+  });
+  const [logsModal, setLogsModal] = useState<{
+    open: boolean;
+    service: string;
+    serviceSlug: string;
+    logs: string;
+    loading: boolean;
+  }>({
+    open: false,
+    service: '',
+    serviceSlug: '',
+    logs: '',
+    loading: false
   });
 
   const [formData, setFormData] = useState({
@@ -267,6 +283,45 @@ export default function BackendTab() {
     }
   };
 
+  const handleViewLogs = async (service: string) => {
+    const serviceSlug = service === 'Conteo' ? 'counting' : service.toLowerCase();
+    
+    setLogsModal({
+      open: true,
+      service,
+      serviceSlug,
+      logs: '',
+      loading: true
+    });
+
+    try {
+      const response = await fetch(`/api/config/backend/services/${serviceSlug}/logs?lines=100`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLogsModal(prev => ({
+          ...prev,
+          logs: data.logs || 'No se encontraron logs',
+          loading: false
+        }));
+      } else {
+        const error = await response.json();
+        setLogsModal(prev => ({
+          ...prev,
+          logs: `Error al obtener logs: ${error.error || 'Error desconocido'}`,
+          loading: false
+        }));
+      }
+    } catch (error) {
+      console.error('Error obteniendo logs:', error);
+      setLogsModal(prev => ({
+        ...prev,
+        logs: 'Error al conectar con el servidor',
+        loading: false
+      }));
+    }
+  };
+
   /**
    * Prueba la conexión MQTT
    */
@@ -453,7 +508,18 @@ export default function BackendTab() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CreditCard className="h-4 w-4" />
-                    <CardTitle className="text-sm">Matriculas</CardTitle>
+                    <CardTitle className="text-sm flex items-center">
+                      Matriculas
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewLogs('LPR (Matrículas)')}
+                        className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        Ver Logs
+                      </Button>
+                    </CardTitle>
                   </div>
                   {getServiceBadge(services['LPR (Matrículas)']?.status)}
                 </div>
@@ -476,10 +542,10 @@ export default function BackendTab() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services['LPR (Matrículas)']?.status === 'running' ? 'outline' : 'default'}
+                    variant={services['LPR (Matrículas)']?.enabled ? 'outline' : 'default'}
                     onClick={() => handleServiceAction('lpr', 'start')}
-                    disabled={services['LPR (Matrículas)']?.status === 'running'}
-                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    disabled={services['LPR (Matrículas)']?.enabled}
+                    className={services['LPR (Matrículas)']?.enabled ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
                     <Play className="h-3 w-3 mr-1" />
                     Iniciar
@@ -488,8 +554,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('lpr', 'stop')}
-                    disabled={services['LPR (Matrículas)']?.status !== 'running'}
-                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={!services['LPR (Matrículas)']?.enabled}
+                    className={services['LPR (Matrículas)']?.enabled ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Square className="h-3 w-3 mr-1" />
                     Detener
@@ -498,11 +564,20 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('lpr', 'restart')}
-                    disabled={services['LPR (Matrículas)']?.status !== 'running'}
-                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={!services['LPR (Matrículas)']?.enabled}
+                    className={services['LPR (Matrículas)']?.enabled ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewLogs('LPR (Matrículas)')}
+                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Ver Logs
                   </Button>
                 </div>
               </CardContent>
@@ -514,7 +589,18 @@ export default function BackendTab() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UsersIcon className="h-4 w-4" />
-                    <CardTitle className="text-sm">Conteo</CardTitle>
+                    <CardTitle className="text-sm flex items-center">
+                      Conteo
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewLogs('Conteo')}
+                        className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        Ver Logs
+                      </Button>
+                    </CardTitle>
                   </div>
                   {getServiceBadge(services['Conteo']?.status)}
                 </div>
@@ -537,10 +623,10 @@ export default function BackendTab() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services['Conteo']?.status === 'running' ? 'outline' : 'default'}
+                    variant={services['Conteo']?.enabled ? 'outline' : 'default'}
                     onClick={() => handleServiceAction('counting', 'start')}
-                    disabled={services['Conteo']?.status === 'running'}
-                    className={services['Conteo']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    disabled={services['Conteo']?.enabled}
+                    className={services['Conteo']?.enabled ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
                     <Play className="h-3 w-3 mr-1" />
                     Iniciar
@@ -549,8 +635,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('counting', 'stop')}
-                    disabled={services['Conteo']?.status !== 'running'}
-                    className={services['Conteo']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={!services['Conteo']?.enabled}
+                    className={services['Conteo']?.enabled ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Square className="h-3 w-3 mr-1" />
                     Detener
@@ -559,11 +645,20 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('counting', 'restart')}
-                    disabled={services['Conteo']?.status !== 'running'}
-                    className={services['Conteo']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={!services['Conteo']?.enabled}
+                    className={services['Conteo']?.enabled ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewLogs('Conteo')}
+                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Ver Logs
                   </Button>
                 </div>
               </CardContent>
@@ -575,7 +670,18 @@ export default function BackendTab() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Bell className="h-4 w-4" />
-                    <CardTitle className="text-sm">Notificaciones</CardTitle>
+                    <CardTitle className="text-sm flex items-center">
+                      Notificaciones
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewLogs('Notificaciones')}
+                        className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        Ver Logs
+                      </Button>
+                    </CardTitle>
                   </div>
                   {getServiceBadge(services['Notificaciones']?.status)}
                 </div>
@@ -598,10 +704,10 @@ export default function BackendTab() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services['Notificaciones']?.status === 'running' ? 'outline' : 'default'}
+                    variant={services['Notificaciones']?.enabled ? 'outline' : 'default'}
                     onClick={() => handleServiceAction('notifications', 'start')}
-                    disabled={services['Notificaciones']?.status === 'running'}
-                    className={services['Notificaciones']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    disabled={services['Notificaciones']?.enabled}
+                    className={services['Notificaciones']?.enabled ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
                     <Play className="h-3 w-3 mr-1" />
                     Iniciar
@@ -610,8 +716,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('notifications', 'stop')}
-                    disabled={services['Notificaciones']?.status !== 'running'}
-                    className={services['Notificaciones']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={!services['Notificaciones']?.enabled}
+                    className={services['Notificaciones']?.enabled ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Square className="h-3 w-3 mr-1" />
                     Detener
@@ -620,11 +726,20 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('notifications', 'restart')}
-                    disabled={services['Notificaciones']?.status !== 'running'}
-                    className={services['Notificaciones']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={!services['Notificaciones']?.enabled}
+                    className={services['Notificaciones']?.enabled ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewLogs('Notificaciones')}
+                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Ver Logs
                   </Button>
                 </div>
               </CardContent>
@@ -1239,6 +1354,37 @@ export default function BackendTab() {
           {saving ? 'Guardando...' : 'Guardar Configuración'}
         </Button>
       </div>
+
+      {/* Modal de Logs */}
+      <Dialog open={logsModal.open} onOpenChange={(open) => setLogsModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Logs del Servicio: {logsModal.service}
+            </DialogTitle>
+            <DialogDescription>
+              Logs en tiempo real del contenedor {logsModal.service}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {logsModal.loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 animate-spin" />
+                  <span>Cargando logs...</span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
+                <pre className="whitespace-pre-wrap break-words">
+                  {logsModal.logs || 'No se encontraron logs'}
+                </pre>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

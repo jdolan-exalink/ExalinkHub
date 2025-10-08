@@ -1,11 +1,11 @@
 @echo off
-REM Script de despliegue completo para Sistema LPR con Docker (Windows)
+REM Script de despliegue completo para ExalinkHub con Docker (Windows)
 REM Automatiza build, deploy y gestión del stack de contenedores
 
 setlocal enabledelayedexpansion
 
 REM Configuración
-set PROJECT_NAME=exalink-lpr
+set PROJECT_NAME=exalinkhub
 set COMPOSE_FILE=docker-compose.yml
 set ENV_FILE=.env
 
@@ -42,7 +42,7 @@ goto :eof
 REM Construir imágenes
 :build_images
 echo [INFO] Construyendo imágenes Docker...
-docker-compose build --no-cache lpr-backend
+docker-compose build --no-cache lpr-backend conteo-backend notificaciones-backend
 if %errorlevel% equ 0 (
     echo [SUCCESS] Imágenes construidas exitosamente
 ) else (
@@ -60,7 +60,7 @@ docker network create exalink-lpr-network 2>nul
 docker network create exalink-public 2>nul
 
 REM Iniciar servicios
-docker-compose up -d lpr-redis lpr-backend
+docker-compose up -d lpr-redis lpr-backend conteo-backend notificaciones-backend
 if %errorlevel% neq 0 (
     echo [ERROR] Error desplegando servicios
     docker-compose logs
@@ -68,7 +68,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [INFO] Esperando a que los servicios estén listos...
-timeout /t 10 /nobreak >nul
+timeout /t 15 /nobreak >nul
 
 REM Verificar servicios
 docker-compose ps | findstr "Up" >nul
@@ -88,12 +88,30 @@ echo Estado de contenedores:
 docker-compose ps
 
 echo.
-echo Estado de salud del backend LPR:
+echo Estado de salud de los backends:
+
+REM Verificar LPR backend
 curl -f http://localhost:2221/health >nul 2>&1
 if %errorlevel% equ 0 (
     echo [SUCCESS] Backend LPR responde correctamente
 ) else (
     echo [WARNING] Backend LPR no responde en el puerto 2221
+)
+
+REM Verificar Conteo backend
+curl -f http://localhost:2223/health >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [SUCCESS] Backend Conteo responde correctamente
+) else (
+    echo [WARNING] Backend Conteo no responde en el puerto 2223
+)
+
+REM Verificar Notificaciones backend
+curl -f http://localhost:2224/health >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [SUCCESS] Backend Notificaciones responde correctamente
+) else (
+    echo [WARNING] Backend Notificaciones no responde en el puerto 2224
 )
 goto :eof
 
@@ -145,12 +163,12 @@ goto :eof
 
 REM Mostrar ayuda
 :show_help
-echo Script de gestión Docker para Sistema LPR
+echo Script de gestión Docker para ExalinkHub
 echo.
 echo Uso: %~nx0 [comando] [opciones]
 echo.
 echo Comandos disponibles:
-echo   deploy        - Desplegar sistema completo
+echo   deploy        - Desplegar sistema completo (LPR, Conteo, Notificaciones^)
 echo   build         - Construir imágenes Docker
 echo   start         - Iniciar servicios
 echo   stop          - Detener servicios
@@ -163,8 +181,8 @@ echo   shell [service]- Acceder a shell del contenedor
 echo.
 echo Ejemplos:
 echo   %~nx0 deploy                    # Despliegue completo
-echo   %~nx0 logs lpr-backend         # Logs del backend
-echo   %~nx0 shell lpr-backend        # Shell del backend
+echo   %~nx0 logs lpr-backend         # Logs del backend LPR
+echo   %~nx0 shell conteo-backend     # Shell del backend de conteo
 goto :eof
 
 REM Función principal

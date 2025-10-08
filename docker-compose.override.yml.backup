@@ -1,0 +1,18 @@
+# Docker Compose Override para desarrollo
+# Este archivo se combina con docker-compose.yml
+# Para usar: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+
+version: '3.8'
+
+services:
+  frontend:
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    ports:
+      - "${FRONTEND_PORT:-9002}:3000"

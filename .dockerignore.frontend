@@ -1,0 +1,18 @@
+# .dockerignore para el frontend - permite archivos necesarios para Next.js
+# Excluir todo por defecto
+*
+
+# Permitir archivos esenciales
+!package.json
+!package-lock.json
+!src/
+!components.json
+!next-env.d.ts
+!next.config.ts
+!tailwind.config.ts
+!tsconfig.json
+!postcss.config.mjs
+!middleware.ts
+!i18n.ts
+!public/
+!.env.example

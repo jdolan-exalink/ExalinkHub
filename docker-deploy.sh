@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Script de despliegue completo para Sistema LPR con Docker
+# Script de despliegue completo para ExalinkHub con Docker
 # Automatiza build, deploy y gestión del stack de contenedores
 
 set -e
 
 # Configuración
-PROJECT_NAME="exalink-lpr"
+PROJECT_NAME="exalinkhub"
 COMPOSE_FILE="docker-compose.yml"
 ENV_FILE=".env"
 
@@ -66,7 +66,7 @@ check_prerequisites() {
 build_images() {
     log_info "Construyendo imágenes Docker..."
     
-    docker-compose build --no-cache lpr-backend
+    docker-compose build --no-cache lpr-backend conteo-backend notificaciones-backend
     
     log_success "Imágenes construidas exitosamente"
 }
@@ -80,11 +80,11 @@ deploy_services() {
     docker network create exalink-public 2>/dev/null || true
     
     # Iniciar servicios base
-    docker-compose up -d lpr-redis lpr-backend
+    docker-compose up -d lpr-redis lpr-backend conteo-backend notificaciones-backend
     
     # Esperar a que los servicios estén listos
     log_info "Esperando a que los servicios estén listos..."
-    sleep 10
+    sleep 15
     
     # Verificar salud de los servicios
     if docker-compose ps | grep -q "Up"; then
@@ -103,11 +103,27 @@ check_services() {
     echo "Estado de contenedores:"
     docker-compose ps
     
-    echo -e "\nEstado de salud del backend LPR:"
+    echo -e "\nEstado de salud de los backends:"
+    
+    # Verificar LPR backend
     if curl -f http://localhost:2221/health &> /dev/null; then
         log_success "Backend LPR responde correctamente"
     else
         log_warning "Backend LPR no responde en el puerto 2221"
+    fi
+    
+    # Verificar Conteo backend
+    if curl -f http://localhost:2223/health &> /dev/null; then
+        log_success "Backend Conteo responde correctamente"
+    else
+        log_warning "Backend Conteo no responde en el puerto 2223"
+    fi
+    
+    # Verificar Notificaciones backend
+    if curl -f http://localhost:2224/health &> /dev/null; then
+        log_success "Backend Notificaciones responde correctamente"
+    else
+        log_warning "Backend Notificaciones no responde en el puerto 2224"
     fi
 }
 
@@ -220,12 +236,12 @@ update_system() {
 
 # Mostrar ayuda
 show_help() {
-    echo "Script de gestión Docker para Sistema LPR"
+    echo "Script de gestión Docker para ExalinkHub"
     echo ""
     echo "Uso: $0 [comando] [opciones]"
     echo ""
     echo "Comandos disponibles:"
-    echo "  deploy        - Desplegar sistema completo"
+    echo "  deploy        - Desplegar sistema completo (LPR, Conteo, Notificaciones)"
     echo "  build         - Construir imágenes Docker"
     echo "  start         - Iniciar servicios"
     echo "  stop          - Detener servicios"
@@ -240,9 +256,9 @@ show_help() {
     echo ""
     echo "Ejemplos:"
     echo "  $0 deploy                    # Despliegue completo"
-    echo "  $0 logs lpr-backend         # Logs del backend"
+    echo "  $0 logs lpr-backend         # Logs del backend LPR"
     echo "  $0 restore backups/20231201 # Restaurar backup"
-    echo "  $0 shell lpr-backend        # Shell del backend"
+    echo "  $0 shell conteo-backend     # Shell del backend de conteo"
 }
 
 # Función principal

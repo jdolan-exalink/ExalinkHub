@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "title": "Sistema de Notificaciones - ExalinkHub",
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_username": "",
+  "smtp_password": "",
+  "use_tls": true,
+  "default_sender": "noreply@exalinkhub.com",
+  "admin_emails": [],
+  "notification_types": {
+    "lpr_detected": true,
+    "counting_threshold": true,
+    "system_alerts": true,
+    "maintenance": false
+  },
+  "templates": {
+    "lpr_alert": "Nueva matrícula detectada: {plate} en {timestamp}",
+    "counting_alert": "Umbral alcanzado: {count} {object_type} detectados",
+    "system_alert": "Alerta del sistema: {message}"
+  },
+  "config_json": "{}"
+}

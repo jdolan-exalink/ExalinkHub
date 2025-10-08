@@ -1,0 +1,334 @@
+'use client';
+
+import React, { useRef, useEffect, useState } from 'react';
+import Hls from 'hls.js';
+
+interface HlsPlayerProps {
+  camera: string;
+  quality: 'hd' | 'sd';
+  autoPlay?: boolean;
+  muted?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  onLoad?: () => void;
+  onError?: (error: Error) => void;
+  onProgress?: () => void; // Added for state machine progress tracking
+}
+
+export default function HlsPlayer({
+  camera,
+  quality,
+  autoPlay = true,
+  muted = true,
+  className = '',
+  style,
+  onLoad,
+  onError,
+  onProgress
+}: HlsPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    const startHLS = () => {
+      if (!videoRef.current) return;
+
+      try {
+        setIsLoading(true);
+        setHasError(false);
+        setErrorMessage('');
+
+        console.log(`🎬 Starting HLS stream for ${camera} (${quality})`);
+
+        // Cleanup previous HLS instance
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+
+        // Get HLS URL from Frigate API
+        const stream = quality === 'hd' ? 'main' : 'sub';
+        const hlsUrl = `http://10.1.1.252:5000/api/${camera}/hls/stream.m3u8?stream=${stream}`;
+
+        console.log(`📺 HLS URL: ${hlsUrl}`);
+
+        // Verificar conectividad antes de cargar el stream
+        const checkConnectivity = async () => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(`http://10.1.1.252:5000/api/config`, {
+              method: 'HEAD',
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            return response.ok;
+          } catch (error) {
+            console.warn(`⚠️ Frigate connectivity check failed for ${camera}:`, error);
+            return false;
+          }
+        };
+
+        // Realizar verificación de conectividad (no bloquear si falla)
+        checkConnectivity().then(isConnected => {
+          if (!isConnected) {
+            console.warn(`⚠️ Frigate server may be unreachable for ${camera}`);
+          }
+        });
+
+        // Check if HLS is supported natively
+        if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native HLS support (Safari)
+          console.log('🍎 Using native HLS support');
+          videoRef.current.src = hlsUrl;
+          videoRef.current.addEventListener('loadeddata', () => {
+            if (mounted) {
+              setIsLoading(false);
+              onLoad?.();
+            }
+          });
+          videoRef.current.addEventListener('error', (e) => {
+            if (mounted) {
+              setIsLoading(false);
+              setHasError(true);
+              setErrorMessage('Native HLS playback failed');
+              onError?.(new Error('Native HLS playback failed'));
+            }
+          });
+        } else if (Hls.isSupported()) {
+          // Use hls.js for other browsers
+          console.log('📺 Using hls.js for HLS playback');
+
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 90, // Keep 90 seconds of buffer
+            maxBufferLength: 30, // Max 30 seconds buffer
+            maxMaxBufferLength: 600, // Allow up to 10 minutes for recordings
+            levelLoadingMaxRetry: 4,
+            levelLoadingMaxRetryTimeout: 4000,
+            levelLoadingRetryDelay: 1000,
+            fragLoadingMaxRetry: 6,
+            fragLoadingMaxRetryTimeout: 4000,
+            fragLoadingRetryDelay: 1000,
+            manifestLoadingMaxRetry: 3,
+            manifestLoadingMaxRetryTimeout: 2000,
+            manifestLoadingRetryDelay: 500,
+            startLevel: -1, // Auto quality
+            autoStartLoad: true,
+            debug: false,
+            // Configuración adicional para mejor manejo de errores
+            capLevelToPlayerSize: true,
+            ignoreDevicePixelRatio: false
+          });
+
+          hlsRef.current = hls;
+
+          // Agregar logging adicional para debugging
+          console.log(`📺 Loading HLS source: ${hlsUrl}`);
+          
+          hls.loadSource(hlsUrl);
+          hls.attachMedia(videoRef.current);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (mounted) {
+              console.log(`✅ HLS manifest parsed for ${camera}`);
+              setIsLoading(false);
+              onLoad?.();
+            }
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (!mounted) return;
+
+            // Mejorar el logging de errores para debugging
+            console.group(`❌ HLS error for ${camera}`);
+            console.log('Event:', event);
+            console.log('Error data:', {
+              type: data.type,
+              details: data.details,
+              fatal: data.fatal,
+              level: data.level,
+              frag: data.frag,
+              reason: data.reason,
+              response: data.response,
+              url: data.url,
+              networkDetails: data.networkDetails
+            });
+            console.groupEnd();
+
+            if (data.fatal) {
+              setIsLoading(false);
+              setHasError(true);
+
+              let errorMsg = 'HLS stream error';
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  errorMsg = `Network error: ${data.details || 'Connection failed'}`;
+                  // Intentar recuperar automáticamente de errores de red
+                  setTimeout(() => {
+                    if (mounted && hlsRef.current) {
+                      console.log(`🔄 Attempting HLS recovery for ${camera}`);
+                      hlsRef.current.startLoad();
+                    }
+                  }, 2000);
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  errorMsg = `Media error: ${data.details || 'Codec issue'}`;
+                  // Intentar recuperar de errores de media
+                  if (hlsRef.current) {
+                    try {
+                      console.log(`🔄 Attempting media recovery for ${camera}`);
+                      hlsRef.current.recoverMediaError();
+                    } catch (recoverError) {
+                      console.error('Media recovery failed:', recoverError);
+                    }
+                  }
+                  break;
+                case Hls.ErrorTypes.MUX_ERROR:
+                  errorMsg = `Mux error: ${data.details || 'Stream format issue'}`;
+                  break;
+                default:
+                  errorMsg = `HLS error: ${data.details || data.type || 'Unknown error'}`;
+              }
+
+              setErrorMessage(errorMsg);
+              onError?.(new Error(errorMsg));
+            } else {
+              // Error no fatal, intentar continuar
+              console.log(`⚠️ Non-fatal HLS error for ${camera}, continuing...`);
+            }
+          });
+
+          hls.on(Hls.Events.FRAG_LOADED, () => {
+            // Fragment loaded successfully
+            if (mounted && hasError) {
+              console.log(`✅ HLS recovered for ${camera}`);
+              setHasError(false);
+              setErrorMessage('');
+            }
+            // Mark progress on fragment load
+            onProgress?.();
+          });
+
+          // Manejo adicional de eventos de red
+          hls.on(Hls.Events.MANIFEST_LOADING, () => {
+            console.log(`📋 Loading manifest for ${camera}...`);
+          });
+
+          hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
+            console.log(`📈 Level loaded for ${camera}:`, data.level);
+          });
+
+          hls.on(Hls.Events.FRAG_LOADING, (event, data) => {
+            console.log(`⬇️ Loading fragment for ${camera}:`, data.frag?.sn);
+          });
+
+        } else {
+          throw new Error('HLS is not supported in this browser');
+        }
+
+      } catch (error) {
+        if (mounted) {
+          console.error(`❌ HLS setup error for ${camera}:`, error);
+          setIsLoading(false);
+          setHasError(true);
+          setErrorMessage(error instanceof Error ? error.message : 'Unknown HLS error');
+          onError?.(error instanceof Error ? error : new Error('Unknown HLS error'));
+        }
+      }
+    };
+
+    startHLS();
+
+    return () => {
+      mounted = false;
+
+      // Cleanup HLS instance
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      // Cleanup video
+      if (videoRef.current) {
+        videoRef.current.src = '';
+        videoRef.current.load();
+      }
+    };
+  }, [camera, quality, onLoad, onError]);
+
+  // Video event monitoring for state machine
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onProgress) return;
+
+    const handleVideoEvent = () => {
+      onProgress();
+    };
+
+    // HTML5 video events that indicate activity/progress
+    video.addEventListener('progress', handleVideoEvent);
+    video.addEventListener('timeupdate', handleVideoEvent);
+    video.addEventListener('canplay', handleVideoEvent);
+    video.addEventListener('canplaythrough', handleVideoEvent);
+    video.addEventListener('playing', handleVideoEvent);
+
+    // Events that might indicate issues (but still count as activity)
+    video.addEventListener('waiting', handleVideoEvent);
+    video.addEventListener('stalled', handleVideoEvent);
+
+    return () => {
+      video.removeEventListener('progress', handleVideoEvent);
+      video.removeEventListener('timeupdate', handleVideoEvent);
+      video.removeEventListener('canplay', handleVideoEvent);
+      video.removeEventListener('canplaythrough', handleVideoEvent);
+      video.removeEventListener('playing', handleVideoEvent);
+      video.removeEventListener('waiting', handleVideoEvent);
+      video.removeEventListener('stalled', handleVideoEvent);
+    };
+  }, [onProgress]);
+
+  return (
+    <div
+      className={`relative w-full h-full ${className}`}
+      style={style}
+    >
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+          <div className="text-white text-sm text-center">
+            📺 Conectando HLS<br />
+            <span className="text-xs opacity-75">{camera} ({quality})</span>
+          </div>
+        </div>
+      )}
+
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-red-900/20 z-10">
+          <div className="text-red-400 text-sm text-center">
+            ❌ Error HLS<br />
+            <span className="text-xs opacity-75">{errorMessage}</span>
+          </div>
+        </div>
+      )}
+
+      <video
+        ref={videoRef}
+        autoPlay={autoPlay}
+        playsInline
+        muted={muted}
+        className="w-full h-full object-cover"
+        style={{
+          display: hasError ? 'none' : 'block'
+        }}
+      />
+    </div>
+  );
+}

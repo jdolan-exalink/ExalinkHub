@@ -5,7 +5,7 @@ services:
   # Servicio principal LPR Backend
   lpr-backend:
     build:
-      context: ./lpr_backend
+      context: ./backend/lpr
       dockerfile: Dockerfile
     image: exalink/lpr-backend:latest
     container_name: exalink-lpr-backend
@@ -61,10 +61,10 @@ services:
       - lpr-logs:/app/logs
       
       # Base de datos en carpeta DB del host (para acceso directo)
-      - ./DB:/app/DB:rw
+      - ./DB:/DB:rw
       
       # Configuración personalizada (opcional)
-      - ./lpr_backend/config:/app/config:ro
+      - ./backend/lpr/config:/backend/lpr/config:ro
       
       # Acceso a tiempo del host para timestamps precisos
       - /etc/localtime:/etc/localtime:ro

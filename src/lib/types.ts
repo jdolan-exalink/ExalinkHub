@@ -93,6 +93,9 @@ export interface ServerCamera {
   serverName: string;
   cameraName: string;
   enabled: boolean;
+  display_name?: string;
+  zones?: string[];
+  name?: string;
 }
 
 // Interface para respuesta de búsqueda LPR

@@ -6,7 +6,7 @@ siguiendo las convenciones del proyecto ExalinkHub.
 """
 
 import os
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine import Engine
@@ -112,7 +112,7 @@ def init_database():
         
         # Verificar que la base de datos es accesible
         with SessionLocal() as session:
-            session.execute("SELECT 1")
+            session.execute(text("SELECT 1"))
         print("✅ Conexión a la base de datos verificada")
         
     except Exception as e:
@@ -134,13 +134,13 @@ def get_database_info() -> dict:
         with SessionLocal() as session:
             # Contar registros en tabla principal
             plate_events_count = session.execute(
-                "SELECT COUNT(*) FROM plate_events"
+                text("SELECT COUNT(*) FROM plate_events")
             ).scalar() or 0
             
             # Obtener información de la base de datos
-            db_info = session.execute("PRAGMA database_list").fetchall()
-            page_count = session.execute("PRAGMA page_count").scalar()
-            page_size = session.execute("PRAGMA page_size").scalar()
+            db_info = session.execute(text("PRAGMA database_list")).fetchall()
+            page_count = session.execute(text("PRAGMA page_count")).scalar()
+            page_size = session.execute(text("PRAGMA page_size")).scalar()
             
         return {
             "database_path": DB_PATH,
@@ -172,7 +172,7 @@ def optimize_database():
             print("🔧 Iniciando optimización de la base de datos...")
             
             # Análisis de estadísticas para el optimizador de consultas
-            session.execute("ANALYZE")
+            session.execute(text("ANALYZE"))
             print("✅ Análisis de estadísticas completado")
             
             # Nota: VACUUM se puede hacer pero bloquea la base de datos
@@ -180,7 +180,7 @@ def optimize_database():
             # print("✅ VACUUM completado")
             
             # Verificar integridad
-            integrity_check = session.execute("PRAGMA integrity_check").fetchone()
+            integrity_check = session.execute(text("PRAGMA integrity_check")).fetchone()
             if integrity_check and integrity_check[0] == "ok":
                 print("✅ Verificación de integridad exitosa")
             else:

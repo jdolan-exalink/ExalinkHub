@@ -37,18 +37,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar script de inicialización
 COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copiar código fuente
 COPY app/ ./app/
 COPY start.py ./
 
 # Crear directorios necesarios y configurar permisos
-RUN mkdir -p data logs DB config && \
-    chown -R lpr:lpr /app
+RUN mkdir -p data logs DB config
 
-# Cambiar a usuario no-root
-USER lpr
+# Cambiar a usuario no-root (comentado para Windows)
+# USER lpr
 
 # Exponer puerto
 EXPOSE 2221

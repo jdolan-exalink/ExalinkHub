@@ -165,15 +165,18 @@ def require_auth(username: str = Depends(verify_credentials)) -> str:
 
 async def load_config_from_database():
     """
-    Carga la configuración desde la base de datos al iniciar
+    Carga la configuración desde la base de datos y variables de entorno
     """
     try:
+        # Primero cargar configuración desde variables de entorno
+        load_config_from_environment()
+        
         db = next(get_database_session())
         # Cargar configuración existente o crear valores por defecto
         config_data = crud.get_all_config(db)
 
         if config_data:
-            # Actualizar configuración global con datos de la BD
+            # Actualizar configuración global con datos de la BD (sobrescriben variables de entorno)
             print("📖 Configuración cargada desde la base de datos")
             # Asignar valores MQTT
             app_config.mqtt.host = config_data.get("mqtt_host", app_config.mqtt.host)
@@ -188,6 +191,40 @@ async def load_config_from_database():
             
     except Exception as e:
         print(f"⚠️ Error al cargar configuración: {str(e)}")
+        print("📝 Usando configuración por defecto")
+
+def load_config_from_environment():
+    """
+    Carga configuración desde variables de entorno
+    """
+    try:
+        # Configuración MQTT desde variables de entorno
+        app_config.mqtt.host = os.getenv("MQTT_HOST", app_config.mqtt.host)
+        app_config.mqtt.port = int(os.getenv("MQTT_PORT", app_config.mqtt.port))
+        app_config.mqtt.username = os.getenv("MQTT_USERNAME", app_config.mqtt.username)
+        app_config.mqtt.password = os.getenv("MQTT_PASSWORD", app_config.mqtt.password)
+        app_config.mqtt.topic_prefix = os.getenv("MQTT_TOPIC_PREFIX", app_config.mqtt.topic_prefix)
+        
+        # Configuración Frigate desde variables de entorno
+        app_config.frigate.host = os.getenv("FRIGATE_HOST", app_config.frigate.host)
+        app_config.frigate.port = int(os.getenv("FRIGATE_PORT", app_config.frigate.port))
+        app_config.frigate.use_ssl = os.getenv("FRIGATE_PROTOCOL", "http") == "https"
+        app_config.frigate.username = os.getenv("FRIGATE_USERNAME", app_config.frigate.username)
+        app_config.frigate.password = os.getenv("FRIGATE_PASSWORD", app_config.frigate.password)
+        
+        # Configuración de autenticación
+        app_config.auth.username = os.getenv("LPR_AUTH_USERNAME", app_config.auth.username)
+        app_config.auth.password = os.getenv("LPR_AUTH_PASSWORD", app_config.auth.password)
+        
+        # Configuración de retención
+        app_config.retention_days = int(os.getenv("RETENTION_EVENTS_DAYS", app_config.retention_days))
+        
+        print("🔧 Configuración cargada desde variables de entorno")
+        print(f"  MQTT: {app_config.mqtt.host}:{app_config.mqtt.port}")
+        print(f"  Frigate: {app_config.frigate.host}:{app_config.frigate.port}")
+        
+    except Exception as e:
+        print(f"⚠️ Error al cargar configuración de entorno: {str(e)}")
         print("📝 Usando configuración por defecto")
 
 async def save_config_to_database():
@@ -283,23 +320,106 @@ def on_mqtt_message(client, userdata, msg):
     """
     Callback cuando se recibe un mensaje MQTT
     
-    Procesa los eventos de Frigate y los almacena en la base de datos.
+    Procesa los eventos de Frigate de manera síncrona.
     """
     try:
         # Decodificar mensaje
         payload = json.loads(msg.payload.decode())
         
         # Verificar que sea un evento de matrícula
-        if payload.get("type") != "new" and payload.get("type") != "update" and payload.get("type") != "end":
+        if payload.get("type") not in ["new", "update", "end"]:
             return
         
-        # Procesar evento según el tipo
-        asyncio.create_task(process_frigate_event(payload))
+        # Procesar evento de manera síncrona
+        process_frigate_event_sync(payload)
         
     except Exception as e:
         print(f"❌ Error al procesar mensaje MQTT: {str(e)}")
 
-async def process_frigate_event(event_data: Dict[str, Any]):
+def process_frigate_event_sync(event_data: Dict[str, Any]):
+    """
+    Procesa un evento de Frigate de manera síncrona
+    
+    Args:
+        event_data: Datos del evento de Frigate
+    """
+    try:
+        event_type = event_data.get("type")
+        after_data = event_data.get("after", {})
+        event_id = after_data.get("id")
+        
+        if not event_id:
+            return
+        
+        # Verificar que sea un evento de matrícula
+        if not after_data.get("objects") or "license_plate" not in after_data.get("objects", []):
+            return
+        
+        if event_type in ["new", "update"]:
+            # Actualizar cache con datos del evento
+            frigate_events_cache[event_id] = after_data
+            system_health["last_event_time"] = datetime.utcnow()
+            
+        elif event_type == "end":
+            # Procesar evento finalizado
+            if event_id in frigate_events_cache:
+                save_completed_event_sync(event_id, frigate_events_cache[event_id])
+                del frigate_events_cache[event_id]
+            
+    except Exception as e:
+        print(f"❌ Error al procesar evento de Frigate: {str(e)}")
+
+def save_completed_event_sync(event_id: str, event_data: Dict[str, Any]):
+    """
+    Guarda un evento completado en la base de datos de manera síncrona
+    
+    Args:
+        event_id: ID del evento de Frigate
+        event_data: Datos del evento
+    """
+    try:
+        db = next(get_database_session())
+        
+        # Verificar si el evento ya existe
+        existing_event = crud.get_plate_event_by_frigate_id(db, event_id)
+        if existing_event:
+            return
+        
+        # Extraer información del evento
+        camera_name = event_data.get("camera", "unknown")
+        start_time = datetime.fromisoformat(event_data.get("start_time", "").replace("Z", "+00:00"))
+        end_time = datetime.fromisoformat(event_data.get("end_time", "").replace("Z", "+00:00"))
+        
+        # Extraer mejor matrícula detectada
+        license_plate = extract_best_license_plate(event_data)
+        if not license_plate:
+            return
+        
+        # Crear evento para guardar
+        plate_event = PlateEventCreate(
+            frigate_event_id=event_id,
+            camera_name=camera_name,
+            license_plate=license_plate,
+            start_time=start_time,
+            end_time=end_time,
+            zone=event_data.get("zones", [None])[0] if event_data.get("zones") else None,
+            plate_confidence=extract_plate_confidence(event_data),
+            vehicle_type=extract_vehicle_type(event_data),
+            top_score=event_data.get("top_score"),
+            has_clip=event_data.get("has_clip", False),
+            has_snapshot=event_data.get("has_snapshot", False),
+            snapshot_url=build_media_url("snapshot", event_id),
+            clip_url=build_media_url("clip", event_id) if event_data.get("has_clip") else None,
+            traffic_light_status=None,  # No podemos hacer async aquí
+            metadata={"frigate_data": event_data}
+        )
+        
+        # Guardar en la base de datos
+        saved_event = crud.create_plate_event(db, plate_event)
+        print(f"💾 Evento guardado: {license_plate} en {camera_name}")
+        
+    except Exception as e:
+        print(f"❌ Error al guardar evento: {str(e)}")
     """
     Procesa un evento de Frigate
     
@@ -326,7 +446,7 @@ async def process_frigate_event(event_data: Dict[str, Any]):
         elif event_type == "end":
             # Procesar evento finalizado
             if event_id in frigate_events_cache:
-                await save_completed_event(event_id, frigate_events_cache[event_id])
+                save_completed_event_sync(event_id, frigate_events_cache[event_id])
                 del frigate_events_cache[event_id]
             
     except Exception as e:

@@ -22,20 +22,73 @@ export async function GET(request: NextRequest) {
       issues: [] as string[]
     };
 
-    // Verificar configuración MQTT
+
+    // Verificación real de MQTT
     if (backend_config.lpr_mqtt_host && backend_config.lpr_mqtt_port) {
       status.mqtt_configured = true;
-      status.mqtt_status = 'configured';
+      // Probar conexión real a MQTT
+      try {
+        const mqtt = require('mqtt');
+        
+        // Build connection URL
+        const protocol = backend_config.lpr_mqtt_use_ssl ? 'mqtts' : 'mqtt';
+        const connection_url = `${protocol}://${backend_config.lpr_mqtt_host}:${backend_config.lpr_mqtt_port}`;
+        
+        // Build connection options
+        const connection_options: any = {
+          connectTimeout: 5000, // 5 segundos timeout
+          reconnectPeriod: 0, // Disable reconnection for test
+          clean: true, // Clean session
+          clientId: `exalinkhub_connectivity_test_${Date.now()}` // Unique client ID
+        };
+
+        // Add authentication if provided
+        if (backend_config.lpr_mqtt_username && backend_config.lpr_mqtt_password) {
+          connection_options.username = backend_config.lpr_mqtt_username;
+          connection_options.password = backend_config.lpr_mqtt_password;
+        }
+
+        const client = mqtt.connect(connection_url, connection_options);
+        
+        await new Promise((resolve, reject) => {
+          client.on('connect', () => {
+            status.mqtt_status = 'online';
+            client.end();
+            resolve(true);
+          });
+          client.on('error', (err: any) => {
+            status.mqtt_status = 'offline';
+            status.issues.push('MQTT conexión fallida: ' + err.message);
+            client.end();
+            resolve(false);
+          });
+        });
+      } catch (err: any) {
+        status.mqtt_status = 'offline';
+        status.issues.push('MQTT error: ' + (err?.message || 'desconocido'));
+      }
     } else {
       status.issues.push('MQTT no configurado completamente');
     }
 
-    // Verificar configuración Frigate
+    // Verificación real de Frigate
     if (backend_config.lpr_frigate_server_id) {
       const server = FRIGATE_SERVERS.find(s => s.id === backend_config.lpr_frigate_server_id);
       if (server && server.enabled) {
         status.frigate_configured = true;
-        status.frigate_status = 'configured';
+        // Probar conexión real a Frigate
+        try {
+          const response = await fetch(`${server.baseUrl}/version`, { method: 'GET', signal: AbortSignal.timeout(3000) });
+          if (response.ok) {
+            status.frigate_status = 'online';
+          } else {
+            status.frigate_status = 'offline';
+            status.issues.push('Frigate conexión fallida: ' + response.status);
+          }
+        } catch (err: any) {
+          status.frigate_status = 'offline';
+          status.issues.push('Frigate error: ' + (err?.message || 'desconocido'));
+        }
       } else if (server && !server.enabled) {
         status.frigate_status = 'disabled';
         status.issues.push('Servidor Frigate deshabilitado');

@@ -37,6 +37,7 @@ import {
 import type { BackendConfig } from '@/lib/config-database';
 import { FRIGATE_SERVERS, type FrigateServer } from '@/lib/frigate-servers';
 import { toast } from '@/hooks/use-toast';
+import { CountingConfig } from '@/components/counting/counting-config';
 
 export default function BackendTab() {
   // const translate = useTranslations('settings.backend');
@@ -48,10 +49,10 @@ export default function BackendTab() {
   const [mqttStatus, setMqttStatus] = useState<'unknown' | 'connected' | 'error' | 'testing'>('unknown');
   const [frigateTesting, setFrigateTesting] = useState(false);
   const [frigateStatus, setFrigateStatus] = useState<'unknown' | 'connected' | 'error' | 'testing'>('unknown');
-  const [services, setServices] = useState({
-    lpr: { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0 },
-    counting: { status: 'stopped', uptime: 0, counted: 0, memory_mb: 0, cpu_percent: 0 },
-    notifications: { status: 'stopped', uptime: 0, sent: 0, memory_mb: 0, cpu_percent: 0 }
+  const [services, setServices] = useState<Record<string, any>>({
+    'LPR (Matrículas)': { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0 },
+    'Conteo': { status: 'stopped', uptime: 0, processed: 0, memory_mb: 0, cpu_percent: 0 },
+    'Notificaciones': { status: 'stopped', uptime: 0, sent: 0, memory_mb: 0, cpu_percent: 0 }
   });
 
   const [formData, setFormData] = useState({
@@ -77,8 +78,20 @@ export default function BackendTab() {
     lpr_save_images: true,
     lpr_webhook_url: '',
     
-    // Counting Settings
+    // Counting Settings - Configuración según especificaciones técnicas
     counting_enabled: false,
+    counting_mode: 'agregado', // 'agregado' | 'dividido'
+    counting_title: 'Sistema de Conteo',
+    counting_cameras: '', // Lista de cámaras separadas por coma
+    counting_objects: '', // Lista de objetos separados por coma
+    counting_confidence_threshold: 0.7,
+    counting_retention_days: 30,
+    counting_aggregation_interval: 60, // minutos
+    counting_notifications_enabled: false,
+    counting_notification_email: '',
+    counting_config_json: '{}',
+    
+    // Legacy counting fields (mantenidos para compatibilidad)
     counting_zones: '',
     counting_reset_interval: 24,
     counting_min_confidence: 0.7,
@@ -143,11 +156,27 @@ export default function BackendTab() {
           lpr_regions: data.config.lpr_regions,
           lpr_save_images: data.config.lpr_save_images,
           lpr_webhook_url: data.config.lpr_webhook_url,
-          counting_enabled: data.config.counting_enabled,
-          counting_zones: data.config.counting_zones,
-          counting_reset_interval: data.config.counting_reset_interval,
-          counting_min_confidence: data.config.counting_min_confidence,
-          counting_webhook_url: data.config.counting_webhook_url,
+          
+          // Counting Settings - Nuevos campos según especificaciones
+          counting_enabled: data.config.counting_enabled || false,
+          counting_mode: data.config.counting_mode || 'agregado',
+          counting_title: data.config.counting_title || 'Sistema de Conteo',
+          counting_cameras: data.config.counting_cameras || '',
+          counting_objects: data.config.counting_objects || '',
+          counting_confidence_threshold: data.config.counting_confidence_threshold || 0.7,
+          counting_retention_days: data.config.counting_retention_days || 30,
+          counting_aggregation_interval: data.config.counting_aggregation_interval || 60,
+          counting_notifications_enabled: data.config.counting_notifications_enabled || false,
+          counting_notification_email: data.config.counting_notification_email || '',
+          counting_config_json: data.config.counting_config_json || '{}',
+          
+          // Legacy counting fields
+          counting_zones: data.config.counting_zones || '',
+          counting_reset_interval: data.config.counting_reset_interval || 24,
+          counting_min_confidence: data.config.counting_min_confidence || 0.7,
+          counting_webhook_url: data.config.counting_webhook_url || '',
+          
+          // Notification Settings
           notifications_enabled: data.config.notifications_enabled,
           email_enabled: data.config.email_enabled,
           email_smtp_host: data.config.email_smtp_host,
@@ -219,8 +248,10 @@ export default function BackendTab() {
   };
 
   const handleServiceAction = async (service: string, action: 'start' | 'stop' | 'restart') => {
+    // Normalizar nombre mostrado a slug backend
+    const service_slug = service === 'Conteo' ? 'counting' : service;
     try {
-      const response = await fetch(`/api/config/backend/services/${service}/${action}`, {
+      const response = await fetch(`/api/config/backend/services/${service_slug}/${action}`, {
         method: 'POST',
       });
 
@@ -228,11 +259,11 @@ export default function BackendTab() {
         await updateServiceStatus();
       } else {
         const error = await response.json();
-        alert(error.error || `Error al ${action} servicio`);
+        alert(error.error || `Error al ${action} servicio ${service}`);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert(`Error al ${action} servicio`);
+      alert(`Error al ${action} servicio ${service}`);
     }
   };
 
@@ -424,48 +455,51 @@ export default function BackendTab() {
                     <CreditCard className="h-4 w-4" />
                     <CardTitle className="text-sm">Matriculas</CardTitle>
                   </div>
-                  {getServiceBadge(services.lpr.status)}
+                  {getServiceBadge(services['LPR (Matrículas)']?.status)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="text-muted-foreground">
-                    <strong>Tiempo activo:</strong> {formatUptime(services.lpr.uptime)}
+                    <strong>Tiempo activo:</strong> {formatUptime(services['LPR (Matrículas)']?.uptime || 0)}
                   </div>
                   <div className="text-muted-foreground">
-                    <strong>Procesados:</strong> {services.lpr.processed?.toLocaleString() || '0'}
+                    <strong>Procesados:</strong> {services['LPR (Matrículas)']?.processed?.toLocaleString() || '0'}
                   </div>
                   <div className="text-muted-foreground">
-                    <strong>Memoria:</strong> {services.lpr.memory_mb?.toFixed(1) || '0.0'} MB
+                    <strong>Memoria:</strong> {services['LPR (Matrículas)']?.memory_mb?.toFixed(1) || '0.0'} MB
                   </div>
                   <div className="text-muted-foreground">
-                    <strong>CPU:</strong> {services.lpr.cpu_percent?.toFixed(1) || '0.0'}%
+                    <strong>CPU:</strong> {services['LPR (Matrículas)']?.cpu_percent?.toFixed(1) || '0.0'}%
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services.lpr.status === 'running' ? 'outline' : 'default'}
-                    onClick={() => handleServiceAction('lpr', services.lpr.status === 'running' ? 'stop' : 'start')}
-                    className={services.lpr.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'bg-green-600 hover:bg-green-700'}
+                    variant={services['LPR (Matrículas)']?.status === 'running' ? 'outline' : 'default'}
+                    onClick={() => handleServiceAction('lpr', 'start')}
+                    disabled={services['LPR (Matrículas)']?.status === 'running'}
+                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
-                    {services.lpr.status === 'running' ? (
-                      <>
-                        <Square className="h-3 w-3 mr-1" />
-                        Detener
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-3 w-3 mr-1" />
-                        Iniciar
-                      </>
-                    )}
+                    <Play className="h-3 w-3 mr-1" />
+                    Iniciar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleServiceAction('lpr', 'stop')}
+                    disabled={services['LPR (Matrículas)']?.status !== 'running'}
+                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                  >
+                    <Square className="h-3 w-3 mr-1" />
+                    Detener
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('lpr', 'restart')}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                    disabled={services['LPR (Matrículas)']?.status !== 'running'}
+                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
@@ -474,38 +508,62 @@ export default function BackendTab() {
               </CardContent>
             </Card>
 
-            {/* Counting Service */}
+            {/* Conteo Service */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UsersIcon className="h-4 w-4" />
-                    <CardTitle className="text-sm">Conteo de Personas</CardTitle>
+                    <CardTitle className="text-sm">Conteo</CardTitle>
                   </div>
-                  {getServiceBadge(services.counting.status)}
+                  {getServiceBadge(services['Conteo']?.status)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  Tiempo activo: {formatUptime(services.counting.uptime)}
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-muted-foreground">
+                    <strong>Tiempo activo:</strong> {formatUptime(services['Conteo']?.uptime || 0)}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>Procesados:</strong> {(services['Conteo']?.processed ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>Memoria:</strong> {services['Conteo']?.memory_mb?.toFixed(1) || '0.0'} MB
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>CPU:</strong> {services['Conteo']?.cpu_percent?.toFixed(1) || '0.0'}%
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Contados: {(services.counting?.counted ?? 0).toLocaleString()}
-                </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services.counting.status === 'running' ? 'outline' : 'default'}
-                    onClick={() => handleServiceAction('counting', services.counting.status === 'running' ? 'stop' : 'start')}
+                    variant={services['Conteo']?.status === 'running' ? 'outline' : 'default'}
+                    onClick={() => handleServiceAction('counting', 'start')}
+                    disabled={services['Conteo']?.status === 'running'}
+                    className={services['Conteo']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
-                    {services.counting.status === 'running' ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    <Play className="h-3 w-3 mr-1" />
+                    Iniciar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleServiceAction('counting', 'stop')}
+                    disabled={services['Conteo']?.status !== 'running'}
+                    className={services['Conteo']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                  >
+                    <Square className="h-3 w-3 mr-1" />
+                    Detener
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('counting', 'restart')}
+                    disabled={services['Conteo']?.status !== 'running'}
+                    className={services['Conteo']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
-                    <Activity className="h-3 w-3" />
+                    <Activity className="h-3 w-3 mr-1" />
+                    Reiniciar
                   </Button>
                 </div>
               </CardContent>
@@ -519,30 +577,54 @@ export default function BackendTab() {
                     <Bell className="h-4 w-4" />
                     <CardTitle className="text-sm">Notificaciones</CardTitle>
                   </div>
-                  {getServiceBadge(services.notifications.status)}
+                  {getServiceBadge(services['Notificaciones']?.status)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  Tiempo activo: {formatUptime(services.notifications.uptime)}
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-muted-foreground">
+                    <strong>Tiempo activo:</strong> {formatUptime(services['Notificaciones']?.uptime || 0)}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>Enviadas:</strong> {(services['Notificaciones']?.sent ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>Memoria:</strong> {services['Notificaciones']?.memory_mb?.toFixed(1) || '0.0'} MB
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>CPU:</strong> {services['Notificaciones']?.cpu_percent?.toFixed(1) || '0.0'}%
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Enviadas: {(services.notifications?.sent ?? 0).toLocaleString()}
-                </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services.notifications.status === 'running' ? 'outline' : 'default'}
-                    onClick={() => handleServiceAction('notifications', services.notifications.status === 'running' ? 'stop' : 'start')}
+                    variant={services['Notificaciones']?.status === 'running' ? 'outline' : 'default'}
+                    onClick={() => handleServiceAction('notifications', 'start')}
+                    disabled={services['Notificaciones']?.status === 'running'}
+                    className={services['Notificaciones']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
-                    {services.notifications.status === 'running' ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    <Play className="h-3 w-3 mr-1" />
+                    Iniciar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleServiceAction('notifications', 'stop')}
+                    disabled={services['Notificaciones']?.status !== 'running'}
+                    className={services['Notificaciones']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                  >
+                    <Square className="h-3 w-3 mr-1" />
+                    Detener
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('notifications', 'restart')}
+                    disabled={services['Notificaciones']?.status !== 'running'}
+                    className={services['Notificaciones']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
-                    <Activity className="h-3 w-3" />
+                    <Activity className="h-3 w-3 mr-1" />
+                    Reiniciar
                   </Button>
                 </div>
               </CardContent>
@@ -922,74 +1004,7 @@ export default function BackendTab() {
         </TabsContent>
 
         <TabsContent value="counting" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuración de Conteo de Personas</CardTitle>
-              <CardDescription>
-                Ajustes para el sistema de conteo automático de personas
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="counting-enabled"
-                  checked={formData.counting_enabled}
-                  onCheckedChange={(checked) => setFormData({...formData, counting_enabled: checked})}
-                />
-                <Label htmlFor="counting-enabled">Habilitar conteo de personas</Label>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="counting-zones">Zonas de Conteo</Label>
-                <Textarea
-                  id="counting-zones"
-                  placeholder="entrada_principal, sala_espera, oficinas (separadas por coma)"
-                  value={formData.counting_zones}
-                  onChange={(e) => setFormData({...formData, counting_zones: e.target.value})}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="counting-confidence">Confianza Mínima</Label>
-                  <Input
-                    id="counting-confidence"
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={formData.counting_min_confidence}
-                    onChange={(e) => setFormData({...formData, counting_min_confidence: parseFloat(e.target.value)})}
-                  />
-                  <div className="text-sm text-muted-foreground">
-                    Confianza mínima: {Math.round(formData.counting_min_confidence * 100)}%
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="counting-reset">Intervalo de Reset (horas)</Label>
-                  <Input
-                    id="counting-reset"
-                    type="number"
-                    min="1"
-                    max="168"
-                    value={formData.counting_reset_interval}
-                    onChange={(e) => setFormData({...formData, counting_reset_interval: parseInt(e.target.value)})}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="counting-webhook">Webhook URL (opcional)</Label>
-                <Input
-                  id="counting-webhook"
-                  placeholder="https://api.ejemplo.com/counting-webhook"
-                  value={formData.counting_webhook_url}
-                  onChange={(e) => setFormData({...formData, counting_webhook_url: e.target.value})}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <CountingConfig embedded />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">

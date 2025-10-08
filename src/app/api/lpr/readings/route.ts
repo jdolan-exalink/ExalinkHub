@@ -9,6 +9,14 @@ import { getLPRDatabase } from '@/lib/lpr-database';
 import { getLPRFileManager } from '@/lib/lpr-file-manager';
 
 /**
+ * Generar URL para archivos locales
+ */
+function generateLocalFileUrl(localPath: string, fileType: 'snapshot' | 'clip' | 'crop'): string {
+  const fileManager = getLPRFileManager();
+  return fileManager.getLocalFileUrl(localPath, fileType);
+}
+
+/**
  * GET /api/lpr/readings
  * Obtener lecturas LPR desde la base de datos local
  */
@@ -22,7 +30,7 @@ export async function GET(request: NextRequest) {
       afterTimestamp: searchParams.get('after') ? parseInt(searchParams.get('after')!) : undefined,
       beforeTimestamp: searchParams.get('before') ? parseInt(searchParams.get('before')!) : undefined,
       cameras: searchParams.getAll('camera').filter(Boolean),
-      plates: searchParams.getAll('plate').filter(Boolean),
+      plateSearch: searchParams.get('plate') || undefined, // Búsqueda parcial por matrícula
       minConfidence: searchParams.get('confidence_min') ? parseFloat(searchParams.get('confidence_min')!) : undefined,
       limit: parseInt(searchParams.get('limit') || '50'),
       offset: parseInt(searchParams.get('offset') || '0')
@@ -104,12 +112,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-/**
- * Generar URL para archivos locales
- */
-function generateLocalFileUrl(localPath: string, fileType: 'snapshot' | 'clip' | 'crop'): string {
-  const fileManager = getLPRFileManager();
-  return fileManager.getLocalFileUrl(localPath, fileType);
 }

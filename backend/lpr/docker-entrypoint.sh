@@ -23,9 +23,6 @@ create_directory() {
         mkdir -p "$dir_path"
     fi
     
-    # Configurar permisos
-    chmod "$permissions" "$dir_path"
-    chown lpr:lpr "$dir_path"
     
     echo -e "${GREEN}✓ Directorio configurado: $dir_path${NC}"
 }
@@ -35,24 +32,20 @@ echo -e "${YELLOW}Configurando directorios...${NC}"
 
 create_directory "/app/data" "755"
 create_directory "/app/logs" "755"
-create_directory "/app/DB" "755"
+create_directory "/DB" "755"
 create_directory "/app/config" "755"
 
 # Configurar permisos especiales para base de datos
-if [ -d "/app/DB" ]; then
+if [ -d "/DB" ]; then
     echo -e "${YELLOW}Configurando permisos de base de datos...${NC}"
     
     # Crear base de datos si no existe
-    if [ ! -f "/app/DB/matriculas.db" ]; then
+    if [ ! -f "/DB/matriculas.db" ]; then
         echo -e "${YELLOW}Creando base de datos inicial...${NC}"
-        touch "/app/DB/matriculas.db"
-        chmod 664 "/app/DB/matriculas.db"
-        chown lpr:lpr "/app/DB/matriculas.db"
+        touch "/DB/matriculas.db"
     fi
     
     # Asegurar permisos correctos en archivos existentes
-    find "/app/DB" -name "*.db*" -exec chmod 664 {} \;
-    find "/app/DB" -name "*.db*" -exec chown lpr:lpr {} \;
     
     echo -e "${GREEN}✓ Base de datos configurada${NC}"
 fi
@@ -66,9 +59,6 @@ if [ -d "/app/logs" ]; then
         touch "/app/logs/lpr.log"
     fi
     
-    # Configurar permisos de logs
-    find "/app/logs" -name "*.log" -exec chmod 664 {} \;
-    find "/app/logs" -name "*.log" -exec chown lpr:lpr {} \;
     
     echo -e "${GREEN}✓ Logs configurados${NC}"
 fi
@@ -114,19 +104,20 @@ echo -e "${YELLOW}Configurando variables de entorno...${NC}"
 # Crear archivo de configuración de entorno si no existe
 if [ ! -f "/app/.env" ]; then
     cat > "/app/.env" << EOF
-# Configuración del Sistema LPR
+# Configuración del servidor
 LPR_HOST=0.0.0.0
 LPR_PORT=2221
 LPR_DEBUG=${LPR_DEBUG:-false}
 
 # Base de datos
 DATABASE_URL=${DATABASE_URL:-sqlite:///./DB/matriculas.db}
-DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
 DATABASE_PATH=${DATABASE_PATH:-./DB/matriculas.db}
 
 # MQTT
 MQTT_HOST=${MQTT_HOST:-localhost}
 MQTT_PORT=${MQTT_PORT:-1883}
+MQTT_USERNAME=${MQTT_USERNAME:-}
+MQTT_PASSWORD=${MQTT_PASSWORD:-}
 MQTT_TOPIC_PREFIX=${MQTT_TOPIC_PREFIX:-frigate}
 
 # Frigate
@@ -144,8 +135,6 @@ TZ=${TZ:-UTC}
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 EOF
     
-    chmod 644 "/app/.env"
-    chown lpr:lpr "/app/.env"
     echo -e "${GREEN}✓ Archivo de configuración creado${NC}"
 fi
 

@@ -60,14 +60,20 @@ class LPRDatabase {
   private db: Database.Database;
   private dbPath: string;
 
+  /**
+   * Inicializa la base de datos de matrículas en app/DB/matriculas.db
+   * Crea el directorio si no existe
+   */
+  /**
+   * Inicializa la base de datos de matrículas en DB/matriculas.db
+   * Crea el directorio si no existe
+   */
   constructor() {
-    // Crear directorio de datos si no existe
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    const db_dir = path.join(process.cwd(), 'DB');
+    if (!fs.existsSync(db_dir)) {
+      fs.mkdirSync(db_dir, { recursive: true });
     }
-
-    this.dbPath = path.join(dataDir, 'lpr-readings.db');
+    this.dbPath = path.join(db_dir, 'matriculas.db');
     this.db = new Database(this.dbPath);
     this.initializeSchema();
   }
@@ -245,7 +251,7 @@ class LPRDatabase {
     afterTimestamp?: number;
     beforeTimestamp?: number;
     cameras?: string[];
-    plates?: string[];
+    plateSearch?: string; // Búsqueda general en matrícula, cámara, servidor, tipo vehículo y dirección
     minConfidence?: number;
     limit?: number;
     offset?: number;
@@ -268,9 +274,11 @@ class LPRDatabase {
       params.push(...filters.cameras);
     }
 
-    if (filters.plates && filters.plates.length > 0) {
-      query += ` AND plate IN (${filters.plates.map(() => '?').join(',')})`;
-      params.push(...filters.plates);
+    if (filters.plateSearch && filters.plateSearch.trim()) {
+      // Búsqueda en múltiples campos: matrícula, cámara, servidor, tipo de vehículo, dirección
+      const searchTerm = `%${filters.plateSearch.trim()}%`;
+      query += ' AND (UPPER(plate) LIKE UPPER(?) OR UPPER(camera) LIKE UPPER(?) OR UPPER(server_name) LIKE UPPER(?) OR UPPER(vehicle_type) LIKE UPPER(?) OR UPPER(direction) LIKE UPPER(?))';
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     if (filters.minConfidence) {

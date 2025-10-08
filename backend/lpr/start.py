@@ -31,7 +31,7 @@ def setup_database():
     """Configurar la base de datos si es necesario"""
     try:
         from app.database import engine, Base
-        from app.models import PlateEvent, LPRSettings
+        from app.models import PlateEvent
         
         # Crear directorios necesarios
         os.makedirs("data", exist_ok=True)

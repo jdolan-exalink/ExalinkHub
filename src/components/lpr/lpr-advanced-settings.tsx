@@ -1,36 +1,7 @@
-/**
- * Componente de configuración avanzada del sistema LPR
- * 
- * Permite configurar todos los parámetros del sistema:
- * - Servidor MQTT (host, puerto, credenciales, tópicos)
- * - Servidor Frigate (conexión y autenticación) 
- * - Selección de cámaras para LPR
- * - Configuración de base de datos y retención
- * - Parámetros de procesamiento
- * - Gestión de contenedor Docker
- */
-
-'use client';
+"use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Settings, 
-  Server, 
-  Camera, 
-  MessageSquare, 
-  Database, 
-  Shield,
-  Save,
-  TestTube,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  FolderOpen,
-  Calendar,
-  HardDrive
-} from 'lucide-react';
-
+import { MessageSquare, Database, Shield, Save, TestTube, RefreshCw, CheckCircle, XCircle, AlertTriangle, FolderOpen, Calendar, HardDrive, Settings, Server, Camera } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +19,13 @@ import { toast } from '@/hooks/use-toast';
 import { DockerServiceManager } from './docker-service-manager';
 import { FRIGATE_SERVERS, type FrigateServer } from '@/lib/frigate-servers';
 
-// Tipos para la configuración
+// Declarar los estados globales del componente
+// Estado de servicios backend (MQTT y Frigate)
+// Deben ir justo después de imports y antes del cuerpo del componente principal
+
+/**
+ * Tipos para la configuración
+ */
 interface mqtt_config {
   host: string;
   port: number;
@@ -106,6 +83,9 @@ interface lpr_system_config {
   debug_mode: boolean;
 }
 
+/**
+ * Props para LPRAdvancedSettings
+ */
 interface lpr_advanced_settings_props {
   is_open: boolean;
   on_close: () => void;
@@ -867,6 +847,8 @@ const RetentionConfigSection: React.FC<{
  * Componente principal de configuración avanzada
  */
 export function LPRAdvancedSettings({ is_open, on_close, auth_header }: lpr_advanced_settings_props) {
+  const [backend_status, set_backend_status] = useState<any>(null);
+  const [status_loading, set_status_loading] = useState(false);
   const { config, set_config, loading, saving, load_config, save_config } = use_lpr_config(auth_header);
   const { cameras: available_cameras, loading: loading_cameras, load_cameras } = use_frigate_cameras(
     config?.frigate || { host: '', port: 5000, use_ssl: false }, 
@@ -1022,10 +1004,24 @@ export function LPRAdvancedSettings({ is_open, on_close, auth_header }: lpr_adva
             </TabsTrigger>
           </TabsList>
           
+
           <TabsContent value="mqtt" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Configuración MQTT</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Configuración MQTT
+                  {backend_status && (
+                    <Badge
+                      variant={backend_status.mqtt_status === 'online' ? 'default' : backend_status.mqtt_status === 'offline' ? 'destructive' : 'secondary'}
+                      className="ml-2 flex items-center gap-1"
+                    >
+                      {backend_status.mqtt_status === 'online' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                      {backend_status.mqtt_status === 'offline' && <XCircle className="h-4 w-4 text-red-600" />}
+                      {backend_status.mqtt_status === 'not_configured' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+                      {backend_status.mqtt_status === 'online' ? 'Conectado' : backend_status.mqtt_status === 'offline' ? 'Desconectado' : 'No configurado'}
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <MqttConfigSection
@@ -1037,11 +1033,24 @@ export function LPRAdvancedSettings({ is_open, on_close, auth_header }: lpr_adva
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="frigate" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Configuración Frigate</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Configuración Frigate
+                  {backend_status && (
+                    <Badge
+                      variant={backend_status.frigate_status === 'online' ? 'default' : backend_status.frigate_status === 'offline' ? 'destructive' : 'secondary'}
+                      className="ml-2 flex items-center gap-1"
+                    >
+                      {backend_status.frigate_status === 'online' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                      {backend_status.frigate_status === 'offline' && <XCircle className="h-4 w-4 text-red-600" />}
+                      {backend_status.frigate_status === 'not_configured' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+                      {backend_status.frigate_status === 'online' ? 'Conectado' : backend_status.frigate_status === 'offline' ? 'Desconectado' : 'No configurado'}
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <FrigateConfigSection

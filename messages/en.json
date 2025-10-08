@@ -3,8 +3,9 @@
     "live": "Live",
     "recordings": "Recordings",
     "events": "Events",
-    "plates_lpr": "License Plates",
+    "plates_lpr": "LPR Plates",
     "counting": "Counting",
+    "vehicle_counting": "Vehicle Counting",
     "settings": "Settings"
   },
   "user_menu": {

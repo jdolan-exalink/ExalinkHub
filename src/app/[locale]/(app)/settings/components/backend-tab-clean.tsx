@@ -110,7 +110,7 @@ export default function BackendTab() {
     updateServiceStatus();
     
     // Actualizar estado de servicios cada 5 segundos
-    const interval = setInterval(updateServiceStatus, 5000);
+    const interval = setInterval(updateServiceStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 

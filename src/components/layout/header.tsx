@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, Badge, LogOut, User } from 'lucide-react';
+import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, Badge, LogOut, User, Car } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -32,6 +32,7 @@ const navigation_item_definitions: NavigationItem[] = [
   { slug: 'events', label_key: 'events', icon: ListVideo },
   { slug: 'plates-lpr', label_key: 'plates_lpr', icon: Badge },
   { slug: 'counting', label_key: 'counting', icon: BarChart3 },
+  { slug: 'vehicle-counting', label_key: 'vehicle_counting', icon: Car },
   { slug: 'settings', label_key: 'settings', icon: Settings },
 ];
 
@@ -55,6 +56,7 @@ const Header: FC = () => {
       'events': 'events',
       'plates-lpr': 'events', // LPR requiere acceso a eventos
       'counting': 'statistics',
+      'vehicle-counting': 'statistics',
       'settings': 'settings'
     };
     

@@ -24,6 +24,71 @@ export interface counting_event {
   metadata?: string; // JSON string con metadata adicional
 }
 
+// Nuevas interfaces según especificación técnica
+export interface area {
+  id: number;
+  nombre: string;
+  tipo: 'personas' | 'vehiculos'; // Tipo de objetos que cuenta
+  max_ocupacion: number; // Límite máximo de ocupación
+  modo_limite: 'soft' | 'hard'; // Tipo de límite (warning o bloqueo)
+  estado_actual: number; // Ocupación actual
+  color_estado: string; // Color basado en estado (verde/amarillo/rojo)
+  metadata_mapa?: string; // JSON con coordenadas y forma en mapa
+  enabled: boolean; // Si el área está activa
+  created_at: string;
+  updated_at: string;
+}
+
+export interface access_point {
+  id: number;
+  area_id: number; // FK a area
+  fuente_id: string; // Cámara o zona de Frigate
+  direccion: 'entrada' | 'salida'; // Tipo de punto de acceso
+  geometry?: string; // JSON con geometría del punto
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface counting_new_event {
+  id: number;
+  area_id: number; // FK a area
+  tipo: 'enter' | 'exit' | 'warning' | 'exceeded'; // Tipo de evento
+  valor: number; // +1 entrada, -1 salida, 0 alertas
+  fuente: string; // Cámara o zona origen
+  ts: string; // Timestamp ISO
+  metadata?: string; // JSON con datos adicionales
+  created_at: string;
+}
+
+export interface measurement {
+  id: number;
+  area_id: number; // FK a area
+  ocupacion_actual: number; // Snapshot de ocupación
+  densidad?: number; // Densidad opcional (personas/m²)
+  ts: string; // Timestamp del snapshot
+  created_at: string;
+}
+
+export interface parking_zone {
+  id: number;
+  nombre: string;
+  tenant_id?: number; // Para multi-tenant (opcional)
+  capacidad_total: number; // Capacidad total del parking
+  metadata?: string; // JSON con configuración adicional
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface parking_snapshot {
+  id: number;
+  zone_id: number; // FK a parking_zone
+  ocupacion: number; // Vehículos presentes
+  ts: string; // Timestamp del snapshot
+  created_at: string;
+}
+
 export interface counting_configuration {
   id: number;
   mqtt_host: string;
@@ -103,7 +168,7 @@ export class CountingDatabase {
    * Inicializa las tablas necesarias para el módulo de conteo
    */
   private initialize_tables(): void {
-    // Tabla de eventos de conteo
+    // Tabla legacy de eventos de conteo (mantener para compatibilidad)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS conteo_eventos (
         id TEXT PRIMARY KEY,
@@ -118,6 +183,94 @@ export class CountingDatabase {
       )
     `);
 
+    // NUEVAS TABLAS SEGÚN ESPECIFICACIÓN TÉCNICA
+    
+    // Tabla de áreas de conteo
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS areas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL UNIQUE,
+        tipo TEXT NOT NULL CHECK (tipo IN ('personas', 'vehiculos')),
+        max_ocupacion INTEGER NOT NULL DEFAULT 100,
+        modo_limite TEXT NOT NULL DEFAULT 'soft' CHECK (modo_limite IN ('soft', 'hard')),
+        estado_actual INTEGER NOT NULL DEFAULT 0,
+        color_estado TEXT NOT NULL DEFAULT 'green',
+        metadata_mapa TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Tabla de puntos de acceso
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS access_points (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area_id INTEGER NOT NULL,
+        fuente_id TEXT NOT NULL,
+        direccion TEXT NOT NULL CHECK (direccion IN ('entrada', 'salida')),
+        geometry TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Tabla de eventos (nueva estructura)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS counting_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area_id INTEGER NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('enter', 'exit', 'warning', 'exceeded')),
+        valor INTEGER NOT NULL DEFAULT 0,
+        fuente TEXT NOT NULL,
+        ts TEXT NOT NULL,
+        metadata TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Tabla de mediciones periódicas
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS measurements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area_id INTEGER NOT NULL,
+        ocupacion_actual INTEGER NOT NULL,
+        densidad REAL,
+        ts TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Tabla de zonas de parking (opcional)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS parking_zones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL UNIQUE,
+        tenant_id INTEGER,
+        capacidad_total INTEGER NOT NULL DEFAULT 50,
+        metadata TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Tabla de snapshots de parking
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS parking_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        zone_id INTEGER NOT NULL,
+        ocupacion INTEGER NOT NULL,
+        ts TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (zone_id) REFERENCES parking_zones(id) ON DELETE CASCADE
+      )
+    `);
+
     // Índices para optimizar consultas
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_conteo_camera_end_time 
@@ -129,7 +282,33 @@ export class CountingDatabase {
       ON conteo_eventos(label, end_time)
     `);
 
-    // Tabla de configuración
+    // Nuevos índices para las tablas actualizadas
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_counting_events_area_ts 
+      ON counting_events(area_id, ts)
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_counting_events_tipo_ts 
+      ON counting_events(tipo, ts)
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_measurements_area_ts 
+      ON measurements(area_id, ts)
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_access_points_area 
+      ON access_points(area_id, enabled)
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_parking_snapshots_zone_ts 
+      ON parking_snapshots(zone_id, ts)
+    `);
+
+    // Tabla de configuración (existente)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS conteo_configuracion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,6 +359,9 @@ export class CountingDatabase {
         0
       );
     }
+
+    // Insertar áreas de ejemplo si no existen
+    this.insert_default_areas();
     
     // Migrar estructura de tabla si es necesario
     this.migrate_table_structure();
@@ -285,6 +467,311 @@ export class CountingDatabase {
   }
 
   /**
+   * Inserta áreas de ejemplo por defecto si no existen
+   */
+  private insert_default_areas(): void {
+    const has_areas = this.db.prepare('SELECT COUNT(*) as count FROM areas').get() as { count: number };
+    if (has_areas.count === 0) {
+      const areas_to_insert = [
+        {
+          nombre: 'Hall Principal',
+          tipo: 'personas',
+          max_ocupacion: 50,
+          modo_limite: 'soft',
+          metadata_mapa: JSON.stringify({ x: 100, y: 100, width: 200, height: 150 })
+        },
+        {
+          nombre: 'Estacionamiento A',
+          tipo: 'vehiculos',
+          max_ocupacion: 25,
+          modo_limite: 'hard',
+          metadata_mapa: JSON.stringify({ x: 300, y: 100, width: 150, height: 200 })
+        },
+        {
+          nombre: 'Sala de Reuniones',
+          tipo: 'personas',
+          max_ocupacion: 12,
+          modo_limite: 'soft',
+          metadata_mapa: JSON.stringify({ x: 150, y: 300, width: 100, height: 80 })
+        }
+      ];
+
+      const insert_stmt = this.db.prepare(`
+        INSERT INTO areas (nombre, tipo, max_ocupacion, modo_limite, metadata_mapa)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      for (const area of areas_to_insert) {
+        insert_stmt.run(area.nombre, area.tipo, area.max_ocupacion, area.modo_limite, area.metadata_mapa);
+      }
+
+      // Agregar puntos de acceso para las áreas por defecto
+      const access_points_to_insert = [
+        { area_id: 1, fuente_id: 'Hall_Principal', direccion: 'entrada' },
+        { area_id: 1, fuente_id: 'Hall_Principal_Exit', direccion: 'salida' },
+        { area_id: 2, fuente_id: 'Parking_A_Entry', direccion: 'entrada' },
+        { area_id: 2, fuente_id: 'Parking_A_Exit', direccion: 'salida' },
+        { area_id: 3, fuente_id: 'Meeting_Room_Door', direccion: 'entrada' }
+      ];
+
+      const insert_access_stmt = this.db.prepare(`
+        INSERT INTO access_points (area_id, fuente_id, direccion)
+        VALUES (?, ?, ?)
+      `);
+
+      for (const access_point of access_points_to_insert) {
+        insert_access_stmt.run(access_point.area_id, access_point.fuente_id, access_point.direccion);
+      }
+    }
+  }
+
+  // MÉTODOS PARA GESTIÓN DE ÁREAS
+
+  /**
+   * Obtiene todas las áreas definidas
+   */
+  get_all_areas(): area[] {
+    return this.db.prepare('SELECT * FROM areas ORDER BY nombre').all() as area[];
+  }
+
+  /**
+   * Obtiene un área específica por ID
+   */
+  get_area_by_id(id: number): area | null {
+    return this.db.prepare('SELECT * FROM areas WHERE id = ?').get(id) as area | null;
+  }
+
+  /**
+   * Crea una nueva área
+   */
+  create_area(area_data: Omit<area, 'id' | 'created_at' | 'updated_at'>): number | null {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO areas (nombre, tipo, max_ocupacion, modo_limite, estado_actual, color_estado, metadata_mapa, enabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        area_data.nombre,
+        area_data.tipo,
+        area_data.max_ocupacion,
+        area_data.modo_limite,
+        area_data.estado_actual,
+        area_data.color_estado,
+        area_data.metadata_mapa,
+        area_data.enabled ? 1 : 0
+      );
+
+      return result.lastInsertRowid as number;
+    } catch (error) {
+      console.error('Error creating area:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Actualiza un área existente
+   */
+  update_area(id: number, area_data: Partial<area>): boolean {
+    try {
+      const current_area = this.get_area_by_id(id);
+      if (!current_area) {
+        return false;
+      }
+
+      const updated_area = {
+        ...current_area,
+        ...area_data,
+        updated_at: new Date().toISOString()
+      };
+
+      const stmt = this.db.prepare(`
+        UPDATE areas SET
+          nombre = ?, tipo = ?, max_ocupacion = ?, modo_limite = ?,
+          estado_actual = ?, color_estado = ?, metadata_mapa = ?, enabled = ?, updated_at = ?
+        WHERE id = ?
+      `);
+
+      const result = stmt.run(
+        updated_area.nombre,
+        updated_area.tipo,
+        updated_area.max_ocupacion,
+        updated_area.modo_limite,
+        updated_area.estado_actual,
+        updated_area.color_estado,
+        updated_area.metadata_mapa,
+        updated_area.enabled ? 1 : 0,
+        updated_area.updated_at,
+        id
+      );
+
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error updating area:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Actualiza la ocupación actual de un área
+   */
+  update_area_ocupacion(area_id: number, new_ocupacion: number): boolean {
+    try {
+      const area = this.get_area_by_id(area_id);
+      if (!area) {
+        return false;
+      }
+
+      // Calcular nuevo color basado en ocupación
+      let new_color = 'green';
+      const percentage = (new_ocupacion / area.max_ocupacion) * 100;
+      
+      if (percentage >= 100) {
+        new_color = 'red';
+      } else if (percentage >= 80) {
+        new_color = 'orange';
+      } else if (percentage >= 60) {
+        new_color = 'yellow';
+      }
+
+      const stmt = this.db.prepare(`
+        UPDATE areas SET 
+          estado_actual = ?, 
+          color_estado = ?, 
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `);
+
+      const result = stmt.run(new_ocupacion, new_color, area_id);
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error updating area ocupacion:', error);
+      return false;
+    }
+  }
+
+  // MÉTODOS PARA GESTIÓN DE EVENTOS DE CONTEO
+
+  /**
+   * Inserta un nuevo evento de conteo en la tabla nueva
+   */
+  insert_counting_event(event_data: Omit<counting_new_event, 'id' | 'created_at'>): number | null {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO counting_events (area_id, tipo, valor, fuente, ts, metadata)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        event_data.area_id,
+        event_data.tipo,
+        event_data.valor,
+        event_data.fuente,
+        event_data.ts,
+        event_data.metadata
+      );
+
+      // Si es un evento de entrada/salida, actualizar ocupación del área
+      if (event_data.tipo === 'enter' || event_data.tipo === 'exit') {
+        this.update_ocupacion_from_event(event_data.area_id, event_data.valor);
+      }
+
+      return result.lastInsertRowid as number;
+    } catch (error) {
+      console.error('Error inserting counting event:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Actualiza la ocupación de un área basada en un evento
+   */
+  private update_ocupacion_from_event(area_id: number, valor: number): void {
+    const area = this.get_area_by_id(area_id);
+    if (!area) return;
+
+    const new_ocupacion = Math.max(0, area.estado_actual + valor);
+    this.update_area_ocupacion(area_id, new_ocupacion);
+  }
+
+  // MÉTODOS PARA GESTIÓN DE MEDICIONES
+
+  /**
+   * Inserta una nueva medición periódica
+   */
+  insert_measurement(measurement_data: Omit<measurement, 'id' | 'created_at'>): number | null {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO measurements (area_id, ocupacion_actual, densidad, ts)
+        VALUES (?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        measurement_data.area_id,
+        measurement_data.ocupacion_actual,
+        measurement_data.densidad,
+        measurement_data.ts
+      );
+
+      return result.lastInsertRowid as number;
+    } catch (error) {
+      console.error('Error inserting measurement:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Obtiene mediciones históricas de un área
+   */
+  get_area_measurements(
+    area_id: number,
+    start_time: string,
+    end_time: string,
+    limit: number = 100
+  ): measurement[] {
+    return this.db.prepare(`
+      SELECT * FROM measurements 
+      WHERE area_id = ? AND ts >= ? AND ts <= ?
+      ORDER BY ts DESC 
+      LIMIT ?
+    `).all(area_id, start_time, end_time, limit) as measurement[];
+  }
+
+  // MÉTODOS PARA GESTIÓN DE PUNTOS DE ACCESO
+
+  /**
+   * Obtiene todos los puntos de acceso de un área
+   */
+  get_access_points_by_area(area_id: number): access_point[] {
+    return this.db.prepare('SELECT * FROM access_points WHERE area_id = ? AND enabled = 1').all(area_id) as access_point[];
+  }
+
+  /**
+   * Crea un nuevo punto de acceso
+   */
+  create_access_point(access_point_data: Omit<access_point, 'id' | 'created_at' | 'updated_at'>): number | null {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO access_points (area_id, fuente_id, direccion, geometry, enabled)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        access_point_data.area_id,
+        access_point_data.fuente_id,
+        access_point_data.direccion,
+        access_point_data.geometry,
+        access_point_data.enabled ? 1 : 0
+      );
+
+      return result.lastInsertRowid as number;
+    } catch (error) {
+      console.error('Error creating access point:', error);
+      return null;
+    }
+  }
+
+  /**
    * Inserta un nuevo evento de conteo
    */
   insert_event(event: counting_event): boolean {
@@ -315,6 +802,7 @@ export class CountingDatabase {
 
   /**
    * Obtiene resumen de conteo para un período específico
+   * Actualizado para usar las nuevas tablas de áreas y eventos
    */
   get_summary(
     view: 'day' | 'week' | 'month',
@@ -330,40 +818,44 @@ export class CountingDatabase {
       };
     }
 
-    const active_objects = JSON.parse(config.active_objects);
-        // Obtener cámaras configuradas según modo de operación
-    let cameras: string[] = [];
-    if (camera) {
-      cameras = [camera];
-    } else {
-      if (config.operation_mode === 'two_cameras') {
-        cameras = [config.camera_in, config.camera_out].filter(Boolean) as string[];
-      } else if (config.operation_mode === 'zones' && config.camera_zones) {
-        cameras = [config.camera_zones];
-      }
-    }
-
     // Calcular rango de fechas
     const { start_date, end_date, bucket_labels } = this.calculate_date_range(view, date);
 
-    // Construir WHERE clause
-    let where_clause = `
-      WHERE end_time >= ? AND end_time <= ?
-      AND label IN (${active_objects.map(() => '?').join(',')})
-    `;
-    let params = [start_date, end_date, ...active_objects];
-
-    if (cameras.length > 0) {
-      where_clause += ` AND camera IN (${cameras.map(() => '?').join(',')})`;
-      params.push(...cameras);
+    // Obtener áreas activas
+    const areas = this.get_all_areas().filter(area => area.enabled);
+    
+    if (areas.length === 0) {
+      return {
+        totals: [],
+        by_hour: { labels: [], rows: [] },
+        by_bucket: { labels: [], rows: [] }
+      };
     }
 
-    // Query para totales
+    // Construir WHERE clause para eventos
+    let where_clause = `
+      WHERE ce.ts >= ? AND ce.ts <= ?
+      AND ce.tipo IN ('enter', 'exit')
+      AND a.enabled = 1
+    `;
+    let params = [start_date, end_date];
+
+    // Filtrar por cámara si se especifica (usando puntos de acceso)
+    if (camera) {
+      where_clause += ` AND ap.fuente_id = ?`;
+      params.push(camera);
+    }
+
+    // Query para totales por tipo de área
     const totals_query = `
-      SELECT label, COUNT(*) as cnt
-      FROM conteo_eventos
+      SELECT 
+        a.tipo as label,
+        COUNT(*) as cnt
+      FROM counting_events ce
+      JOIN areas a ON ce.area_id = a.id
+      LEFT JOIN access_points ap ON a.id = ap.area_id
       ${where_clause}
-      GROUP BY label
+      GROUP BY a.tipo
       ORDER BY cnt DESC
     `;
     const totals = this.db.prepare(totals_query).all(...params) as counting_summary_totals[];
@@ -371,13 +863,15 @@ export class CountingDatabase {
     // Query para conteo por hora
     const by_hour_query = `
       SELECT 
-        CAST(strftime('%H', end_time) AS INTEGER) as idx,
-        label,
+        CAST(strftime('%H', ce.ts) AS INTEGER) as idx,
+        a.tipo as label,
         COUNT(*) as cnt
-      FROM conteo_eventos
+      FROM counting_events ce
+      JOIN areas a ON ce.area_id = a.id
+      LEFT JOIN access_points ap ON a.id = ap.area_id
       ${where_clause}
-      GROUP BY idx, label
-      ORDER BY idx, label
+      GROUP BY idx, a.tipo
+      ORDER BY idx, a.tipo
     `;
     const by_hour_rows = this.db.prepare(by_hour_query).all(...params) as counting_summary_by_hour[];
 
@@ -397,13 +891,15 @@ export class CountingDatabase {
 
     const by_bucket_query = `
       SELECT 
-        CAST(strftime('${bucket_format}', end_time) AS INTEGER) as idx,
-        label,
+        CAST(strftime('${bucket_format}', ce.ts) AS INTEGER) as idx,
+        a.tipo as label,
         COUNT(*) as cnt
-      FROM conteo_eventos
+      FROM counting_events ce
+      JOIN areas a ON ce.area_id = a.id
+      LEFT JOIN access_points ap ON a.id = ap.area_id
       ${where_clause}
-      GROUP BY idx, label
-      ORDER BY idx, label
+      GROUP BY idx, a.tipo
+      ORDER BY idx, a.tipo
     `;
     const by_bucket_rows = this.db.prepare(by_bucket_query).all(...params) as counting_summary_by_bucket[];
 
@@ -418,6 +914,62 @@ export class CountingDatabase {
         rows: by_bucket_rows
       }
     };
+  }
+
+  /**
+   * Obtiene el estado actual de todas las áreas
+   */
+  get_areas_current_status(): any {
+    return this.db.prepare(`
+      SELECT 
+        a.id,
+        a.nombre,
+        a.tipo,
+        a.max_ocupacion,
+        a.estado_actual,
+        a.color_estado,
+        a.modo_limite,
+        a.enabled,
+        COUNT(ap.id) as access_points_count
+      FROM areas a
+      LEFT JOIN access_points ap ON a.id = ap.area_id AND ap.enabled = 1
+      WHERE a.enabled = 1
+      GROUP BY a.id
+      ORDER BY a.nombre
+    `).all();
+  }
+
+  /**
+   * Obtiene eventos recientes de un área específica
+   */
+  get_area_recent_events(area_id: number, limit: number = 50): counting_new_event[] {
+    return this.db.prepare(`
+      SELECT * FROM counting_events 
+      WHERE area_id = ? 
+      ORDER BY ts DESC 
+      LIMIT ?
+    `).all(area_id, limit) as counting_new_event[];
+  }
+
+  /**
+   * Obtiene estadísticas de alertas por área
+   */
+  get_alert_stats(start_date: string, end_date: string): any[] {
+    return this.db.prepare(`
+      SELECT 
+        a.nombre as area_nombre,
+        a.tipo,
+        COUNT(CASE WHEN ce.tipo = 'warning' THEN 1 END) as warnings_count,
+        COUNT(CASE WHEN ce.tipo = 'exceeded' THEN 1 END) as exceeded_count,
+        MAX(ce.ts) as last_alert
+      FROM areas a
+      LEFT JOIN counting_events ce ON a.id = ce.area_id 
+        AND ce.ts >= ? AND ce.ts <= ?
+        AND ce.tipo IN ('warning', 'exceeded')
+      WHERE a.enabled = 1
+      GROUP BY a.id, a.nombre, a.tipo
+      ORDER BY warnings_count + exceeded_count DESC
+    `).all(start_date, end_date);
   }
 
   /**
@@ -522,7 +1074,7 @@ export class CountingDatabase {
   }
 
   /**
-   * Obtiene estadísticas básicas del módulo
+   * Obtiene estadísticas básicas del módulo (actualizado para nuevas tablas)
    */
   get_stats() {
     const config = this.get_configuration();
@@ -530,30 +1082,41 @@ export class CountingDatabase {
       return {
         total_events: 0,
         events_today: 0,
+        active_areas: 0,
         active_cameras: 0,
-        active_objects: []
+        total_ocupacion: 0,
+        areas_status: []
       };
     }
 
     const today = new Date().toISOString().split('T')[0];
     
-    const total_events = this.db.prepare('SELECT COUNT(*) as count FROM conteo_eventos').get() as { count: number };
-    const events_today = this.db.prepare('SELECT COUNT(*) as count FROM conteo_eventos WHERE DATE(end_time) = ?').get(today) as { count: number };
+    // Estadísticas de eventos (nuevas tablas)
+    const total_events = this.db.prepare('SELECT COUNT(*) as count FROM counting_events').get() as { count: number };
+    const events_today = this.db.prepare('SELECT COUNT(*) as count FROM counting_events WHERE DATE(ts) = ?').get(today) as { count: number };
     
-    // Obtener cámaras configuradas según modo de operación  
-    let cameras: string[] = [];
-    if (config.operation_mode === 'two_cameras') {
-      cameras = [config.camera_in, config.camera_out].filter(Boolean) as string[];
-    } else if (config.operation_mode === 'zones' && config.camera_zones) {
-      cameras = [config.camera_zones];
-    }
-    const active_objects = JSON.parse(config.active_objects);
+    // Estadísticas de áreas
+    const active_areas = this.db.prepare('SELECT COUNT(*) as count FROM areas WHERE enabled = 1').get() as { count: number };
+    const total_ocupacion = this.db.prepare('SELECT SUM(estado_actual) as total FROM areas WHERE enabled = 1').get() as { total: number };
+    
+    // Estadísticas de cámaras (basado en puntos de acceso únicos)
+    const active_cameras = this.db.prepare(`
+      SELECT COUNT(DISTINCT fuente_id) as count 
+      FROM access_points ap
+      JOIN areas a ON ap.area_id = a.id 
+      WHERE ap.enabled = 1 AND a.enabled = 1
+    `).get() as { count: number };
+
+    // Estado de cada área
+    const areas_status = this.get_areas_current_status();
 
     return {
       total_events: total_events.count,
       events_today: events_today.count,
-      active_cameras: cameras.length,
-      active_objects
+      active_areas: active_areas.count,
+      active_cameras: active_cameras.count,
+      total_ocupacion: total_ocupacion.total || 0,
+      areas_status
     };
   }
 

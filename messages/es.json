@@ -5,6 +5,7 @@
     "events": "Eventos",
     "plates_lpr": "Matriculas",
     "counting": "Conteo",
+    "vehicle_counting": "Conteo Vehicular",
     "settings": "Ajustes"
   },
   "user_menu": {

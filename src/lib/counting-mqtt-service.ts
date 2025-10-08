@@ -37,6 +37,8 @@ interface FrigateEvent {
     end_time?: number;
     zones?: string[];
     score?: number;
+    entered_zones?: string[];
+    exited_zones?: string[];
   };
   after?: {
     id?: string;
@@ -46,7 +48,19 @@ interface FrigateEvent {
     end_time?: number;
     zones?: string[];
     score?: number;
+    entered_zones?: string[];
+    exited_zones?: string[];
   };
+}
+
+// Interface para eventos de conteo normalizados
+interface NormalizedCountingEvent {
+  area_ref: string;
+  tipo: 'enter' | 'exit';
+  valor: number;
+  fuente: string;
+  ts: string;
+  metadata?: any;
 }
 
 /**
@@ -193,18 +207,20 @@ export class CountingMqttService {
 
       const event: FrigateEvent = JSON.parse(message_str);
       
-      // Solo procesar eventos de tipo 'end', 'new' o 'update'
-      if (!['end', 'new', 'update'].includes(event.type)) {
+      // Solo procesar eventos de tipo 'new' o 'update' para detectar transiciones enter/exit
+      if (!['new', 'update'].includes(event.type)) {
         return;
       }
 
-      // Usar 'after' para obtener los datos del evento
+      // Usar 'after' para obtener los datos del evento actual
       const event_data = event.after;
+      const event_before = event.before;
+      
       if (!event_data) {
         return;
       }
 
-      this.process_frigate_event(event_data);
+      this.process_frigate_event(event_data, event_before);
 
     } catch (error) {
       console.error('📊 Counting MQTT: Error processing message:', error);
@@ -212,9 +228,10 @@ export class CountingMqttService {
   }
 
   /**
-   * Procesa un evento de Frigate
+   * Procesa un evento de Frigate según la especificación técnica
+   * Detecta transiciones entered_zones/exited_zones y las convierte en eventos de conteo
    */
-  private async process_frigate_event(event_data: any): Promise<void> {
+  private async process_frigate_event(event_data: any, event_before?: any): Promise<void> {
     try {
       const counting_db = new CountingDatabase();
       const config = counting_db.get_configuration();
@@ -228,26 +245,20 @@ export class CountingMqttService {
         id,
         camera,
         label,
-        start_time,
-        end_time,
-        zones = [],
-        score
+        entered_zones = [],
+        exited_zones = [],
+        score,
+        timestamp
       } = event_data;
 
       // Validar datos requeridos
-      if (!id || !camera || !label || !start_time) {
+      if (!id || !camera || !label) {
         return;
       }
 
-      // Verificar que la cámara esté en la lista de cámaras monitoreadas
-      // Obtener cámaras configuradas según modo de operación
-      let monitored_cameras: string[] = [];
-      if (config.operation_mode === 'two_cameras') {
-        monitored_cameras = [config.camera_in, config.camera_out].filter(Boolean) as string[];
-      } else if (config.operation_mode === 'zones' && config.camera_zones) {
-        monitored_cameras = [config.camera_zones];
-      }
-      if (monitored_cameras.length > 0 && !monitored_cameras.includes(camera)) {
+      // Filtrar solo objetos relevantes (person o car según especificación)
+      const relevant_labels = ['person', 'car', 'truck', 'motorcycle', 'bicycle', 'bus'];
+      if (!relevant_labels.includes(label.toLowerCase())) {
         return;
       }
 
@@ -260,37 +271,235 @@ export class CountingMqttService {
         return;
       }
 
-      // Crear evento de conteo
-      const counting_event_data: counting_event = {
-        id: id,
-        camera: camera,
-        label: translated_label,
-        start_time: new Date(start_time * 1000).toISOString(),
-        end_time: end_time ? new Date(end_time * 1000).toISOString() : new Date().toISOString(),
-        zone: zones.length > 0 ? zones.join(',') : undefined,
-        confidence: score,
-        metadata: JSON.stringify({
-          original_label: label,
-          frigate_event_type: 'object_detection',
-          processed_at: new Date().toISOString()
-        })
-      };
+      // Verificar umbral de confianza
+      if (score && score < config.confidence_threshold) {
+        return;
+      }
 
-      // Insertar en la base de datos
-      const success = counting_db.insert_event(counting_event_data);
+      // Obtener todas las áreas activas
+      const active_areas = counting_db.get_all_areas().filter(area => area.enabled);
+      
+      // Procesar entered_zones (entradas)
+      for (const zone of entered_zones) {
+        await this.process_zone_transition(
+          counting_db,
+          zone,
+          'enter',
+          camera,
+          translated_label,
+          timestamp,
+          active_areas,
+          { event_id: id, confidence: score }
+        );
+      }
 
-      if (success) {
-        console.log('📊 Counting event stored:', {
-          id: counting_event_data.id,
-          camera: counting_event_data.camera,
-          label: translated_label,
-          original_label: label,
-          confidence: score
-        });
+      // Procesar exited_zones (salidas)
+      for (const zone of exited_zones) {
+        await this.process_zone_transition(
+          counting_db,
+          zone,
+          'exit',
+          camera,
+          translated_label,
+          timestamp,
+          active_areas,
+          { event_id: id, confidence: score }
+        );
       }
 
     } catch (error) {
       console.error('📊 Error processing Frigate event:', error);
+    }
+  }
+
+  /**
+   * Procesa una transición de zona (entrada/salida)
+   */
+  private async process_zone_transition(
+    counting_db: CountingDatabase,
+    zone_name: string,
+    tipo: 'enter' | 'exit',
+    camera: string,
+    label: string,
+    timestamp: number,
+    active_areas: any[],
+    metadata: any
+  ): Promise<void> {
+    try {
+      // Buscar área que corresponde a esta zona
+      // Las zonas se mapean a áreas a través de los access_points
+      const access_points = counting_db.query_all_statement(`
+        SELECT ap.*, a.nombre as area_nombre, a.tipo as area_tipo, a.id as area_id
+        FROM access_points ap
+        JOIN areas a ON ap.area_id = a.id
+        WHERE ap.fuente_id = ? AND ap.enabled = 1 AND a.enabled = 1
+      `, [zone_name]);
+
+      if (access_points.length === 0) {
+        // Si no hay un access_point configurado para esta zona, ignorar
+        return;
+      }
+
+      for (const access_point of access_points) {
+        // Verificar que el tipo de objeto coincida con el tipo de área
+        const area_accepts_object = this.area_accepts_object_type(access_point.area_tipo, label);
+        if (!area_accepts_object) {
+          continue;
+        }
+
+        // Aplicar de-bounce temporal (500-1000ms)
+        if (await this.is_duplicate_event(counting_db, access_point.area_id, tipo, metadata.event_id)) {
+          console.log(`📊 Duplicate event detected, skipping: ${metadata.event_id}`);
+          continue;
+        }
+
+        // Determinar valor del evento basado en dirección del access_point
+        let valor = 0;
+        if ((tipo === 'enter' && access_point.direccion === 'entrada') || 
+            (tipo === 'exit' && access_point.direccion === 'salida')) {
+          valor = 1; // Entrada al área
+        } else if ((tipo === 'exit' && access_point.direccion === 'entrada') || 
+                   (tipo === 'enter' && access_point.direccion === 'salida')) {
+          valor = -1; // Salida del área
+        }
+
+        if (valor === 0) {
+          continue; // No es una transición relevante
+        }
+
+        // Crear evento de conteo normalizado
+        const normalized_event: NormalizedCountingEvent = {
+          area_ref: access_point.area_nombre,
+          tipo: valor > 0 ? 'enter' : 'exit',
+          valor: valor,
+          fuente: camera,
+          ts: new Date((timestamp || Date.now() / 1000) * 1000).toISOString(),
+          metadata: {
+            zone_name,
+            original_label: label,
+            confidence: metadata.confidence,
+            frigate_event_id: metadata.event_id,
+            access_point_id: access_point.id
+          }
+        };
+
+        // Insertar evento en la base de datos
+        const event_id = counting_db.insert_counting_event({
+          area_id: access_point.area_id,
+          tipo: normalized_event.tipo,
+          valor: normalized_event.valor,
+          fuente: normalized_event.fuente,
+          ts: normalized_event.ts,
+          metadata: JSON.stringify(normalized_event.metadata)
+        });
+
+        if (event_id) {
+          console.log('📊 Counting event processed:', {
+            area: normalized_event.area_ref,
+            tipo: normalized_event.tipo,
+            valor: normalized_event.valor,
+            fuente: normalized_event.fuente,
+            zone: zone_name
+          });
+
+          // Verificar umbrales y generar alertas si es necesario
+          await this.check_occupancy_thresholds(counting_db, access_point.area_id);
+        }
+      }
+
+    } catch (error) {
+      console.error('📊 Error processing zone transition:', error);
+    }
+  }
+
+  /**
+   * Verifica si un área acepta un tipo específico de objeto
+   */
+  private area_accepts_object_type(area_tipo: string, object_label: string): boolean {
+    const person_objects = ['personas', 'person'];
+    const vehicle_objects = ['auto', 'car', 'camión', 'truck', 'moto', 'motorcycle', 'bicicleta', 'bicycle', 'autobús', 'bus'];
+
+    if (area_tipo === 'personas') {
+      return person_objects.includes(object_label);
+    } else if (area_tipo === 'vehiculos') {
+      return vehicle_objects.includes(object_label);
+    }
+
+    return false;
+  }
+
+  /**
+   * Verifica si un evento es duplicado para evitar doble conteo
+   */
+  private async is_duplicate_event(
+    counting_db: CountingDatabase,
+    area_id: number,
+    tipo: 'enter' | 'exit',
+    event_id: string
+  ): Promise<boolean> {
+    // Verificar eventos de los últimos 1000ms con el mismo event_id
+    const cutoff_time = new Date(Date.now() - 1000).toISOString();
+    
+    const duplicate = counting_db.query_statement(`
+      SELECT COUNT(*) as count 
+      FROM counting_events 
+      WHERE area_id = ? AND tipo = ? AND ts >= ? AND JSON_EXTRACT(metadata, '$.frigate_event_id') = ?
+    `, [area_id, tipo, cutoff_time, event_id]);
+
+    return duplicate && duplicate.count > 0;
+  }
+
+  /**
+   * Verifica umbrales de ocupación y genera alertas
+   */
+  private async check_occupancy_thresholds(counting_db: CountingDatabase, area_id: number): Promise<void> {
+    try {
+      const area = counting_db.get_area_by_id(area_id);
+      if (!area) return;
+
+      const current_ocupacion = area.estado_actual;
+      const max_ocupacion = area.max_ocupacion;
+      const percentage = (current_ocupacion / max_ocupacion) * 100;
+
+      // Generar alertas según umbrales
+      if (percentage >= 100) {
+        // Límite excedido
+        counting_db.insert_counting_event({
+          area_id: area_id,
+          tipo: 'exceeded',
+          valor: 0,
+          fuente: 'system',
+          ts: new Date().toISOString(),
+          metadata: JSON.stringify({
+            current_ocupacion,
+            max_ocupacion,
+            percentage: Math.round(percentage),
+            alert_type: 'exceeded'
+          })
+        });
+
+        console.log(`🚨 Area ${area.nombre}: Límite excedido (${current_ocupacion}/${max_ocupacion})`);
+      } else if (percentage >= 80) {
+        // Warning threshold
+        counting_db.insert_counting_event({
+          area_id: area_id,
+          tipo: 'warning',
+          valor: 0,
+          fuente: 'system',
+          ts: new Date().toISOString(),
+          metadata: JSON.stringify({
+            current_ocupacion,
+            max_ocupacion,
+            percentage: Math.round(percentage),
+            alert_type: 'warning'
+          })
+        });
+
+        console.log(`⚠️ Area ${area.nombre}: Warning de ocupación (${current_ocupacion}/${max_ocupacion})`);
+      }
+
+    } catch (error) {
+      console.error('📊 Error checking occupancy thresholds:', error);
     }
   }
 

@@ -1,407 +1,329 @@
 'use client';
 
 /**
- * Panel principal del sistema de conteo (versión simplificada y estable)
+ * Panel principal del sistema de conteo y aforo (versión actualizada)
  *
- * Características:
- * - Métricas agregadas (totales, activos, cámaras, modo)
- * - Activar / desactivar objetos mediante botones sólo con icono
- * - Filtros básicos (vista día|semana|mes, fecha, cámara en modo dividido)
- * - Resumen por objeto con porcentaje relativo
+ * Sistema completo de conteo basado en analíticas Frigate MQTT que incluye:
+ * - Vista en tiempo real de ocupación por áreas
+ * - Dashboard con métricas agregadas
+ * - Gestión de áreas y puntos de acceso
+ * - Sistema de alertas y umbrales
+ * - Históricos y exportación de datos
  *
- * Responsabilidades externas (page.tsx):
- * - Header y botón global de actualizar que incrementa refresh_trigger
+ * Responsabilidades:
+ * - Dashboard principal con métricas en tiempo real
+ * - Vista de áreas con estado actual de ocupación
+ * - Panel de configuración de áreas y umbrales
+ * - Históricos y tendencias
  *
  * Notas de implementación:
  * - Nombres de variables y funciones en snake_case según lineamientos.
  * - Cada función expuesta tiene bloque JSDoc.
+ * - Integra con el nuevo modelo de datos (áreas, access_points, eventos)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Car, Activity, RefreshCw, Calendar, Camera, BarChart3, TrendingUp, Eye } from 'lucide-react';
+import { 
+  Car, Activity, RefreshCw, Calendar, Camera, BarChart3, TrendingUp, Eye, Users, Truck, Bike, Bus,
+  AlertTriangle, MapPin, Plus, Settings, Download, Filter, Clock, Target, AlertOctagon
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 
-/** Información base del módulo */
-interface counting_info { mode: 'agregado' | 'dividido'; title: string; cameras: string[]; }
-/** Estado de objetos (definidos y activos) */
-interface counting_state { activos: string[]; objetos: string[]; }
-/** Totales por etiqueta */
-interface counting_totals { label: string; cnt: number; }
-/** Resumen agregado */
-interface counting_summary { totals: counting_totals[]; }
+/** Información del dashboard principal */
+interface dashboard_data {
+  metrics: {
+    total_ocupacion: number;
+    total_capacidad: number;
+    ocupacion_percentage: number;
+    active_areas: number;
+    active_cameras: number;
+    events_today: number;
+    total_events: number;
+  };
+  areas: area_status[];
+  recent_events: recent_event[];
+  alerts: {
+    stats: alert_stat[];
+    recent_warnings: number;
+    recent_exceeded: number;
+  };
+  activity_by_type: activity_type[];
+  top_areas: top_area[];
+  system: {
+    enabled: boolean;
+    mqtt_connected: boolean;
+    operation_mode: string;
+    retention_days: number;
+    confidence_threshold: number;
+  };
+  generated_at: string;
+  period: string;
+  date_range: { start_date: string; end_date: string };
+}
 
-/** Iconos por tipo de objeto */
+interface area_status {
+  id: number;
+  nombre: string;
+  tipo: 'personas' | 'vehiculos';
+  estado_actual: number;
+  max_ocupacion: number;
+  color_estado: string;
+  modo_limite: 'soft' | 'hard';
+  percentage: number;
+  access_points_count: number;
+}
+
+interface recent_event {
+  id: number;
+  area_id: number;
+  area_nombre: string;
+  area_tipo: string;
+  tipo: 'enter' | 'exit' | 'warning' | 'exceeded';
+  valor: number;
+  fuente: string;
+  ts: string;
+}
+
+interface alert_stat {
+  area_nombre: string;
+  area_tipo: string;
+  warnings_count: number;
+  exceeded_count: number;
+  last_alert: string;
+}
+
+interface activity_type {
+  tipo: string;
+  entradas: number;
+  salidas: number;
+  total_eventos: number;
+}
+
+interface top_area {
+  nombre: string;
+  tipo: string;
+  estado_actual: number;
+  max_ocupacion: number;
+  eventos_count: number;
+  entradas: number;
+  salidas: number;
+}
+
+/** Información base del módulo (compatibilidad) */
+interface counting_info { 
+  mode: 'agregado' | 'dividido'; 
+  title: string; 
+  cameras: string[]; 
+}
+
+/** Estado de objetos (compatibilidad) */
+interface counting_state { 
+  activos: string[]; 
+  objetos: string[]; 
+  system: any;
+  stats: any;
+  areas: area_status[];
+  cameras: string[];
+}
+
+/** Iconos por tipo de objeto y área */
 const object_icons: Record<string, React.ReactNode> = {
+  person: <Users className="h-4 w-4" />,
+  personas: <Users className="h-4 w-4" />,
+  car: <Car className="h-4 w-4" />,
+  vehiculos: <Car className="h-4 w-4" />,
+  truck: <Truck className="h-4 w-4" />,
+  motorcycle: <Bike className="h-4 w-4" />,
+  bicycle: <Bike className="h-4 w-4" />,
+  bus: <Bus className="h-4 w-4" />,
   auto: <Car className="h-4 w-4" />,
-  moto: <Activity className="h-4 w-4" />,
-  bicicleta: <Activity className="h-4 w-4" />,
-  autobús: <Car className="h-4 w-4" />,
-  personas: <Activity className="h-4 w-4" />,
-  camión: <Car className="h-4 w-4" />
+  moto: <Bike className="h-4 w-4" />,
+  autobús: <Bus className="h-4 w-4" />,
+  camión: <Truck className="h-4 w-4" />
 };
 
-interface counting_panel_props { refresh_trigger?: number }
+/** Colores para estados de áreas */
+const status_colors: Record<string, string> = {
+  green: 'bg-green-500',
+  yellow: 'bg-yellow-500',
+  orange: 'bg-orange-500',
+  red: 'bg-red-500'
+};
+
+interface counting_panel_props { 
+  refresh_trigger?: number 
+}
 
 /**
- * Componente principal CountingPanel
+ * Componente principal CountingPanel actualizado
  * @param refresh_trigger número que al cambiar fuerza recarga completa (proviene del header externo)
  */
 export function CountingPanel({ refresh_trigger }: counting_panel_props) {
-  // Estados de datos
+  // Estados de datos principales
+  const [dashboard_data, set_dashboard_data] = useState<dashboard_data | null>(null);
   const [info, set_info] = useState<counting_info | null>(null);
   const [state, set_state] = useState<counting_state | null>(null);
-  const [summary, set_summary] = useState<counting_summary | null>(null);
 
   // Estados UI
   const [loading, set_loading] = useState(true);
   const [refreshing, set_refreshing] = useState(false);
+  const [active_tab, set_active_tab] = useState('dashboard');
+  const [selected_period, set_selected_period] = useState('today');
   const [selected_view, set_selected_view] = useState<'day' | 'week' | 'month'>('day');
   const [selected_date, set_selected_date] = useState(new Date().toISOString().split('T')[0]);
   const [selected_camera, set_selected_camera] = useState('');
-  const [toggling, set_toggling] = useState<Set<string>>(new Set());
 
   /**
-   * Carga metadata del módulo de conteo desde el backend
+   * Carga los datos del dashboard principal
+   */
+  const load_dashboard_data = useCallback(async () => {
+    try {
+      console.log('CountingPanel: Loading dashboard data...');
+
+      const response = await fetch(`/api/conteo/dashboard?period=${selected_period}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('CountingPanel: Dashboard data received:', data);
+
+      if (data.success) {
+        set_dashboard_data(data.data);
+      } else {
+        throw new Error(data.error || 'Error loading dashboard');
+      }
+
+    } catch (error) {
+      console.error('CountingPanel: Error loading dashboard data:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'No se pudo cargar datos del dashboard', 
+        variant: 'destructive' 
+      });
+    }
+  }, [selected_period]);
+
+  /**
+   * Carga metadata del módulo de conteo desde la API (compatibilidad)
    */
   const load_info = useCallback(async () => {
     try {
-      console.log('CountingPanel: Loading info from counting backend...');
+      console.log('CountingPanel: Loading info from counting API...');
 
-      // Intentar múltiples URLs para el backend de conteo
-      const backend_urls = [
-        'http://localhost:2223/config',
-        'http://127.0.0.1:2223/config',
-        'http://host.docker.internal:2223/config'
-      ];
+      const response = await fetch('/api/conteo/info', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-      let config_response: Response | null = null;
-      let last_error: Error | null = null;
-
-      for (const url of backend_urls) {
-        try {
-          console.log(`CountingPanel: Trying to get config from ${url}...`);
-          config_response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          });
-
-          if (config_response.ok) {
-            console.log(`CountingPanel: Successfully got config from ${url}`);
-            break;
-          } else {
-            console.warn(`CountingPanel: ${url} returned status ${config_response.status}`);
-            last_error = new Error(`HTTP ${config_response.status}`);
-          }
-        } catch (error) {
-          console.warn(`CountingPanel: Failed to get config from ${url}:`, error);
-          last_error = error as Error;
-          continue;
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
 
-      if (!config_response || !config_response.ok) {
-        throw last_error || new Error('No backend URL worked');
-      }
-
-      const config_data = await config_response.json();
-      console.log('CountingPanel: Config data received:', config_data);
-
-      // Crear info basado en la configuración
-      const info_data: counting_info = {
-        mode: config_data.operation_mode === 'zones' ? 'agregado' : 'dividido',
-        title: config_data.title || 'Sistema de Conteo',
-        cameras: config_data.camera_zones ? [config_data.camera_zones] :
-                config_data.camera_in && config_data.camera_out ? [config_data.camera_in, config_data.camera_out] : []
-      };
+      const info_data = await response.json();
+      console.log('CountingPanel: Info data received:', info_data);
 
       set_info(info_data);
-      if (info_data.mode === 'dividido' && info_data.cameras?.length && !selected_camera) {
-        set_selected_camera(info_data.cameras[0]);
-      }
     } catch (error) {
-      console.error('CountingPanel: Error loading info from counting backend:', error);
-      toast({ title: 'Error', description: 'No se pudo cargar información del backend de conteo', variant: 'destructive' });
+      console.error('CountingPanel: Error loading info:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'No se pudo cargar información del módulo', 
+        variant: 'destructive' 
+      });
     }
-  }, [selected_camera]);
+  }, []);
 
   /**
-   * Carga el estado (objetos definidos y activos) desde el backend
+   * Carga el estado del sistema de conteo
    */
   const load_state = useCallback(async () => {
     try {
-      console.log('CountingPanel: Loading state from counting backend...');
+      console.log('CountingPanel: Loading state from counting API...');
 
-      // Intentar múltiples URLs para el backend de conteo
-      const backend_urls = [
-        'http://localhost:2223/config',
-        'http://127.0.0.1:2223/config',
-        'http://host.docker.internal:2223/config'
-      ];
+      const response = await fetch('/api/conteo/state', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-      let response: Response | null = null;
-      let last_error: Error | null = null;
-
-      for (const url of backend_urls) {
-        try {
-          console.log(`CountingPanel: Trying to get config from ${url}...`);
-          response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          });
-
-          if (response.ok) {
-            console.log(`CountingPanel: Successfully got config from ${url}`);
-            break;
-          } else {
-            console.warn(`CountingPanel: ${url} returned status ${response.status}`);
-            last_error = new Error(`HTTP ${response.status}`);
-          }
-        } catch (error) {
-          console.warn(`CountingPanel: Failed to get config from ${url}:`, error);
-          last_error = error as Error;
-          continue;
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
 
-      if (!response || !response.ok) {
-        throw last_error || new Error('No backend URL worked');
-      }
-
-      const config_data = await response.json();
-      console.log('CountingPanel: Config data received:', config_data);
-
-      // El backend devuelve un objeto CountingConfig completo
-      // Extraer los objetos de la configuración
-      const objects_list = config_data.objects || [];
-
-      // Crear estado basado en la configuración
-      const state_data: counting_state = {
-        activos: objects_list, // Todos los objetos configurados están "activos"
-        objetos: objects_list
-      };
+      const state_data = await response.json();
+      console.log('CountingPanel: State data received:', state_data);
 
       set_state(state_data);
     } catch (error) {
-      console.error('CountingPanel: Error loading state from counting backend:', error);
-      toast({ title: 'Error', description: 'No se pudo cargar estado del backend de conteo', variant: 'destructive' });
+      console.error('CountingPanel: Error loading state:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'No se pudo cargar estado del sistema', 
+        variant: 'destructive' 
+      });
     }
   }, []);
 
   /**
-   * Carga resumen agregado según filtros seleccionados desde el backend
-   */
-  const load_summary = useCallback(async () => {
-    try {
-      console.log('CountingPanel: Loading summary from counting backend...');
-
-      // Intentar múltiples URLs para el backend de conteo
-      const backend_urls = [
-        'http://localhost:2223/metrics',
-        'http://127.0.0.1:2223/metrics',
-        'http://host.docker.internal:2223/metrics'
-      ];
-
-      let response: Response | null = null;
-      let last_error: Error | null = null;
-
-      for (const url of backend_urls) {
-        try {
-          console.log(`CountingPanel: Trying to get metrics from ${url}...`);
-          response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          });
-
-          if (response.ok) {
-            console.log(`CountingPanel: Successfully got metrics from ${url}`);
-            break;
-          } else {
-            console.warn(`CountingPanel: ${url} returned status ${response.status}`);
-            last_error = new Error(`HTTP ${response.status}`);
-          }
-        } catch (error) {
-          console.warn(`CountingPanel: Failed to get metrics from ${url}:`, error);
-          last_error = error as Error;
-          continue;
-        }
-      }
-
-      if (!response || !response.ok) {
-        throw last_error || new Error('No backend URL worked');
-      }
-
-      const metrics_data = await response.json();
-      console.log('CountingPanel: Metrics data received:', metrics_data);
-
-      // Crear resumen basado en las métricas del backend
-      const summary_data: counting_summary = {
-        totals: (metrics_data.object_metrics ? Object.entries(metrics_data.object_metrics) : []).map(([label, metric]: [string, any]) => ({
-          label: label,
-          cnt: metric.count || 0
-        }))
-      };
-
-      // Si no hay métricas específicas, crear entradas con 0 para todos los objetos activos
-      if (summary_data.totals.length === 0 && state?.activos) {
-        summary_data.totals = state.activos.map(obj => ({
-          label: obj,
-          cnt: 0
-        }));
-      }
-
-      set_summary(summary_data);
-    } catch (error) {
-      console.error('CountingPanel: Error loading summary from counting backend:', error);
-      toast({ title: 'Error', description: 'No se pudo cargar resumen del backend de conteo', variant: 'destructive' });
-    }
-  }, []);
-
-  /**
-   * Refresca toda la información (info + state + summary)
+   * Refresca toda la información
    */
   const refresh_all = useCallback(async () => {
     set_refreshing(true);
     try {
-      // Cargar info y state primero
-      await Promise.all([load_info(), load_state()]);
-      // Luego cargar summary que depende de state
-      await load_summary();
+      await Promise.all([
+        load_dashboard_data(),
+        load_info(),
+        load_state()
+      ]);
     } finally {
       set_refreshing(false);
     }
-  }, [load_info, load_state, load_summary]);
+  }, [load_dashboard_data, load_info, load_state]);
 
   // Carga inicial
-  useEffect(() => { set_loading(true); refresh_all().finally(() => set_loading(false)); }, [refresh_all]);
-  // Disparo externo
-  useEffect(() => { if (refresh_trigger !== undefined) refresh_all(); }, [refresh_trigger, refresh_all]);
-  // Cambios de filtros -> solo resumen
   useEffect(() => {
-    if (!loading && info && state && summary) {
-      load_summary();
+    const load_initial_data = async () => {
+      set_loading(true);
+      try {
+        await Promise.all([
+          load_dashboard_data(),
+          load_info(),
+          load_state()
+        ]);
+      } finally {
+        set_loading(false);
+      }
+    };
+    load_initial_data();
+  }, [load_dashboard_data, load_info, load_state]);
+
+  // Disparo externo de refresh
+  useEffect(() => {
+    if (refresh_trigger !== undefined && refresh_trigger > 0) {
+      refresh_all();
     }
-  }, [selected_view, selected_date, selected_camera, loading, info, state, summary, load_summary]);
+  }, [refresh_trigger, refresh_all]);
 
-  /**
-   * Activa / desactiva un objeto (actualiza configuración en el backend)
-   * @param label nombre del objeto
-   */
-  const toggle_object = async (label: string) => {
-    if (!state) return;
+  // Auto-refresh cada 30 segundos en el tab dashboard
+  useEffect(() => {
+    if (active_tab === 'dashboard') {
+      const interval = setInterval(() => {
+        load_dashboard_data();
+      }, 30000);
 
-    set_toggling(p => new Set(p).add(label));
-    try {
-      console.log('CountingPanel: Toggling object in counting backend...');
-
-      // Intentar múltiples URLs para obtener configuración
-      const backend_urls = [
-        'http://localhost:2223/config',
-        'http://127.0.0.1:2223/config',
-        'http://host.docker.internal:2223/config'
-      ];
-
-      let config_response: Response | null = null;
-      let last_error: Error | null = null;
-
-      for (const url of backend_urls) {
-        try {
-          console.log(`CountingPanel: Trying to get config from ${url}...`);
-          config_response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          });
-
-          if (config_response.ok) {
-            console.log(`CountingPanel: Successfully got config from ${url}`);
-            break;
-          } else {
-            console.warn(`CountingPanel: ${url} returned status ${config_response.status}`);
-            last_error = new Error(`HTTP ${config_response.status}`);
-          }
-        } catch (error) {
-          console.warn(`CountingPanel: Failed to get config from ${url}:`, error);
-          last_error = error as Error;
-          continue;
-        }
-      }
-
-      if (!config_response || !config_response.ok) {
-        throw last_error || new Error('No backend URL worked');
-      }
-
-      const config_data = await config_response.json();
-      console.log('CountingPanel: Config data received:', config_data);
-
-      // El backend devuelve un objeto CountingConfig completo
-      // Extraer la lista de objetos
-      const current_objects = config_data.objects || [];
-
-      // Actualizar lista de objetos
-      const new_objects = current_objects.includes(label)
-        ? current_objects.filter((obj: string) => obj !== label)
-        : [...current_objects, label];
-
-      // Crear el objeto completo para enviar al backend
-      const config_to_update = {
-        ...config_data,
-        objects: new_objects
-      };
-
-      // Intentar actualizar configuración
-      let update_response: Response | null = null;
-      for (const url of backend_urls) {
-        try {
-          console.log(`CountingPanel: Trying to update config at ${url}...`);
-          update_response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config_to_update),
-            signal: AbortSignal.timeout(5000)
-          });
-
-          if (update_response.ok) {
-            console.log(`CountingPanel: Successfully updated config at ${url}`);
-            break;
-          } else {
-            console.warn(`CountingPanel: ${url} returned status ${update_response.status}`);
-          }
-        } catch (error) {
-          console.warn(`CountingPanel: Failed to update config at ${url}:`, error);
-          continue;
-        }
-      }
-
-      if (!update_response || !update_response.ok) {
-        throw new Error('Failed to update configuration');
-      }
-
-      // Actualizar estado local
-      set_state(prev => prev ? {
-        ...prev,
-        activos: new_objects,
-        objetos: new_objects
-      } : prev);
-
-      await load_summary();
-      toast({
-        title: 'Actualizado',
-        description: `Objeto ${label} ${new_objects.includes(label) ? 'activado' : 'desactivado'}`
-      });
-    } catch (error) {
-      console.error('CountingPanel: Error toggling object:', error);
-      toast({ title: 'Error', description: 'Cambio de estado fallido', variant: 'destructive' });
-    } finally {
-      set_toggling(p => { const n = new Set(p); n.delete(label); return n; });
+      return () => clearInterval(interval);
     }
-  };
+  }, [active_tab, load_dashboard_data]);
 
   // Estados de carga / error
   if (loading) {
@@ -409,155 +331,445 @@ export function CountingPanel({ refresh_trigger }: counting_panel_props) {
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground text-sm">Cargando datos...</p>
+          <p className="text-muted-foreground text-sm">Cargando sistema de conteo...</p>
         </div>
       </div>
     );
   }
 
-  if (!info || !state) {
+  if (!dashboard_data && !state) {
     return (
       <div className="space-y-4">
-        <Alert variant="destructive"><AlertDescription>Error de configuración del módulo de conteo.</AlertDescription></Alert>
+        <Alert variant="destructive">
+          <AlertDescription>Error de configuración del sistema de conteo.</AlertDescription>
+        </Alert>
         <Button variant="outline" size="sm" onClick={refresh_all} disabled={refreshing}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} /> Reintentar
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} /> 
+          Reintentar
         </Button>
       </div>
     );
   }
 
-  const total_count = summary?.totals?.reduce((s, it) => s + it.cnt, 0) || 0;
-
   return (
     <div className="space-y-6">
-      {/* Métricas */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Detectados</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total_count.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">en el período seleccionado</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Objetos Activos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{state.activos.length}</div>
-            <p className="text-xs text-muted-foreground">de {state.objetos.length} disponibles</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cámaras</CardTitle>
-            <Camera className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{info.cameras.length}</div>
-            <p className="text-xs text-muted-foreground">monitoreando eventos</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Modo</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold capitalize">{info.mode}</div>
-            <p className="text-xs text-muted-foreground">vista {info.mode}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Header con métricas principales */}
+      {dashboard_data && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ocupación Total</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {dashboard_data.metrics.total_ocupacion}/{dashboard_data.metrics.total_capacidad}
+              </div>
+              <Progress 
+                value={dashboard_data.metrics.ocupacion_percentage} 
+                className="mt-2" 
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {dashboard_data.metrics.ocupacion_percentage}% de capacidad
+              </p>
+            </CardContent>
+          </Card>
 
-      {/* Objetos */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm"><Activity className="h-4 w-4" /> Objetos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {state.objetos.map(o => {
-              const active = state.activos.includes(o);
-              const toggling_now = toggling.has(o);
-              return (
-                <Button
-                  key={o}
-                  variant={active ? 'default' : 'outline'}
-                  size="icon"
-                  onClick={() => toggle_object(o)}
-                  disabled={toggling_now}
-                  title={o}
-                  aria-label={o}
-                  className="h-8 w-8 relative"
-                >
-                  {toggling_now ? <RefreshCw className="h-4 w-4 animate-spin" /> : object_icons[o] || <Activity className="h-4 w-4" />}
-                  <span className={`absolute -top-1 -right-1 h-2 w-2 rounded-full ${active ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Áreas Activas</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboard_data.metrics.active_areas}</div>
+              <p className="text-xs text-muted-foreground">
+                {dashboard_data.metrics.active_cameras} cámaras monitoreando
+              </p>
+            </CardContent>
+          </Card>
 
-      {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <Select value={selected_view} onValueChange={(v: any) => set_selected_view(v)}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="day">Día</SelectItem>
-                <SelectItem value="week">Semana</SelectItem>
-                <SelectItem value="month">Mes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <input
-            type="date"
-            value={selected_date}
-            onChange={e => set_selected_date(e.target.value)}
-            className="px-3 py-1 border rounded-md"
-            aria-label="Seleccionar fecha"
-            title="Seleccionar fecha"
-          />
-          {info.mode === 'dividido' && (
-            <Select value={selected_camera} onValueChange={set_selected_camera}>
-              <SelectTrigger className="w-48"><SelectValue placeholder="Todas las cámaras" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todas las cámaras</SelectItem>
-                {info.cameras.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Eventos Hoy</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboard_data.metrics.events_today.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                Total: {dashboard_data.metrics.total_events.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
 
-      {/* Resumen */}
-      {summary && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {summary.totals.map(t => (
-            <Card key={t.label}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex items-center gap-2">
-                  {object_icons[t.label] || <Activity className="h-4 w-4 text-muted-foreground" />}
-                  <CardTitle className="text-sm font-medium capitalize">{t.label}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{t.cnt.toLocaleString()}</div>
-                <Progress value={total_count ? (t.cnt / total_count) * 100 : 0} className="mt-2" />
-                <p className="text-xs text-muted-foreground mt-1">{total_count ? Math.round((t.cnt / total_count) * 100) : 0}% del total</p>
-              </CardContent>
-            </Card>
-          ))}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Alertas Recientes</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                {dashboard_data.alerts.recent_warnings}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {dashboard_data.alerts.recent_exceeded} excedidas
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
+
+      {/* Tabs principales */}
+      <Tabs value={active_tab} onValueChange={set_active_tab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="areas">Áreas</TabsTrigger>
+          <TabsTrigger value="activity">Actividad</TabsTrigger>
+          <TabsTrigger value="config">Configuración</TabsTrigger>
+        </TabsList>
+
+        {/* Tab Dashboard - Vista en tiempo real */}
+        <TabsContent value="dashboard" className="space-y-6">
+          {dashboard_data && (
+            <>
+              {/* Controles de período */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <Select value={selected_period} onValueChange={set_selected_period}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="today">Hoy</SelectItem>
+                      <SelectItem value="week">Semana</SelectItem>
+                      <SelectItem value="month">Mes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Badge variant="outline">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Actualizado: {new Date(dashboard_data.generated_at).toLocaleTimeString()}
+                  </Badge>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={load_dashboard_data}
+                  disabled={refreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  Actualizar
+                </Button>
+              </div>
+
+              {/* Vista de áreas en tiempo real */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {dashboard_data.areas.map((area) => (
+                  <Card key={area.id} className="relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {object_icons[area.tipo] || <MapPin className="h-4 w-4" />}
+                          <CardTitle className="text-sm">{area.nombre}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className={`w-3 h-3 rounded-full ${status_colors[area.color_estado] || 'bg-gray-500'}`}
+                            title={`Estado: ${area.color_estado}`}
+                          />
+                          {area.modo_limite === 'hard' && (
+                            <div title="Límite estricto">
+                              <Target className="h-3 w-3 text-red-500" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">
+                            {area.estado_actual}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            de {area.max_ocupacion} máximo
+                          </div>
+                        </div>
+                        
+                        <Progress 
+                          value={area.percentage} 
+                          className="h-2"
+                        />
+                        
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{area.percentage}% ocupado</span>
+                          <span>{area.access_points_count} accesos</span>
+                        </div>
+                        
+                        {area.percentage >= 80 && (
+                          <div className="flex items-center gap-1 text-orange-600 text-xs">
+                            <AlertOctagon className="h-3 w-3" />
+                            <span>Nivel alto</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Actividad por tipo */}
+              {dashboard_data.activity_by_type.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Actividad por Tipo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {dashboard_data.activity_by_type.map((activity) => (
+                        <div key={activity.tipo} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div className="flex items-center gap-2">
+                            {object_icons[activity.tipo] || <Activity className="h-4 w-4" />}
+                            <span className="font-medium capitalize">{activity.tipo}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold">{activity.total_eventos} eventos</div>
+                            <div className="text-xs text-muted-foreground">
+                              ↗️ {activity.entradas} entradas · ↙️ {activity.salidas} salidas
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        {/* Tab Áreas - Gestión de áreas */}
+        <TabsContent value="areas" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Gestión de Áreas</h3>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Área
+            </Button>
+          </div>
+
+          {state?.areas && state.areas.length > 0 ? (
+            <div className="grid gap-4">
+              {state.areas.map((area) => (
+                <Card key={area.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {object_icons[area.tipo] || <MapPin className="h-5 w-5" />}
+                        <div>
+                          <h4 className="font-medium">{area.nombre}</h4>
+                          <p className="text-sm text-muted-foreground capitalize">{area.tipo}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-sm font-bold">
+                            {area.estado_actual}/{area.max_ocupacion}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {area.percentage}% ocupado
+                          </div>
+                        </div>
+                        <div 
+                          className={`w-4 h-4 rounded-full ${status_colors[area.color_estado] || 'bg-gray-500'}`}
+                        />
+                        <Button variant="outline" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">No hay áreas configuradas</h3>
+                <p className="text-muted-foreground mb-4">
+                  Crea tu primera área para comenzar a monitorear ocupación
+                </p>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Primera Área
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Tab Actividad - Eventos recientes y históricos */}
+        <TabsContent value="activity" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Actividad Reciente</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
+              </Button>
+            </div>
+          </div>
+
+          {dashboard_data?.recent_events && dashboard_data.recent_events.length > 0 ? (
+            <Card>
+              <CardContent className="p-0">
+                <div className="space-y-1">
+                  {dashboard_data.recent_events.slice(0, 20).map((event, index) => (
+                    <div 
+                      key={event.id} 
+                      className={`flex items-center justify-between p-3 ${index % 2 === 0 ? 'bg-muted/30' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          event.tipo === 'enter' ? 'bg-green-500' :
+                          event.tipo === 'exit' ? 'bg-blue-500' :
+                          event.tipo === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`} />
+                        <div>
+                          <div className="font-medium">{event.area_nombre}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {event.tipo === 'enter' ? 'Entrada' :
+                             event.tipo === 'exit' ? 'Salida' :
+                             event.tipo === 'warning' ? 'Alerta' : 'Límite excedido'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm">{event.fuente}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(event.ts).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">No hay actividad reciente</h3>
+                <p className="text-muted-foreground">
+                  Los eventos aparecerán aquí cuando se detecte actividad
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Tab Configuración */}
+        <TabsContent value="config" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Configuración del Sistema</h3>
+            <Button variant="outline" size="sm" onClick={load_state}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Recargar
+            </Button>
+          </div>
+
+          {state?.system && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Estado del Sistema</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Estado:</span>
+                    <Badge variant={state.system.enabled ? "default" : "secondary"}>
+                      {state.system.enabled ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Modo:</span>
+                    <span className="capitalize">{state.system.operation_mode}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>MQTT:</span>
+                    <span>{state.system.mqtt_host}:{state.system.mqtt_port}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Confianza mínima:</span>
+                    <span>{(state.system.confidence_threshold * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Retención:</span>
+                    <span>{state.system.retention_days} días</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Estadísticas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Eventos totales:</span>
+                    <span>{state.stats?.total_events?.toLocaleString() || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Eventos hoy:</span>
+                    <span>{state.stats?.events_today?.toLocaleString() || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Áreas activas:</span>
+                    <span>{state.stats?.active_areas || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Ocupación total:</span>
+                    <span>{state.stats?.total_ocupacion || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Cámaras:</span>
+                    <span>{state.cameras?.length || 0}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Objetos activos (compatibilidad con UI anterior) */}
+          {state?.objetos && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Objetos Monitoreados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {state.objetos.map(obj => {
+                    const active = state.activos.includes(obj);
+                    return (
+                      <Badge 
+                        key={obj} 
+                        variant={active ? "default" : "outline"}
+                        className="capitalize"
+                      >
+                        {object_icons[obj]}
+                        <span className="ml-1">{obj}</span>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

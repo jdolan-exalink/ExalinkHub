@@ -8,6 +8,7 @@ import ServersTab from './components/servers-tab';
 import UsersTab from './components/users-tab';
 import BackendTab from './components/backend-tab';
 import GeneralPreferencesCard from './components/general-preferences-card';
+import PanelsConfiguration from '@/components/settings/panels-configuration';
 
 export default function SettingsPage() {
   const translate_settings = useTranslations('SettingsPage');
@@ -20,7 +21,7 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="servers" className="flex items-center gap-2">
               <Server className="h-4 w-4" />
               {translate_settings('tab_servers')}
@@ -32,6 +33,10 @@ export default function SettingsPage() {
             <TabsTrigger value="backend" className="flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
               {translate_settings('tab_backend')}
+            </TabsTrigger>
+            <TabsTrigger value="panels" className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Paneles
             </TabsTrigger>
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
@@ -86,6 +91,23 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <BackendTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="panels" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />
+                  Configuración de Paneles
+                </CardTitle>
+                <CardDescription>
+                  Configura y habilita los paneles del sistema asignando cámaras específicas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PanelsConfiguration />
               </CardContent>
             </Card>
           </TabsContent>

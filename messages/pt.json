@@ -1,11 +1,12 @@
 {
   "navigation": {
-    "live": "Ao vivo",
-    "recordings": "Gravacoes",
+    "live": "Ao Vivo",
+    "recordings": "Gravações",
     "events": "Eventos",
-    "plates_lpr": "Placas",
+    "plates_lpr": "Placas LPR",
     "counting": "Contagem",
-    "settings": "Configuracoes"
+    "vehicle_counting": "Contagem Veicular",
+    "settings": "Configurações"
   },
   "user_menu": {
     "theme": "Tema",

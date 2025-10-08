@@ -85,6 +85,63 @@ export interface ServerStatus {
   last_check: string;
 }
 
+/**
+ * Configuración de paneles del sistema
+ */
+export interface PanelConfig {
+  id: number;
+  panel_name: 'lpr' | 'counting_people' | 'counting_vehicles';
+  enabled: boolean;
+  title: string;
+  cameras: string; // JSON array of camera names
+  config: string; // JSON configuration específica del panel
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Configuración detallada de cada panel
+ */
+export interface LPRPanelConfig {
+  enabled: boolean;
+  title: string;
+  cameras: string[];
+  confidence_threshold: number;
+  regions: string[];
+  save_images: boolean;
+  webhook_url?: string;
+  retention_days: number;
+}
+
+export interface CountingPeoplePanelConfig {
+  enabled: boolean;
+  title: string;
+  cameras: string[];
+  areas: Array<{
+    id: string;
+    name: string;
+    max_occupancy: number;
+    warning_threshold: number;
+    critical_threshold: number;
+  }>;
+  confidence_threshold: number;
+  retention_days: number;
+}
+
+export interface CountingVehiclesPanelConfig {
+  enabled: boolean;
+  title: string;
+  cameras: string[];
+  zones: Array<{
+    camera_name: string;
+    zone_in: string;
+    zone_out: string;
+  }>;
+  objects: string[]; // ['car', 'truck', 'motorcycle']
+  confidence_threshold: number;
+  retention_days: number;
+}
+
 type ApplicationSettings = Record<string, string>;
 
 class ConfigDatabase {
@@ -209,11 +266,17 @@ class ConfigDatabase {
       )
     `);
 
-    // Tabla de configuración de la aplicación (tema, idioma, etc.)
+    // Tabla de configuración de paneles
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS app_settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
+      CREATE TABLE IF NOT EXISTS panel_config (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        panel_name TEXT NOT NULL UNIQUE CHECK(panel_name IN ('lpr', 'counting_people', 'counting_vehicles')),
+        enabled BOOLEAN DEFAULT 0,
+        title TEXT NOT NULL,
+        cameras TEXT DEFAULT '[]',
+        config TEXT DEFAULT '{}',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -337,6 +400,61 @@ class ConfigDatabase {
       }
       
       console.log('⚙️ Configuraciones de backend por defecto creadas');
+    }
+
+    // Insertar configuraciones de paneles por defecto
+    const panelCount = this.db.prepare('SELECT COUNT(*) as count FROM panel_config').get() as { count: number };
+    
+    if (panelCount.count === 0) {
+      const defaultPanels = [
+        {
+          panel_name: 'lpr',
+          enabled: false,
+          title: 'Reconocimiento de Matrículas',
+          cameras: '[]',
+          config: JSON.stringify({
+            confidence_threshold: 0.8,
+            regions: [],
+            save_images: true,
+            webhook_url: '',
+            retention_days: 60
+          })
+        },
+        {
+          panel_name: 'counting_people',
+          enabled: false,
+          title: 'Conteo de Personas',
+          cameras: '[]',
+          config: JSON.stringify({
+            areas: [],
+            confidence_threshold: 0.7,
+            retention_days: 30
+          })
+        },
+        {
+          panel_name: 'counting_vehicles',
+          enabled: false,
+          title: 'Conteo Vehicular',
+          cameras: '[]',
+          config: JSON.stringify({
+            zones: [],
+            objects: ['car', 'truck', 'motorcycle'],
+            confidence_threshold: 0.7,
+            retention_days: 30
+          })
+        }
+      ];
+
+      const insertPanel = this.db.prepare(`
+        INSERT INTO panel_config (panel_name, enabled, title, cameras, config)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      for (const panel of defaultPanels) {
+        insertPanel.run(panel.panel_name, panel.enabled ? 1 : 0, panel.title, panel.cameras, panel.config);
+      }
+      
+      console.log('📊 Configuraciones de paneles por defecto creadas');
     }
 
     // Insertar configuraciones de aplicación por defecto
@@ -1036,6 +1154,98 @@ class ConfigDatabase {
     } catch (error) {
       console.warn('Error accessing views database:', error);
       return [];
+    }
+  }
+
+  // ========================================
+  // MÉTODOS PARA CONFIGURACIÓN DE PANELES
+  // ========================================
+
+  /**
+   * Obtiene todas las configuraciones de paneles
+   */
+  getAllPanelConfigs(): PanelConfig[] {
+    return this.db.prepare('SELECT * FROM panel_config ORDER BY panel_name').all() as PanelConfig[];
+  }
+
+  /**
+   * Obtiene la configuración de un panel específico
+   */
+  getPanelConfig(panel_name: 'lpr' | 'counting_people' | 'counting_vehicles'): PanelConfig | null {
+    return this.db.prepare('SELECT * FROM panel_config WHERE panel_name = ?').get(panel_name) as PanelConfig | null;
+  }
+
+  /**
+   * Actualiza la configuración de un panel
+   */
+  updatePanelConfig(panel_name: 'lpr' | 'counting_people' | 'counting_vehicles', enabled: boolean, title: string, cameras: string[], config: object): boolean {
+    try {
+      this.db.prepare(`
+        UPDATE panel_config 
+        SET enabled = ?, title = ?, cameras = ?, config = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE panel_name = ?
+      `).run(enabled ? 1 : 0, title, JSON.stringify(cameras), JSON.stringify(config), panel_name);
+      return true;
+    } catch (error) {
+      console.error('Error updating panel config:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Habilita o deshabilita un panel
+   */
+  setPanelEnabled(panel_name: 'lpr' | 'counting_people' | 'counting_vehicles', enabled: boolean): boolean {
+    try {
+      this.db.prepare(`
+        UPDATE panel_config 
+        SET enabled = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE panel_name = ?
+      `).run(enabled ? 1 : 0, panel_name);
+      return true;
+    } catch (error) {
+      console.error('Error updating panel enabled status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene únicamente los paneles habilitados
+   */
+  getEnabledPanels(): PanelConfig[] {
+    return this.db.prepare('SELECT * FROM panel_config WHERE enabled = 1 ORDER BY panel_name').all() as PanelConfig[];
+  }
+
+  /**
+   * Obtiene las cámaras asignadas a un panel específico
+   */
+  getPanelCameras(panel_name: 'lpr' | 'counting_people' | 'counting_vehicles'): string[] {
+    const panel = this.getPanelConfig(panel_name);
+    if (!panel) return [];
+    
+    try {
+      const cameras = JSON.parse(panel.cameras);
+      return Array.isArray(cameras) ? cameras : [];
+    } catch (error) {
+      console.error('Error parsing panel cameras:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Actualiza las cámaras asignadas a un panel
+   */
+  updatePanelCameras(panel_name: 'lpr' | 'counting_people' | 'counting_vehicles', cameras: string[]): boolean {
+    try {
+      this.db.prepare(`
+        UPDATE panel_config 
+        SET cameras = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE panel_name = ?
+      `).run(JSON.stringify(cameras), panel_name);
+      return true;
+    } catch (error) {
+      console.error('Error updating panel cameras:', error);
+      return false;
     }
   }
 

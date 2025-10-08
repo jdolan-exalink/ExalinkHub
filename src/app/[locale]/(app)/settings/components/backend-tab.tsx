@@ -123,8 +123,8 @@ export default function BackendTab() {
     loadBackendConfig();
     updateServiceStatus();
     
-    // Actualizar estado de servicios cada 5 segundos
-    const interval = setInterval(updateServiceStatus, 5000);
+    // Actualizar estado de servicios cada 30 segundos (reducido de 5 para evitar sobrecarga)
+    const interval = setInterval(updateServiceStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 

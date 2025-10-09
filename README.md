@@ -3,7 +3,7 @@
 Siempre que se realice una nueva versión, cambio relevante o despliegue, este README debe ser actualizado para reflejar la información y pasos correctos.
 
 
-# ExalinkHub v0.0.21
+# ExalinkHub v0.0.22
 
 Sistema de monitoreo LPR, conteo y notificaciones. Instalación y despliegue rápido:
 
@@ -17,7 +17,7 @@ Sistema de monitoreo LPR, conteo y notificaciones. Instalación y despliegue rá
 
 2. Descarga la última versión:
    ```bash
-   git clone --branch v0.0.21 https://github.com/jdolan-exalink/ExalinkHub.git
+   git clone --branch v0.0.22 https://github.com/jdolan-exalink/ExalinkHub.git
    cd ExalinkHub
    ```
 
@@ -431,6 +431,32 @@ docker-compose restart lpr-backend
 docker-compose up -d --scale lpr-backend=2
 ```
 
+
+
+## ⚠️ Advertencia sobre permisos y contexto de build
+
+Si ves errores como `permission denied: unknown` relacionados con `/usr/local/bin/docker-entrypoint.sh`, ejecuta:
+
+```bash
+docker-compose build --no-cache
+docker-compose down -v
+docker-compose up -d --build
+```
+
+**Importante:** Ejecuta siempre los comandos de build y despliegue desde la raíz del proyecto (`ExalinkHub`) para que el contexto incluya todos los archivos necesarios, especialmente `backend/lpr/docker-entrypoint.sh`.
+
+Esto fuerza la reconstrucción de la imagen y aplica los permisos correctos.
+
+Si ves errores como `permission denied: unknown` relacionados con `/usr/local/bin/docker-entrypoint.sh`, ejecuta:
+
+```bash
+docker-compose build --no-cache
+docker-compose down -v
+docker-compose up -d --build
+```
+
+Esto fuerza la reconstrucción de la imagen y aplica los permisos correctos.
+
 ## 🐛 Solución de Problemas
 
 ### Problemas Comunes
@@ -511,5 +537,5 @@ Este proyecto es propiedad de Exalink. Todos los derechos reservados.
 ---
 
 **Versión**: 1.0.0
-**Última actualización**: Octubre 2025 (v0.0.21)
+**Última actualización**: Octubre 2025 (v0.0.22)
 **Documentación técnica**: Consulta archivos en `context/` y documentación específica de cada backend.

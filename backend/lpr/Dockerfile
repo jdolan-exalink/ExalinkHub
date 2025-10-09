@@ -1,4 +1,6 @@
 # Dockerfile para Sistema LPR Backend
+#
+# IMPORTANTE: Construye la imagen desde la raíz del proyecto (ExalinkHub) para que el contexto incluya docker-entrypoint.sh y todos los archivos necesarios.
 # Imagen base optimizada con Python 3.11
 FROM python:3.11-slim
 
@@ -37,6 +39,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar script de inicialización
 COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copiar código fuente
 COPY app/ ./app/

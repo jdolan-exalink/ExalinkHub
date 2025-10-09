@@ -69,10 +69,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
               <Shield className="w-12 h-12 text-blue-500" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">{translate('title')}</CardTitle>
-          <CardDescription className="text-slate-400">
-            {translate('subtitle')}
-          </CardDescription>
+          <h2 className="text-2xl font-bold text-white">Exalink Hub</h2>
         </CardHeader>
         <CardContent>
           <form onSubmit={handle_submit} className="space-y-4">
@@ -126,10 +123,6 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-400">
-            <p>{translate('default_user')}: <span className="text-blue-400 font-mono">admin</span></p>
-            <p>{translate('default_password')}: <span className="text-blue-400 font-mono">admin123</span></p>
-          </div>
         </CardContent>
       </Card>
     </div>

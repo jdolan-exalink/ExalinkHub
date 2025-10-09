@@ -1,12 +1,53 @@
+# 🛠️ Instalación de paquetes previos al despliegue
+
+Antes de desplegar el sistema, asegúrate de instalar los siguientes paquetes en tu servidor:
+
+**1. Docker y Docker Compose:**
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose-plugin
+```
+
+**2. Node.js y npm (solo si compilas el frontend fuera de Docker):**
+```bash
+sudo apt-get install -y nodejs npm
+```
+
+**3. Python y pip (solo si ejecutas backend fuera de Docker):**
+```bash
+sudo apt-get install -y python3 python3-pip
+```
+
+**4. Instalar dependencias del frontend (opcional):**
+```bash
+cd frontend-build
+npm install
+```
+
+**5. Instalar dependencias del backend (opcional):**
+```bash
+cd backend/lpr
+pip install -r requirements.txt
+cd ../conteo
+pip install -r requirements.txt
+cd ../notificaciones
+pip install -r requirements.txt
+```
+
+Luego puedes desplegar normalmente con:
+```bash
+docker compose up --build -d
+```
+
 # ExalinkHub - Sistema Completo de Monitoreo LPR y Conteo Vehicular
 
-## � Instalación y despliegue de la versión 0.0.17 en otro servidor
+## 📦 Instalación y despliegue de la versión 0.0.18 en otro servidor
 
-Para instalar y desplegar ExalinkHub v0.0.17 en cualquier servidor:
+Para instalar y desplegar ExalinkHub v0.0.18 en cualquier servidor:
 
 1. **Descargar el código fuente**
    ```bash
-   git clone --branch v0.0.17 https://github.com/jdolan-exalink/ExalinkHub.git
+   git clone --branch v0.0.18 https://github.com/jdolan-exalink/ExalinkHub.git
    cd ExalinkHub
    ```
 

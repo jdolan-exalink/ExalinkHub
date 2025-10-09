@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { frigateAPI } from '@/lib/frigate-api';
-import { getActiveFrigateServers, getFrigateHeaders } from '@/lib/frigate-servers';
+import { get_active_frigate_servers, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
 import { getConfigDatabase } from '@/lib/config-database';
 import { validateServerConnection } from '@/lib/frigate-auth';
 import type { ServerCamera } from '@/lib/types';
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 // Función para obtener cámaras de múltiples servidores (Panel de Matrículas)
 async function getLPRCameras() {
-  const servers = getActiveFrigateServers();
+  const servers = get_active_frigate_servers();
   const cameras: ServerCamera[] = [];
   const serverStatus: Record<string, string> = {};
   const TIMEOUT_MS = 5000;
@@ -63,7 +63,7 @@ async function getLPRCameras() {
   const serverPromises = servers.map(async (server) => {
     try {
       const configUrl = `${server.baseUrl}/api/config`;
-      const headers = getFrigateHeaders(server);
+  const headers = get_frigate_headers(server);
       console.log(`[Conteo] Consultando cámaras de servidor: ${server.name} (${configUrl})`);
       const response = await fetchWithTimeout(configUrl, {
         method: 'GET',

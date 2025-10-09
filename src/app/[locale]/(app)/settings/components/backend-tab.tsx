@@ -1,4 +1,42 @@
-'use client';
+                  {/* Botón Ver Logs al lado del título Matrículas */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewLogs('LPR (Matrículas)')}
+                    className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Ver Logs
+                  </Button>
+                  {/* Botón Ver Logs al lado del título Conteo */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewLogs('Conteo')}
+                    className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Ver Logs
+                  </Button>
+                  {/* Botón Ver Logs al lado del título Notificaciones */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewLogs('Notificaciones')}
+                    className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Ver Logs
+                  </Button>
+
+
+/**
+ * Muestra un mensaje en consola al hacer clic en el botón Ver Logs de cada servicio.
+ * @param service_name Nombre del servicio (Matrículas, Conteo, Notificaciones)
+ */
+function handleViewLogs(service_name: string) {
+  console.log(`Ver Logs para el servicio: ${service_name}`);
+}
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +76,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { BackendConfig } from '@/lib/config-database';
-import { FRIGATE_SERVERS, type FrigateServer } from '@/lib/frigate-servers';
+
 import { toast } from '@/hooks/use-toast';
 import { CountingConfig } from '@/components/counting/counting-config';
 
@@ -46,6 +84,7 @@ export default function BackendTab() {
   // const translate = useTranslations('settings.backend');
   // const translate_common = useTranslations('common');
   const [config, setConfig] = useState<BackendConfig | null>(null);
+  const [frigateServers, setFrigateServers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mqttTesting, setMqttTesting] = useState(false);
@@ -138,11 +177,21 @@ export default function BackendTab() {
   useEffect(() => {
     loadBackendConfig();
     updateServiceStatus();
-    
+    fetchFrigateServers();
     // Actualizar estado de servicios cada 30 segundos (reducido de 5 para evitar sobrecarga)
     const interval = setInterval(updateServiceStatus, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchFrigateServers = async () => {
+    try {
+      const response = await fetch('/api/frigate/servers');
+      const data = await response.json();
+      setFrigateServers(data.servers || []);
+    } catch (error) {
+      setFrigateServers([]);
+    }
+  };
 
   const loadBackendConfig = async () => {
     try {
@@ -570,15 +619,6 @@ export default function BackendTab() {
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLogs('LPR (Matrículas)')}
-                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Ver Logs
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -651,15 +691,6 @@ export default function BackendTab() {
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLogs('Conteo')}
-                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Ver Logs
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -731,15 +762,6 @@ export default function BackendTab() {
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLogs('Notificaciones')}
-                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Ver Logs
                   </Button>
                 </div>
               </CardContent>
@@ -901,12 +923,12 @@ export default function BackendTab() {
                       <SelectValue placeholder="Seleccionar servidor Frigate" />
                     </SelectTrigger>
                     <SelectContent>
-                      {FRIGATE_SERVERS.filter(server => server.enabled).map(server => (
+                      {frigateServers.filter(server => server.enabled).map(server => (
                         <SelectItem key={server.id} value={server.id}>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             <span>{server.name}</span>
-                            <span className="text-muted-foreground text-xs">({server.baseUrl})</span>
+                            <span className="text-muted-foreground text-xs">({server.url})</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -918,7 +940,7 @@ export default function BackendTab() {
                   <div className="p-3 bg-muted rounded-lg">
                     <h4 className="text-sm font-medium mb-2">Servidor Seleccionado:</h4>
                     {(() => {
-                      const server = FRIGATE_SERVERS.find(s => s.id === formData.lpr_frigate_server_id);
+                      const server = frigateServers.find(s => s.id === formData.lpr_frigate_server_id);
                       return server ? (
                         <div className="space-y-1 text-sm">
                           <div><strong>Nombre:</strong> {server.name}</div>

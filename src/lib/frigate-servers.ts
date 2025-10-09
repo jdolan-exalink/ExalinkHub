@@ -1,7 +1,4 @@
-/**
- * Configuración de servidores Frigate activos
- * Panel de Búsqueda de Patentes (LPR) - Frigate 0.16
- */
+import { getConfigDatabase } from './config-database';
 
 export interface FrigateServer {
   id: string;
@@ -16,30 +13,38 @@ export interface FrigateServer {
   };
 }
 
-// Lista de servidores Frigate activos configurados
-export const FRIGATE_SERVERS: FrigateServer[] = [
-  {
-    id: "srv1",
-    name: "Servidor Principal",
-    baseUrl: "http://10.1.1.252:5000",
-    enabled: true
-  },
-  {
-    id: "srv2", 
-    name: "Servidor Secundario",
-    baseUrl: "http://10.22.26.3:5000",
-    enabled: true
-  },
-  // Agregar más servidores según la configuración del entorno
-];
+function map_server_to_frigate_server(server: any): FrigateServer {
+  let auth;
+  if (server.auth_type === 'basic' || server.auth_type === 'bearer') {
+    auth = {
+      type: server.auth_type,
+      username: server.username,
+      password: server.password,
+      token: server.jwt_token
+    };
+  }
+  return {
+    id: String(server.id),
+    name: server.name,
+    baseUrl: `${server.protocol}://${server.url}:${server.port}`,
+    enabled: server.enabled,
+    auth
+  };
+}
 
-export const getActiveFrigateServers = (): FrigateServer[] => {
-  return FRIGATE_SERVERS.filter(server => server.enabled);
-};
+export function get_active_frigate_servers(): FrigateServer[] {
+  const db_instance = getConfigDatabase();
+  return db_instance.getAllServers()
+    .filter(server => server.enabled)
+    .map(map_server_to_frigate_server);
+}
 
-export const getFrigateServerById = (id: string): FrigateServer | undefined => {
-  return FRIGATE_SERVERS.find(server => server.id === id);
-};
+export function get_frigate_server_by_id(server_id: string | number): FrigateServer | undefined {
+  const db_instance = getConfigDatabase();
+  const server = db_instance.getServerById(Number(server_id));
+  if (!server) return undefined;
+  return map_server_to_frigate_server(server);
+}
 
 // Headers de autenticación para requests a Frigate
 export const getFrigateHeaders = (server: FrigateServer): Record<string, string> => {

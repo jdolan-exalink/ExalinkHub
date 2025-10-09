@@ -292,29 +292,17 @@ class ConfigDatabase {
     // Importar y ejecutar migraciones
     try {
       const { runAutoStartMigration } = require('./migrations');
-      runAutoStartMigration();
+      runAutoStartMigration(this);
     } catch (error) {
       console.error('Error ejecutando migraciones:', error);
     }
   }
 
   private insertDefaultData() {
-    // Insertar servidor por defecto si no existe ninguno
+    // No crear servidores por defecto, dejar la tabla limpia si no existen
     const serverCount = this.db.prepare('SELECT COUNT(*) as count FROM servers').get() as { count: number };
-    
     if (serverCount.count === 0) {
-      const serverId = this.db.prepare(`
-        INSERT INTO servers (name, url, port, protocol, enabled)
-        VALUES (?, ?, ?, ?, ?)
-      `).run('Servidor Principal', '10.1.1.252', 5000, 'http', 1).lastInsertRowid;
-      
-      // Insertar estado por defecto para el servidor
-      this.db.prepare(`
-        INSERT INTO server_status (server_id, cpu_usage, gpu_usage, memory_usage, disk_usage, api_status)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(serverId, 25.5, 0, 45.2, 62.8, 'online');
-      
-      console.log('🖥️ Servidor por defecto creado con estado inicial');
+      console.log('🖥️ Tabla de servidores inicializada vacía');
     }
 
     // Insertar usuario admin por defecto si no existe ninguno

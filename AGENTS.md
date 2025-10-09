@@ -1,3 +1,108 @@
+### Endpoints CRUD para servidores Frigate
+
+**Ruta base:** `/api/frigate/servers`
+
+**GET**: Listar servidores
+```http
+GET /api/frigate/servers
+```
+Respuesta:
+```json
+{
+	"servers": [
+		{
+			"id": 1,
+			"name": "Servidor Principal",
+			"url": "10.1.1.252",
+			"port": 5000,
+			"protocol": "http",
+			"username": "admin",
+			"password": "...",
+			"auth_type": "basic",
+			"enabled": true
+		}
+	]
+}
+```
+
+**POST**: Agregar servidor
+```http
+POST /api/frigate/servers
+Content-Type: application/json
+{
+	"name": "Servidor Nuevo",
+	"url": "10.1.1.100",
+	"port": 5000,
+	"protocol": "http",
+	"username": "user",
+	"password": "pass",
+	"auth_type": "basic",
+	"enabled": true
+}
+```
+Respuesta:
+```json
+{ "success": true, "id": 2 }
+```
+
+**PUT**: Editar servidor
+```http
+PUT /api/frigate/servers
+Content-Type: application/json
+{
+	"id": 2,
+	"name": "Servidor Editado",
+	"url": "10.1.1.101",
+	"port": 5001,
+	"protocol": "https",
+	"username": "user",
+	"password": "newpass",
+	"auth_type": "bearer",
+	"enabled": false
+}
+```
+Respuesta:
+```json
+{ "success": true }
+```
+
+**DELETE**: Eliminar servidor
+```http
+DELETE /api/frigate/servers
+Content-Type: application/json
+{
+	"id": 2
+}
+```
+Respuesta:
+```json
+{ "success": true }
+```
+
+**Notas:**
+- Todos los endpoints usan snake_case y validan los datos obligatorios.
+- La gestión es completamente dinámica y se refleja en la interfaz de ajustes general.
+## Migración completa: Frigate y servicios backend gestionados solo por base de datos
+
+**Estado actual:**
+- Todos los endpoints y módulos que interactúan con Frigate (status, eventos, snapshots, clips) obtienen la configuración del servidor desde la base de datos usando las funciones snake_case de `frigate-servers.ts`.
+- Se eliminó cualquier dependencia de variables de entorno (`.env`, `process.env`) para Frigate, MQTT, matrículas, conteo y notificaciones.
+- Los endpoints `/api/frigate/events/[id]/snapshot.jpg` y `/api/frigate/events/[id]/clip.mp4` ahora usan el servidor principal configurado en la base de datos y aplican autenticación según los datos guardados (bearer/basic).
+- La instancia hardcodeada de FrigateAPI fue eliminada; ahora se crea dinámicamente según el servidor activo.
+- Toda la configuración de Frigate, MQTT y servicios backend es editable vía API y ajustes, y se persiste en la base de datos.
+
+**Ventajas:**
+- Permite modificar servidores, credenciales y parámetros sin reiniciar ni editar archivos de entorno.
+- El frontend y backend trabajan siempre con la configuración real y actualizada.
+- Facilita la administración multi-servidor y la integración dinámica.
+
+**Referencia de implementación:**
+- Ver funciones: `get_active_frigate_servers`, `get_frigate_server_by_id` en `src/lib/frigate-servers.ts`.
+- Ver endpoints: `/api/frigate/status`, `/api/frigate/events/[id]/snapshot.jpg`, `/api/frigate/events/[id]/clip.mp4`.
+
+**Notas:**
+- Para agregar, editar o eliminar servidores Frigate, usar los endpoints y lógica de ajustes/configuración.
+- Toda la lógica de autenticación y conexión se basa en los datos guardados en la base de datos.
 ### Actualización: Estado operacional y control de servicios
 
 **Endpoints:**
@@ -138,3 +243,44 @@ if (connectivity_data.data.system_ready) {
   set_system_status('unavailable');
 }
 ```
+
+## Implementación: Estado de servidores Frigate vía API
+
+### Endpoint: `/api/frigate/status`
+
+**Descripción:**
+Este endpoint consulta el estado de todos los servidores Frigate activos, leyendo la configuración dinámica desde la base de datos/configuración y no desde el archivo `.env`. Devuelve el estado de conectividad y versión de cada servidor configurado.
+
+**Cómo se implementa:**
+- Se importa la función `getActiveFrigateServers()` desde `src/lib/frigate-servers.ts`.
+- Para cada servidor activo, se prueba la conectividad y se consulta la versión de la API.
+- El resultado es un array con el estado de cada servidor (id, nombre, url, conectividad, versión, error).
+
+**Ejemplo de respuesta:**
+```json
+{
+  "servers": [
+    {
+      "id": "srv1",
+      "name": "Servidor Principal",
+      "url": "http://10.1.1.252:5000",
+      "connectivity": true,
+      "version": "0.12.0",
+      "error": null
+    },
+    {
+      "id": "srv2",
+      "name": "Servidor Secundario",
+      "url": "http://10.22.26.3:5000",
+      "connectivity": false,
+      "version": null,
+      "error": "Conectividad fallida: connect EHOSTUNREACH ..."
+    }
+  ]
+}
+```
+
+**Notas:**
+- El endpoint ya no depende de la IP/puerto definidos en `.env`.
+- La lista de servidores Frigate es modificable desde la configuración y puede crecer dinámicamente.
+- Próximos pasos: migrar toda la configuración Frigate a la base de datos y permitir edición vía ajustes en el frontend.

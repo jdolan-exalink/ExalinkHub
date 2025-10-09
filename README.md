@@ -1,84 +1,41 @@
-# 🛠️ Instalación de paquetes previos al despliegue
+# ℹ️ Contexto
 
-Antes de desplegar el sistema, asegúrate de instalar los siguientes paquetes en tu servidor:
+Siempre que se realice una nueva versión, cambio relevante o despliegue, este README debe ser actualizado para reflejar la información y pasos correctos.
 
-**1. Docker y Docker Compose:**
-```bash
-sudo apt-get update
-sudo apt-get install -y docker.io docker-compose-plugin
-```
 
-**2. Node.js y npm (solo si compilas el frontend fuera de Docker):**
-```bash
-sudo apt-get install -y nodejs npm
-```
+# ExalinkHub v0.0.21
 
-**3. Python y pip (solo si ejecutas backend fuera de Docker):**
-```bash
-sudo apt-get install -y python3 python3-pip
-```
+Sistema de monitoreo LPR, conteo y notificaciones. Instalación y despliegue rápido:
 
-**4. Instalar dependencias del frontend (opcional):**
-```bash
-cd frontend-build
-npm install
-```
+## 🚀 Instalación rápida
 
-**5. Instalar dependencias del backend (opcional):**
-```bash
-cd backend/lpr
-pip install -r requirements.txt
-cd ../conteo
-pip install -r requirements.txt
-cd ../notificaciones
-pip install -r requirements.txt
-```
-
-Luego puedes desplegar normalmente con:
-```bash
-docker compose up --build -d
-```
-
-# ExalinkHub - Sistema Completo de Monitoreo LPR y Conteo Vehicular
-
-## 📦 Instalación y despliegue de la versión 0.0.18 en otro servidor
-
-Para instalar y desplegar ExalinkHub v0.0.18 en cualquier servidor:
-
-1. **Descargar el código fuente**
+1. Instala Docker y Docker Compose:
    ```bash
-   git clone --branch v0.0.18 https://github.com/jdolan-exalink/ExalinkHub.git
+   sudo apt-get update
+   sudo apt-get install -y docker.io docker-compose-plugin
+   ```
+
+2. Descarga la última versión:
+   ```bash
+   git clone --branch v0.0.21 https://github.com/jdolan-exalink/ExalinkHub.git
    cd ExalinkHub
    ```
 
-2. **Configurar variables de entorno (opcional)**
+3. Despliega el sistema:
    ```bash
-   cp .env.example .env
-   nano .env  # Edita según tus necesidades
+   chmod +x init.sh && ./init.sh && docker compose up --build -d
    ```
 
-3. **Inicializar y desplegar el sistema**
-   ```bash
-   chmod +x init.sh
-   ./init.sh
-   docker-compose up --build -d
-   ```
+4. Accede al dashboard:
+   - http://<IP-del-servidor>:9002
 
-4. **Verificar el estado de los servicios**
-   ```bash
-   docker-compose ps
-   docker-compose logs --tail=50
-   ```
+## 📝 Notas
+- Toda la configuración se gestiona vía la interfaz web y base de datos.
+- No es necesario editar archivos .env para Frigate, MQTT ni servicios backend.
+- Para gestión avanzada, usa los scripts `docker-deploy.sh` o `docker-deploy.bat`.
 
-5. **Acceder a la aplicación**
-   - Dashboard web: http://<IP-del-servidor>:9002
-   - LPR Backend: http://<IP-del-servidor>:2221
-   - Conteo Backend: http://<IP-del-servidor>:2223
-   - Notificaciones Backend: http://<IP-del-servidor>:2224
-
-**Notas:**
-- Puedes usar los scripts `docker-deploy.sh` (Linux/macOS) o `docker-deploy.bat` (Windows) para gestión avanzada.
-- Consulta la sección de solución de problemas y configuración avanzada en este README para detalles adicionales.
+---
+ExalinkHub © 2025
 
 ---
 
@@ -554,5 +511,5 @@ Este proyecto es propiedad de Exalink. Todos los derechos reservados.
 ---
 
 **Versión**: 1.0.0
-**Última actualización**: Octubre 2025
+**Última actualización**: Octubre 2025 (v0.0.21)
 **Documentación técnica**: Consulta archivos en `context/` y documentación específica de cada backend.

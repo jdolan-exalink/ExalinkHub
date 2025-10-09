@@ -59,11 +59,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:2221/health || exit 1
 
 # Variables de entorno por defecto
-ENV LPR_HOST=0.0.0.0 \
-    LPR_PORT=2221 \
-    LPR_DEBUG=false \
-    DATABASE_URL=sqlite:///./DB/matriculas.db \
-    DATABASE_PATH=./DB/matriculas.db
+ENV LPR_HOST=0.0.0.0
+ENV LPR_PORT=2221
+ENV LPR_DEBUG=false
+ENV DATABASE_URL=sqlite:///./DB/matriculas.db
+ENV DATABASE_PATH=./DB/matriculas.db
 
 # Punto de entrada con inicialización
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

@@ -3,11 +3,31 @@
 Siempre que se realice una nueva versión, cambio relevante o despliegue, este README debe ser actualizado para reflejar la información y pasos correctos.
 
 
-# ExalinkHub v0.0.22
+# ExalinkHub v0.0.23
 
 Sistema de monitoreo LPR, conteo y notificaciones. Instalación y despliegue rápido:
 
 ## 🚀 Instalación rápida
+
+### 🆕 Cambios v0.0.23
+- Corrección de formato ENV en Dockerfile para evitar warnings.
+- Mejor documentación de recuperación de contenedores y volúmenes corruptos.
+- Redirección principal a /live para usuarios autenticados.
+- Mejoras en la gestión de permisos y troubleshooting.
+## 🛠️ Recuperación forzada de contenedores y volúmenes
+
+Si tienes errores de 'ContainerConfig' o no puedes borrar contenedores corriendo, ejecuta:
+
+```bash
+docker stop $(docker ps -aq)
+docker rm -f $(docker ps -aq)
+docker volume prune -f
+docker system prune -af
+docker-compose build --no-cache
+docker-compose up -d --build
+```
+
+Esto detiene y elimina todos los contenedores, limpia volúmenes huérfanos y fuerza la reconstrucción completa.
 
 1. Instala Docker y Docker Compose:
    ```bash
@@ -26,8 +46,8 @@ Sistema de monitoreo LPR, conteo y notificaciones. Instalación y despliegue rá
    chmod +x init.sh && ./init.sh && docker compose up --build -d
    ```
 
-4. Accede al dashboard:
-   - http://<IP-del-servidor>:9002
+4. Accede a la vista en vivo:
+   - http://<IP-del-servidor>:9002/live
 
 ## 📝 Notas
 - Toda la configuración se gestiona vía la interfaz web y base de datos.
@@ -481,6 +501,34 @@ docker-compose logs -f lpr-backend
 # Verificar configuración
 docker-compose config
 ```
+
+
+
+### Solución de error de permisos en base de datos SQLite
+
+Si ves errores como `SqliteError: attempt to write a readonly database`, asegúrate de que la carpeta `DB/` y todos los archivos `.db` tengan permisos de escritura para el usuario que ejecuta los contenedores.
+
+En Linux/macOS, ejecuta:
+
+```bash
+chmod -R 777 DB/
+```
+
+En Windows, verifica que los archivos no estén marcados como solo lectura y que el usuario de Docker tenga acceso total.
+
+Haz esto antes de desplegar para evitar problemas de escritura en la base de datos.
+
+Si ves errores como `KeyError: 'ContainerConfig'` o problemas al recrear contenedores, sigue estos pasos para limpiar y reconstruir el entorno local:
+
+```bash
+docker-compose down -v
+docker system prune -af
+docker volume prune -f
+docker-compose build --no-cache
+docker-compose up -d --build
+```
+
+Esto elimina contenedores y volúmenes huérfanos, limpia imágenes corruptas y fuerza la reconstrucción completa.
 
 ### Recuperación de Errores
 

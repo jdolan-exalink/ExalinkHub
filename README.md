@@ -1,6 +1,47 @@
 # ExalinkHub - Sistema Completo de Monitoreo LPR y Conteo Vehicular
 
-## 🚀 Despliegue con Docker Compose
+## � Instalación y despliegue de la versión 0.0.17 en otro servidor
+
+Para instalar y desplegar ExalinkHub v0.0.17 en cualquier servidor:
+
+1. **Descargar el código fuente**
+   ```bash
+   git clone --branch v0.0.17 https://github.com/jdolan-exalink/ExalinkHub.git
+   cd ExalinkHub
+   ```
+
+2. **Configurar variables de entorno (opcional)**
+   ```bash
+   cp .env.example .env
+   nano .env  # Edita según tus necesidades
+   ```
+
+3. **Inicializar y desplegar el sistema**
+   ```bash
+   chmod +x init.sh
+   ./init.sh
+   docker-compose up --build -d
+   ```
+
+4. **Verificar el estado de los servicios**
+   ```bash
+   docker-compose ps
+   docker-compose logs --tail=50
+   ```
+
+5. **Acceder a la aplicación**
+   - Dashboard web: http://<IP-del-servidor>:9002
+   - LPR Backend: http://<IP-del-servidor>:2221
+   - Conteo Backend: http://<IP-del-servidor>:2223
+   - Notificaciones Backend: http://<IP-del-servidor>:2224
+
+**Notas:**
+- Puedes usar los scripts `docker-deploy.sh` (Linux/macOS) o `docker-deploy.bat` (Windows) para gestión avanzada.
+- Consulta la sección de solución de problemas y configuración avanzada en este README para detalles adicionales.
+
+---
+
+## �🚀 Despliegue con Docker Compose
 
 Este proyecto incluye una configuración completa de Docker Compose que permite desplegar todo el sistema ExalinkHub con un solo comando.
 

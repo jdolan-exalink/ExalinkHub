@@ -49,13 +49,12 @@ check_prerequisites() {
     fi
     
     if [ ! -f "$ENV_FILE" ]; then
-        log_warning "Archivo .env no encontrado, creando desde ejemplo..."
+        log_warning "Archivo .env no encontrado. Si tu despliegue no requiere variables de entorno, puedes continuar."
         if [ -f ".env.example" ]; then
             cp .env.example .env
             log_info "Archivo .env creado. Revisa la configuración antes de continuar."
         else
-            log_error "Archivo .env.example no encontrado"
-            exit 1
+            log_warning "Archivo .env.example no encontrado. Si no usas variables de entorno, puedes continuar."
         fi
     fi
     

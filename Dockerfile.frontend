@@ -56,6 +56,9 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copiar el package.json actualizado para referencia de versión (después de las copias from builder)
+COPY --chown=nextjs:nodejs package.json ./package.json
+
 # Instalar docker-cli y curl en la imagen final v4
 RUN echo "Installing docker-cli and curl v4" && apk add --no-cache docker-cli curl
 

@@ -2,20 +2,6 @@
   "currentVersion": "0.0.26",
   "lastUpdated": "2025-10-11T09:00:00-03:00",
   "versions": {
-    "0.0.26": {
-      "releaseDate": "2025-10-11",
-      "description": "Fix de sincronización de Docker y warnings de npm",
-      "changes": [
-        "Corregida sincronización completa de versión en contenedores Docker",
-        "Actualizados package.json en raíz y frontend-build a v0.0.26",
-        "Modificado Dockerfile para asegurar copia correcta de archivos de versión",
-        "Solucionados warnings de npm durante construcción de imágenes",
-        "Mejorada documentación de despliegue y troubleshooting",
-        "Asegurada consistencia entre código fuente y contenedores Docker"
-      ],
-      "type": "patch",
-      "breaking": false
-    },
     "0.0.25": {
       "releaseDate": "2025-10-11",
       "description": "Fix de sincronización de versión y changelog",

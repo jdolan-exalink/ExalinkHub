@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, Badge, LogOut, User, Car } from 'lucide-react';
+import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, CreditCard, LogOut, User, Car } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -30,7 +30,7 @@ const navigation_item_definitions: NavigationItem[] = [
   { slug: 'live', label_key: 'live', icon: Video },
   { slug: 'recordings', label_key: 'recordings', icon: History },
   { slug: 'events', label_key: 'events', icon: ListVideo },
-  { slug: 'plates-lpr', label_key: 'plates_lpr', icon: Badge },
+  { slug: 'plates-lpr', label_key: 'plates_lpr', icon: CreditCard },
   { slug: 'counting', label_key: 'counting', icon: BarChart3 },
   { slug: 'vehicle-counting', label_key: 'vehicle_counting', icon: Car },
   { slug: 'settings', label_key: 'settings', icon: Settings },
@@ -61,7 +61,9 @@ const Header: FC = () => {
     };
     
     const required_module = module_map[slug];
-    return required_module ? has_module_access(required_module) : true;
+    const has_access = required_module ? has_module_access(required_module) : true;
+    
+    return has_access;
   });
 
   /**

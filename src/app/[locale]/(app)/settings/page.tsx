@@ -36,7 +36,7 @@ export default function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="panels" className="flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
-              Paneles
+              {translate_settings('tab_panels')}
             </TabsTrigger>
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
@@ -100,10 +100,10 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings2 className="h-5 w-5" />
-                  Configuración de Paneles
+                  {translate_settings('panels_card_title')}
                 </CardTitle>
                 <CardDescription>
-                  Configura y habilita los paneles del sistema asignando cámaras específicas
+                  {translate_settings('panels_card_description')}
                 </CardDescription>
               </CardHeader>
               <CardContent>

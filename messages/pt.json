@@ -115,6 +115,8 @@
     "users_card_description": "Gerencie usuários do sistema e organize o acesso através de grupos. Atribua funções e permissões de acordo com as necessidades da sua equipe.",
     "backend_card_title": "Serviços Backend",
     "backend_card_description": "Configure serviços automatizados como processamento de placas, contagem de pessoas e notificações em tempo real.",
+    "panels_card_title": "Funções do Sistema",
+    "panels_card_description": "Configure e habilite as funções do sistema atribuindo câmeras específicas",
     "status_online": "Online",
     "tab_appearance": "Aparência",
     "users": {
@@ -253,8 +255,11 @@
     "users_card_description": "Gerencie usuarios do sistema e organize o acesso por grupos. Defina papeis e permissoes conforme a necessidade da equipe.",
     "backend_card_title": "Servicos de Backend",
     "backend_card_description": "Configure servicos automatizados como processamento de placas, contagem de pessoas e notificacoes em tempo real.",
+    "panels_card_title": "Gestão de Funções",
+    "panels_card_description": "Ativa ou desativa as funções disponíveis do sistema como matrículas, contagem de pessoas e notificações.",
     "status_online": "Online",
-    "tab_appearance": "Aparência"
+    "tab_appearance": "Aparência",
+    "tab_panels": "Funções"
   },
   "notFound": {
     "title": "404 - Pagina nao encontrada",

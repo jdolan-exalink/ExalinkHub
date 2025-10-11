@@ -115,6 +115,8 @@
     "users_card_description": "Manage system users and organize access through groups. Assign roles and permissions according to your team's needs.",
     "backend_card_title": "Backend Services",
     "backend_card_description": "Configure automated services such as license plate processing, people counting and real-time notifications.",
+    "panels_card_title": "System Functions",
+    "panels_card_description": "Configure and enable system functions by assigning specific cameras",
     "status_online": "Online",
     "tab_appearance": "Appearance",
     "users": {
@@ -253,8 +255,11 @@
     "users_card_description": "Manage system users and organize access through groups. Assign roles and permissions tailored to your team.",
     "backend_card_title": "Backend Services",
     "backend_card_description": "Configure automated services such as license plate processing, people counting, and real-time notifications.",
+    "panels_card_title": "Function Management",
+    "panels_card_description": "Enable or disable available system functions such as license plates, people counting, and notifications.",
     "status_online": "Online",
-    "tab_appearance": "Appearance"
+    "tab_appearance": "Appearance",
+    "tab_panels": "Functions"
   },
   "notFound": {
     "title": "404 - Page not found",

@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { get_active_frigate_servers } from '@/lib/frigate-servers';
-import { FrigateAPI } from '@/lib/frigate-api';
+import { NextResponse } from 'next/server';
+import {
+  get_active_frigate_servers,
+  getFrigateHeaders as get_frigate_headers
+} from '@/lib/frigate-servers';
+import { create_frigate_api } from '@/lib/frigate-api';
 
 /**
  * Endpoint de estado Frigate: prueba conectividad con todos los servidores activos
@@ -10,7 +13,7 @@ import { FrigateAPI } from '@/lib/frigate-api';
 export async function GET() {
   try {
     console.log('=== FRIGATE STATUS ENDPOINT ===');
-  const servers = get_active_frigate_servers();
+    const servers = get_active_frigate_servers();
     const results = [];
 
     for (const server of servers) {
@@ -21,7 +24,12 @@ export async function GET() {
         // Test basic connectivity
         const testResponse = await fetch(server.baseUrl, {
           method: 'HEAD',
-          signal: AbortSignal.timeout(5000)
+          signal: AbortSignal.timeout(5000),
+          headers: (() => {
+            const auth_headers = get_frigate_headers(server);
+            delete auth_headers['Content-Type'];
+            return auth_headers;
+          })()
         });
         connectivity = testResponse.ok;
       } catch (connectError) {
@@ -30,7 +38,7 @@ export async function GET() {
 
       // Test Frigate API connection
       try {
-        const api = new FrigateAPI({ baseUrl: server.baseUrl });
+        const api = create_frigate_api(server);
         const conn = await api.testConnection?.();
         if (conn?.success) {
           version = conn.version;

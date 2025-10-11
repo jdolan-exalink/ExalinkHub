@@ -12,11 +12,10 @@ import { get_active_frigate_servers } from '@/lib/frigate-servers';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const eventId = resolvedParams.id;
+    const { id: eventId } = await context.params;
     const { searchParams } = new URL(request.url);
     const download = searchParams.get('download') === '1';
 

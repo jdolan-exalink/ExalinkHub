@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         counted: stats.total_events,
         events_today: stats.events_today,
         active_cameras: cameras.length,
-        active_objects: stats.active_objects.length,
+        active_objects: Array.isArray(stats.active_objects) ? stats.active_objects.length : 0,
         memory_mb: 0, // TODO: Implementar métricas reales
         cpu_percent: 0, // TODO: Implementar métricas reales
         config: JSON.stringify({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
+import { resolve_frigate_server, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
 
 export async function GET(
   request: NextRequest,
@@ -9,6 +9,7 @@ export async function GET(
     const { camera } = await params;
     const searchParams = request.nextUrl.searchParams;
     const quality = searchParams.get('quality') as 'main' | 'sub' | null;
+    const server_id = searchParams.get('server_id');
     
     if (!camera) {
       return NextResponse.json(
@@ -17,12 +18,21 @@ export async function GET(
       );
     }
 
+    const target_server = resolve_frigate_server(server_id);
+    if (!target_server) {
+      return NextResponse.json(
+        { error: 'No hay servidores Frigate disponibles' },
+        { status: 503 }
+      );
+    }
+
     console.log(`Proxying MJPEG stream for camera: ${camera}, quality: ${quality || 'sub'}`);
 
     // URL del stream MJPEG correcto desde Frigate (usando sub por defecto)
+    const base_url = target_server.baseUrl;
     const streamUrl = quality 
-      ? `http://10.1.1.252:5000/api/${camera}?stream=${quality}`
-      : `http://10.1.1.252:5000/api/${camera}?stream=sub`;
+      ? `${base_url}/api/${camera}?stream=${quality}`
+      : `${base_url}/api/${camera}?stream=sub`;
     
     console.log(`Stream URL: ${streamUrl}`);
 
@@ -30,6 +40,11 @@ export async function GET(
     const response = await fetch(streamUrl, {
       headers: {
         'User-Agent': 'Security-Studio-Proxy/1.0',
+        ...(() => {
+          const auth_headers = get_frigate_headers(target_server);
+          delete auth_headers['Content-Type'];
+          return auth_headers;
+        })(),
       },
     });
 

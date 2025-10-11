@@ -11,6 +11,14 @@ import type { FrigateServer } from '@/lib/types';
 import { useState } from 'react';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
+type FrigateServerFormData = FrigateServer & {
+  protocol?: 'http' | 'https';
+  port?: number;
+  username?: string;
+  password?: string;
+  enabled?: boolean;
+};
+
 const serverSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   url: z.string().min(1, 'URL or IP Address is required'),
@@ -22,7 +30,7 @@ type ServerFormValues = z.infer<typeof serverSchema>;
 
 type ServerFormProps = {
   onSubmit: (data: any) => void;
-  initialData?: FrigateServer;
+  initialData?: FrigateServerFormData;
 };
 
 export default function ServerForm({ onSubmit, initialData }: ServerFormProps) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
+import { create_frigate_api } from '@/lib/frigate-api';
+import { resolve_frigate_server } from '@/lib/frigate-servers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest) {
     const camera = searchParams.get('camera');
     const date = searchParams.get('date');
     const time = searchParams.get('time');
+    const server_id = searchParams.get('server_id');
     
     console.log('Stream parameters:', { camera, date, time });
     
@@ -47,8 +49,21 @@ export async function GET(request: NextRequest) {
         timestamp: recordingDate.toISOString()
       });
 
+      const target_server = resolve_frigate_server(server_id);
+      if (!target_server) {
+        return NextResponse.json(
+          { 
+            error: 'No hay servidores Frigate disponibles',
+            camera,
+            timestamp
+          },
+          { status: 503 }
+        );
+      }
+
+      const frigate_api = create_frigate_api(target_server);
       // Get recordings for the time range
-      const recordings = await frigateAPI.getRecordings({ camera, before, after });
+      const recordings = await frigate_api.getRecordings({ camera, before, after });
       
       console.log('Found recordings:', recordings.length);
       console.log('Recording details:', recordings.map(r => ({
@@ -91,7 +106,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Get video clip from Frigate
-        const videoBlob = await frigateAPI.downloadRecordingClip(camera, clipStartTime, clipEndTime);
+        const videoBlob = await frigate_api.downloadRecordingClip(camera, clipStartTime, clipEndTime);
         
         // Convert blob to array buffer
         const arrayBuffer = await videoBlob.arrayBuffer();
@@ -125,7 +140,7 @@ export async function GET(request: NextRequest) {
             duration: targetRecording.duration,
             path: targetRecording.path
           },
-          video_url: `/api/frigate/recordings/video?camera=${encodeURIComponent(camera)}&start=${targetRecording.start_time}&end=${targetRecording.end_time}`,
+          video_url: `/api/frigate/recordings/video?camera=${encodeURIComponent(camera)}&start=${targetRecording.start_time}&end=${targetRecording.end_time}${server_id ? `&server_id=${encodeURIComponent(server_id)}` : ''}`,
           error: 'Video streaming requires direct Frigate server connection',
           details: videoError instanceof Error ? videoError.message : 'Unknown video error'
         }, { 

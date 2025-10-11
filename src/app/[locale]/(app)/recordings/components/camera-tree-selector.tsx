@@ -74,7 +74,7 @@ export default function CameraTreeSelector({
   }, [camerasByServer, searchQuery]);
 
   // Encontrar la cámara seleccionada (excluyendo offline)
-  const selectedCamera = cameras.find(camera => (camera.id || camera.name) === value && !camera.offline);
+  const selectedCamera = cameras.find(camera => (camera.id || camera.name) === value && camera.enabled !== false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -130,29 +130,29 @@ export default function CameraTreeSelector({
                         key={camera.id || camera.name}
                         onClick={() => {
                           // No permitir selección de cámaras offline
-                          if (camera.offline) return;
+                          if (camera.enabled === false) return;
                           onValueChange(camera.id || camera.name);
                           setOpen(false);
                           setSearchQuery("");
                         }}
                         className={cn(
                           "flex items-center gap-2 w-full px-2 py-1.5 text-left cursor-pointer rounded-sm transition-colors",
-                          camera.offline
+                          camera.enabled === false
                             ? "text-gray-500 cursor-not-allowed opacity-60"
                             : "text-white hover:bg-blue-600",
-                          value === (camera.id || camera.name) && !camera.offline && "bg-blue-600"
+                          value === (camera.id || camera.name) && camera.enabled !== false && "bg-blue-600"
                         )}
-                        disabled={camera.offline}
+                        disabled={camera.enabled === false}
                       >
                         <Camera className={cn(
                           "h-4 w-4 flex-shrink-0",
-                          camera.offline ? "text-gray-500" : "text-gray-400"
+                          camera.enabled === false ? "text-gray-500" : "text-gray-400"
                         )} />
                         <span className="truncate flex-1">{camera.name}</span>
-                        {camera.offline && (
+                        {camera.enabled === false && (
                           <span className="text-xs text-gray-500 flex-shrink-0">(Offline)</span>
                         )}
-                        {value === (camera.id || camera.name) && !camera.offline && (
+                        {value === (camera.id || camera.name) && camera.enabled !== false && (
                           <Check className="h-4 w-4 flex-shrink-0" />
                         )}
                       </button>

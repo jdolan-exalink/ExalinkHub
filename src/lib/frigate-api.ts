@@ -3,9 +3,13 @@
  * Servicio para interactuar con la API de Frigate v0.16
  */
 
+import type { FrigateServer } from './frigate-servers';
+import { getFrigateHeaders as get_frigate_headers } from './frigate-servers';
+
 export interface FrigateConfig {
   baseUrl: string;
   apiKey?: string;
+  extraHeaders?: Record<string, string>;
 }
 
 export interface FrigateCamera {
@@ -66,16 +70,20 @@ export interface FrigateStats {
 export class FrigateAPI {
   private baseUrl: string;
   private apiKey?: string;
+  private extraHeaders: Record<string, string>;
 
   constructor(config: FrigateConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.apiKey = config.apiKey;
+    this.extraHeaders = config.extraHeaders ?? {};
   }
 
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
+
+    Object.assign(headers, this.extraHeaders);
     
     if (this.apiKey) {
       headers['X-Frigate-API-Key'] = this.apiKey;
@@ -615,11 +623,17 @@ export class FrigateAPI {
   }
 }
 
-// Configuración por defecto del servidor de Casa
-export const defaultFrigateConfig: FrigateConfig = {
-  baseUrl: 'http://10.1.1.252:5000',
-  // apiKey: undefined // Sin clave API por defecto
-};
+/**
+ * Crea una instancia de FrigateAPI aplicando las cabeceras de autenticación
+ * configuradas para un servidor activo.
+ */
+export function create_frigate_api(server: FrigateServer): FrigateAPI {
+  const auth_headers = get_frigate_headers(server);
+  const sanitized_headers: Record<string, string> = { ...auth_headers };
+  delete sanitized_headers['Content-Type'];
 
-// Instancia por defecto
-export const frigateAPI = new FrigateAPI(defaultFrigateConfig);
+  return new FrigateAPI({
+    baseUrl: server.baseUrl,
+    extraHeaders: sanitized_headers
+  });
+}

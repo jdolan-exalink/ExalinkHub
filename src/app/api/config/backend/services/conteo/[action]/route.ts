@@ -28,10 +28,10 @@ interface service_control_response {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { action: string } }
+  context: { params: Promise<{ action: string }> }
 ): Promise<NextResponse<service_control_response>> {
+  const { action } = await context.params;
   try {
-    const { action } = params;
     const valid_actions = ['start', 'stop', 'restart'];
     
     if (!valid_actions.includes(action)) {
@@ -151,9 +151,9 @@ export async function POST(
     
     return NextResponse.json({
       success: false,
-      message: `Error al ${params.action === 'start' ? 'iniciar' : params.action === 'stop' ? 'detener' : 'reiniciar'} el servicio: ${error.message}`,
+      message: `Error al ${action === 'start' ? 'iniciar' : action === 'stop' ? 'detener' : 'reiniciar'} el servicio: ${error.message}`,
       service: 'conteo',
-      action: params.action,
+      action,
       status: 'error'
     }, { status: 500 });
   }

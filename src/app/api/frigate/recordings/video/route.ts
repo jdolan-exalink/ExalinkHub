@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
+import { create_frigate_api } from '@/lib/frigate-api';
+import { resolve_frigate_server } from '@/lib/frigate-servers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +10,7 @@ export async function GET(request: NextRequest) {
     const camera = searchParams.get('camera');
     const start = searchParams.get('start');
     const end = searchParams.get('end');
+    const server_id = searchParams.get('server_id');
     
     console.log('Video stream parameters:', { camera, start, end });
     
@@ -39,9 +41,24 @@ export async function GET(request: NextRequest) {
     });
 
     try {
+      const target_server = resolve_frigate_server(server_id);
+
+      if (!target_server) {
+        return NextResponse.json(
+          {
+            error: 'No hay servidores Frigate disponibles',
+            camera,
+            startTime,
+            endTime
+          },
+          { status: 503 }
+        );
+      }
+
+      const frigate_api = create_frigate_api(target_server);
       // Iniciar exportación
       console.log('Starting export...');
-      const exportId = await frigateAPI.startRecordingExport(camera, startTime, endTime);
+      const exportId = await frigate_api.startRecordingExport(camera, startTime, endTime);
       console.log('Export started with ID:', exportId);
       
       // Esperar a que se complete con progreso
@@ -49,13 +66,13 @@ export async function GET(request: NextRequest) {
       let attempts = 0;
       
       while (attempts < maxAttempts) {
-        const status = await frigateAPI.getExportStatus(exportId);
+        const status = await frigate_api.getExportStatus(exportId);
         console.log(`Export status (attempt ${attempts + 1}):`, status);
         
         if (status.status === 'complete') {
           console.log('Export completed, downloading...');
           // Descargar el archivo completado
-          const videoBlob = await frigateAPI.downloadExportedClip(exportId);
+          const videoBlob = await frigate_api.downloadExportedClip(exportId);
           
           // Convert blob to array buffer
           const arrayBuffer = await videoBlob.arrayBuffer();

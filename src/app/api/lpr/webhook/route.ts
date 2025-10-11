@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLPRDatabase } from '@/lib/lpr-database';
 import { getLPRFileManager } from '@/lib/lpr-file-manager';
-import { getActiveFrigateServers, getFrigateHeaders } from '@/lib/frigate-servers';
+import { get_active_frigate_servers, get_frigate_headers as get_frigate_headers } from '@/lib/frigate-servers';
+import type { FrigateServer as ConfiguredFrigateServer } from '@/lib/frigate-servers';
 import type { FrigateEvent } from '@/lib/types';
 
 /**
@@ -56,7 +57,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Obtener evento desde Frigate
-    const servers = getActiveFrigateServers();
+    const servers: ConfiguredFrigateServer[] = get_active_frigate_servers();
     const server = servers.find(s => s.id === serverId);
     
     if (!server) {
@@ -64,7 +65,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const eventUrl = `${server.baseUrl}/api/events/${eventId}`;
-    const headers = getFrigateHeaders(server);
+    const headers = get_frigate_headers(server);
 
     const response = await fetch(eventUrl, { headers });
     
@@ -107,7 +108,7 @@ async function processLPREvent(event: FrigateEvent, serverId: string) {
   }
 
   // Obtener información del servidor
-  const servers = getActiveFrigateServers();
+  const servers: ConfiguredFrigateServer[] = get_active_frigate_servers();
   const server = servers.find(s => s.id === serverId);
   const serverName = server?.name || 'Servidor Desconocido';
 

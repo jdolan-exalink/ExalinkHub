@@ -10,22 +10,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { get_counting_database } from '@/lib/counting-database';
 
-interface RouteParams {
-  params: {
-    service: string;
-    action: string;
-  };
-}
-
 /**
  * Controla el servicio de conteo (start, stop, restart)
  * @param {NextRequest} request - The incoming request
- * @param {RouteParams} params - Route parameters
  * @returns {Promise<NextResponse>} Resultado de la operación
  */
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ service: string; action: string }> }
+) {
   try {
-    const { service, action } = params;
+    const { service, action } = await context.params;
     
     console.log('Counting service control request:', {
       service,
@@ -120,7 +115,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       counted: stats.total_events,
       events_today: stats.events_today,
       active_cameras: stats.active_cameras,
-      active_objects: stats.active_objects.length,
+      active_objects: Array.isArray(stats.active_objects) ? stats.active_objects.length : 0,
       memory_mb: 0,
       cpu_percent: 0
     };

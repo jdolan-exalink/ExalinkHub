@@ -17,7 +17,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { DockerServiceManager } from './docker-service-manager';
-import { FRIGATE_SERVERS, type FrigateServer } from '@/lib/frigate-servers';
+import type { BackendConfig } from '@/lib/config-database';
+type FrigateServerOption = {
+  id: string;
+  name: string;
+  protocol: 'http' | 'https';
+  url: string;
+  port: number;
+  username?: string;
+  password?: string;
+  enabled: boolean;
+  baseUrl: string;
+  status?: Record<string, unknown>;
+};
+
 
 // Declarar los estados globales del componente
 // Estado de servicios backend (MQTT y Frigate)
@@ -383,53 +396,63 @@ const FrigateConfigSection: React.FC<{
   on_change: (config: frigate_config) => void;
   on_test: () => void;
   testing: boolean;
-}> = ({ config, on_change, on_test, testing }) => {
-  
+  servers: FrigateServerOption[];
+}> = ({ config, on_change, on_test, testing, servers }) => {
   const handle_server_select = (server_id: string) => {
     if (server_id === 'custom') {
-      on_change({ 
-        ...config, 
+      on_change({
+        ...config,
         server_id: undefined,
         host: '',
         port: 5000,
-        use_ssl: false
+        use_ssl: false,
+        username: undefined,
+        password: undefined
       });
-    } else {
-      const selected_server = FRIGATE_SERVERS.find(s => s.id === server_id);
-      if (selected_server) {
-        const url = new URL(selected_server.baseUrl);
-        on_change({
-          ...config,
-          server_id: server_id,
-          host: url.hostname,
-          port: parseInt(url.port) || (url.protocol === 'https:' ? 443 : 80),
-          use_ssl: url.protocol === 'https:',
-          username: selected_server.auth?.username,
-          password: selected_server.auth?.password
-        });
-      }
+      return;
+    }
+
+    const selected_server = servers.find((server) => server.id === server_id);
+    if (!selected_server) {
+      return;
+    }
+
+    try {
+      const url = new URL(selected_server.baseUrl);
+      on_change({
+        ...config,
+        server_id: server_id,
+        host: url.hostname,
+        port: url.port ? parseInt(url.port, 10) : url.protocol === 'https:' ? 443 : 80,
+        use_ssl: url.protocol === 'https:',
+        username: selected_server.username,
+        password: selected_server.password
+      });
+    } catch (error) {
+      console.error('Error analizando URL de servidor Frigate:', error);
     }
   };
-  
-  const selected_server = config.server_id ? FRIGATE_SERVERS.find(s => s.id === config.server_id) : null;
-  
+
+  const selected_server = config.server_id ? servers.find((server) => server.id === config.server_id) : null;
+
   return (
     <div className="space-y-4">
-      {/* Selector de servidor predefinido */}
       <div className="space-y-2">
         <Label>Servidor Frigate</Label>
-        <Select 
-          value={config.server_id || 'custom'} 
-          onValueChange={handle_server_select}
-        >
+        <Select value={config.server_id || 'custom'} onValueChange={handle_server_select}>
           <SelectTrigger>
             <SelectValue placeholder="Seleccionar servidor" />
           </SelectTrigger>
           <SelectContent>
-            {FRIGATE_SERVERS.map(server => (
+            {servers.map((server) => (
               <SelectItem key={server.id} value={server.id}>
                 <div className="flex items-center gap-2">
-                  <Badge variant={server.enabled ? "default" : "secondary"} className="w-2 h-2 p-0" />
+                  <Badge
+                    variant={server.enabled ? 'default' : 'secondary'}
+                    className={server.enabled ? 'bg-green-500 text-white' : ''}
+                  >
+                    {server.enabled ? 'Activo' : 'Inactivo'}
+                  </Badge>
                   {server.name} ({server.baseUrl})
                 </div>
               </SelectItem>
@@ -437,107 +460,87 @@ const FrigateConfigSection: React.FC<{
             <SelectItem value="custom">
               <div className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                Configuración Personalizada
+                Configuracion Personalizada
               </div>
             </SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Mostrar información del servidor seleccionado */}
       {selected_server && (
-        <Alert>
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Servidor seleccionado:</strong> {selected_server.name}<br />
-            <strong>URL:</strong> {selected_server.baseUrl}<br />
-            <strong>Estado:</strong> {selected_server.enabled ? 'Activo' : 'Inactivo'}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {/* Configuración manual (solo si es custom o para override) */}
-      {(!config.server_id || config.server_id === 'custom') && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="frigate-host">Host</Label>
-              <Input
-                id="frigate-host"
-                value={config.host}
-                onChange={(e) => on_change({ ...config, host: e.target.value })}
-                placeholder="localhost"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="frigate-port">Puerto</Label>
-              <Input
-                id="frigate-port"
-                type="number"
-                value={config.port}
-                onChange={(e) => on_change({ ...config, port: parseInt(e.target.value) || 5000 })}
-              />
-            </div>
+        <div className="space-y-1 text-sm bg-muted rounded-lg p-3">
+          <div>
+            <strong>Nombre:</strong> {selected_server.name}
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="frigate-ssl"
-              checked={config.use_ssl}
-              onCheckedChange={(checked) => on_change({ ...config, use_ssl: checked })}
-            />
-            <Label htmlFor="frigate-ssl">Usar HTTPS</Label>
+          <div>
+            <strong>URL:</strong> {selected_server.baseUrl}
           </div>
-        </>
-      )}
-      
-      {/* Autenticación (siempre disponible) */}
-      <Separator />
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium">Autenticación (opcional)</h4>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="frigate-username">Usuario</Label>
-            <Input
-              id="frigate-username"
-              value={config.username || ''}
-              onChange={(e) => on_change({ ...config, username: e.target.value || undefined })}
-              placeholder="admin"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="frigate-password">Contraseña</Label>
-            <Input
-              id="frigate-password"
-              type="password"
-              value={config.password || ''}
-              onChange={(e) => on_change({ ...config, password: e.target.value || undefined })}
-              placeholder="contraseña"
-            />
+          <div className="flex items-center gap-2">
+            <strong>Estado:</strong>
+            <Badge
+              className={selected_server.status?.api_status === 'online' ? 'bg-green-500' : 'bg-yellow-500'}
+            >
+              {selected_server.status?.api_status === 'online' ? 'Disponible' : 'Sin verificar'}
+            </Badge>
           </div>
         </div>
-        
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="frigate-api-key">API Key (alternativo)</Label>
+          <Label>Host / IP</Label>
           <Input
-            id="frigate-api-key"
-            value={config.api_key || ''}
-            onChange={(e) => on_change({ ...config, api_key: e.target.value || undefined })}
-            placeholder="your-api-key"
+            value={config.host}
+            onChange={(e) => on_change({ ...config, host: e.target.value })}
+            placeholder="ej. 192.168.1.10"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Puerto</Label>
+          <Input
+            type="number"
+            value={config.port}
+            onChange={(e) => on_change({ ...config, port: Number(e.target.value) || 0 })}
+            placeholder="5000"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Usuario</Label>
+          <Input
+            value={config.username || ''}
+            onChange={(e) => on_change({ ...config, username: e.target.value || undefined })}
+            placeholder="Opcional"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Contraseña</Label>
+          <Input
+            type="password"
+            value={config.password || ''}
+            onChange={(e) => on_change({ ...config, password: e.target.value || undefined })}
+            placeholder="Opcional"
           />
         </div>
       </div>
-      
-      <Button 
-        onClick={on_test} 
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="frigate-ssl"
+          checked={config.use_ssl}
+          onCheckedChange={(checked) => on_change({ ...config, use_ssl: checked })}
+        />
+        <Label htmlFor="frigate-ssl">Usar HTTPS</Label>
+      </div>
+
+      <Button
+        onClick={on_test}
         disabled={testing}
         variant="outline"
         size="sm"
         className="flex items-center gap-2"
       >
         {testing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
-        Probar Conexión Frigate
+        Probar Conexion Frigate
       </Button>
     </div>
   );
@@ -857,6 +860,38 @@ export function LPRAdvancedSettings({ is_open, on_close, auth_header }: lpr_adva
   
   const [testing_mqtt, set_testing_mqtt] = useState(false);
   const [testing_frigate, set_testing_frigate] = useState(false);
+  const [frigate_servers, set_frigate_servers] = useState<FrigateServerOption[]>([]);
+
+  const load_frigate_servers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/config/servers');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (Array.isArray(data.servers)) {
+        const mapped: FrigateServerOption[] = data.servers.map((server: any) => ({
+          id: String(server.id),
+          name: server.name,
+          protocol: server.protocol,
+          url: server.url,
+          port: server.port,
+          username: server.username || undefined,
+          password: server.password || undefined,
+          enabled: !!server.enabled,
+          baseUrl: `${server.protocol}://${server.url}:${server.port}`,
+          status: server.status
+        }));
+        set_frigate_servers(mapped);
+      } else {
+        set_frigate_servers([]);
+      }
+    } catch (error) {
+      console.error('Error cargando servidores Frigate:', error);
+      set_frigate_servers([]);
+    }
+  }, []);
+
   
   // Cargar configuración al abrir el modal
   useEffect(() => {
@@ -864,6 +899,12 @@ export function LPRAdvancedSettings({ is_open, on_close, auth_header }: lpr_adva
       load_config();
     }
   }, [is_open, load_config]);
+
+  useEffect(() => {
+    if (is_open) {
+      load_frigate_servers();
+    }
+  }, [is_open, load_frigate_servers]);
   
   // Cargar cámaras cuando cambie la configuración de Frigate
   useEffect(() => {
@@ -1058,6 +1099,7 @@ export function LPRAdvancedSettings({ is_open, on_close, auth_header }: lpr_adva
                   on_change={(frigate_config: frigate_config) => set_config({ ...config, frigate: frigate_config })}
                   on_test={test_frigate_connection}
                   testing={testing_frigate}
+                  servers={frigate_servers}
                 />
               </CardContent>
             </Card>

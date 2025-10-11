@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfigDatabase } from '@/lib/config-database';
-import { FRIGATE_SERVERS } from '@/lib/frigate-servers';
+import {
+  get_frigate_server_by_id,
+  getFrigateHeaders as get_frigate_headers
+} from '@/lib/frigate-servers';
 
 /**
  * Verifica el estado de conectividad de MQTT y Frigate para el sistema LPR
@@ -73,12 +76,19 @@ export async function GET(request: NextRequest) {
 
     // Verificación real de Frigate
     if (backend_config.lpr_frigate_server_id) {
-      const server = FRIGATE_SERVERS.find(s => s.id === backend_config.lpr_frigate_server_id);
+      const server = get_frigate_server_by_id(backend_config.lpr_frigate_server_id);
       if (server && server.enabled) {
         status.frigate_configured = true;
         // Probar conexión real a Frigate
         try {
-          const response = await fetch(`${server.baseUrl}/version`, { method: 'GET', signal: AbortSignal.timeout(3000) });
+          const headers = get_frigate_headers(server);
+          delete headers['Content-Type'];
+
+          const response = await fetch(`${server.baseUrl}/api/version`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(3000),
+            headers
+          });
           if (response.ok) {
             status.frigate_status = 'online';
           } else {

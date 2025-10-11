@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   RefreshCw,
   Settings,
-  BarChart3
+  BarChart3,
+  CreditCard
 } from 'lucide-react';
 
 interface ServiceStatus {
@@ -46,6 +47,7 @@ function build_locale_href(locale: string, path: string): string {
 
 export default function DashboardPage() {
   const locale = use_locale();
+  
   const [services, setServices] = useState<ServiceStatus[]>([
     {
       name: 'LPR Backend',
@@ -310,15 +312,22 @@ export default function DashboardPage() {
 
             <Button asChild variant="outline" className="h-20 flex-col gap-2">
               <Link href={build_locale_href(locale, 'plates-lpr')}>
-                <Car className="h-6 w-6" />
-                LPR
+                <CreditCard className="h-6 w-6" />
+                Matrículas
               </Link>
             </Button>
 
             <Button asChild variant="outline" className="h-20 flex-col gap-2">
               <Link href={build_locale_href(locale, 'counting')}>
-                <Activity className="h-6 w-6" />
-                Conteo
+                <BarChart3 className="h-6 w-6" />
+                Conteo Personas
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-20 flex-col gap-2">
+              <Link href={build_locale_href(locale, 'notifications')}>
+                <Mail className="h-6 w-6" />
+                Notificaciones
               </Link>
             </Button>
 

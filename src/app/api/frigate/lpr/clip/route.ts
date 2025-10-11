@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFrigateServerById, getFrigateHeaders } from '@/lib/frigate-servers';
+import { get_frigate_server_by_id, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
 
 /**
  * Proxy para clips de eventos LPR
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener configuración del servidor
-    const server = getFrigateServerById(serverId);
+    const server = get_frigate_server_by_id(serverId);
     if (!server) {
       return NextResponse.json(
         { error: `Servidor no encontrado: ${serverId}` },
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     console.log(`[LPR Clip] Proxy: ${serverId}/${eventId} -> ${clipUrl}`);
 
     // Headers para el request a Frigate
-    const headers = getFrigateHeaders(server);
+    const headers = get_frigate_headers(server);
 
     // Fetch del clip desde Frigate
     const response = await fetch(clipUrl, {

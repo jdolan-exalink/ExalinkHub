@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolve_frigate_server } from '@/lib/frigate-servers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`WebRTC: Proxying SDP offer for source: ${src}`);
 
+    const server_id = searchParams.get('server_id');
+    const target_server = resolve_frigate_server(server_id);
+    if (!target_server) {
+      return NextResponse.json(
+        { error: 'No hay servidores Frigate configurados' },
+        { status: 503 }
+      );
+    }
+
     // Get the SDP offer from the request body
     const offerSDP = await request.text();
 
@@ -25,7 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the SDP offer to go2rtc (assuming it's running on the same server as Frigate)
-    const go2rtcUrl = `http://10.1.1.252:1984/api/go2rtc/webrtc?src=${encodeURIComponent(src)}`;
+    const base_url = new URL(target_server.baseUrl);
+    const go2rtc_origin = `${base_url.protocol}//${base_url.hostname}:1984`;
+    const go2rtcUrl = `${go2rtc_origin}/api/go2rtc/webrtc?src=${encodeURIComponent(src)}`;
 
     console.log(`WebRTC: Forwarding to go2rtc at ${go2rtcUrl}`);
 

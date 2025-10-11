@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolve_frigate_server, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
 
 export async function GET(request: NextRequest) {
   console.log('=== HLS PROXY ENDPOINT ===');
@@ -9,6 +10,15 @@ export async function GET(request: NextRequest) {
     const start = searchParams.get('start');
     const end = searchParams.get('end');
     const file = searchParams.get('file') || 'master.m3u8';
+    const server_id = searchParams.get('server_id');
+
+    const target_server = resolve_frigate_server(server_id);
+    if (!target_server) {
+      return NextResponse.json(
+        { error: 'No hay servidores Frigate disponibles' },
+        { status: 503 }
+      );
+    }
 
     console.log('HLS Proxy parameters:', { camera, start, end, file });
 
@@ -20,11 +30,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Construct Frigate VOD URL
-    const frigateUrl = `http://10.1.1.252:5000/vod/${camera}/start/${start}/end/${end}/${file}`;
+    const base_url = target_server.baseUrl;
+    const frigateUrl = `${base_url}/vod/${camera}/start/${start}/end/${end}/${file}`;
     console.log('Proxying to Frigate URL:', frigateUrl);
 
     // Fetch from Frigate
-    const response = await fetch(frigateUrl);
+    const request_headers = get_frigate_headers(target_server);
+    delete request_headers['Content-Type'];
+    const response = await fetch(frigateUrl, {
+      headers: request_headers
+    });
     
     if (!response.ok) {
       console.error('Frigate VOD error:', response.status, response.statusText);
@@ -61,7 +76,8 @@ export async function GET(request: NextRequest) {
           }
           
           // Replace with proxy URL
-          return `/api/frigate/recordings/hls/proxy?camera=${camera}&start=${start}&end=${end}&file=${encodeURIComponent(filename)}`;
+          const server_query = server_id ? `&server_id=${encodeURIComponent(server_id)}` : '';
+          return `/api/frigate/recordings/hls/proxy?camera=${camera}&start=${start}&end=${end}&file=${encodeURIComponent(filename)}${server_query}`;
         }
       );
       
@@ -71,7 +87,8 @@ export async function GET(request: NextRequest) {
         (match, filename) => {
           // Extract just the filename from any path
           const cleanFilename = filename.includes('/') ? filename.split('/').pop() : filename;
-          return `URI="/api/frigate/recordings/hls/proxy?camera=${camera}&start=${start}&end=${end}&file=${encodeURIComponent(cleanFilename)}"`;
+          const server_query = server_id ? `&server_id=${encodeURIComponent(server_id)}` : '';
+          return `URI="/api/frigate/recordings/hls/proxy?camera=${camera}&start=${start}&end=${end}&file=${encodeURIComponent(cleanFilename)}${server_query}"`;
         }
       );
       

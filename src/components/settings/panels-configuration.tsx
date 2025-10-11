@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -45,6 +46,7 @@ interface Camera {
 }
 
 export function PanelsConfiguration() {
+  const translate_settings = useTranslations('settings');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadingCameras, setLoadingCameras] = useState(false);
@@ -344,7 +346,7 @@ export function PanelsConfiguration() {
     return (
       <div className="flex items-center justify-center py-8">
         <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-        Cargando configuración de paneles...
+        Cargando configuración de funciones...
       </div>
     );
   }
@@ -353,9 +355,9 @@ export function PanelsConfiguration() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Configuración de Paneles</h3>
+          <h3 className="text-lg font-semibold">{translate_settings('panels_card_title')}</h3>
           <p className="text-sm text-muted-foreground">
-            Habilita y configura los paneles del sistema asignando cámaras específicas a cada uno
+            {translate_settings('panels_card_description')}
           </p>
         </div>
         <Badge variant="outline" className="flex items-center gap-1">
@@ -379,7 +381,7 @@ export function PanelsConfiguration() {
         <Alert>
           <RefreshCw className="h-4 w-4 animate-spin" />
           <AlertDescription>
-            Guardando configuración de paneles...
+            Guardando configuración de funciones...
           </AlertDescription>
         </Alert>
       )}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
+import { create_frigate_api } from '@/lib/frigate-api';
+import { resolve_frigate_server } from '@/lib/frigate-servers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,6 +8,7 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const camera = searchParams.get('camera') || 'Portones';
+    const server_id = searchParams.get('server_id');
     
     // Get recordings for today
     const now = new Date();
@@ -26,7 +28,18 @@ export async function GET(request: NextRequest) {
     
     // Test direct Frigate API call
     try {
-      const recordings = await frigateAPI.getRecordings({ camera, after, before });
+      const target_server = resolve_frigate_server(server_id);
+
+      if (!target_server) {
+        return NextResponse.json({
+          success: false,
+          error: 'No hay servidores Frigate disponibles',
+          camera: camera
+        }, { status: 503 });
+      }
+
+      const frigate_api = create_frigate_api(target_server);
+      const recordings = await frigate_api.getRecordings({ camera, after, before });
       
       return NextResponse.json({
         success: true,

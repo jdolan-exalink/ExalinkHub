@@ -5,6 +5,7 @@ export interface FrigateServer {
   name: string;
   baseUrl: string;
   enabled: boolean;
+  status?: Record<string, unknown>;
   auth?: {
     type: 'bearer' | 'basic';
     token?: string;
@@ -46,6 +47,11 @@ export function get_frigate_server_by_id(server_id: string | number): FrigateSer
   return map_server_to_frigate_server(server);
 }
 
+export function get_all_frigate_servers(): FrigateServer[] {
+  const db_instance = getConfigDatabase();
+  return db_instance.getAllServers().map(map_server_to_frigate_server);
+}
+
 // Headers de autenticación para requests a Frigate
 export const getFrigateHeaders = (server: FrigateServer): Record<string, string> => {
   const headers: Record<string, string> = {
@@ -61,7 +67,7 @@ export const getFrigateHeaders = (server: FrigateServer): Record<string, string>
         break;
       case 'basic':
         if (server.auth.username && server.auth.password) {
-          const credentials = btoa(`${server.auth.username}:${server.auth.password}`);
+          const credentials = Buffer.from(`${server.auth.username}:${server.auth.password}`).toString('base64');
           headers['Authorization'] = `Basic ${credentials}`;
         }
         break;
@@ -70,3 +76,26 @@ export const getFrigateHeaders = (server: FrigateServer): Record<string, string>
 
   return headers;
 };
+
+/**
+ * Obtiene el servidor principal activo de Frigate.
+ */
+export function get_primary_frigate_server(): FrigateServer | undefined {
+  const active_servers = get_active_frigate_servers();
+  return active_servers.length > 0 ? active_servers[0] : undefined;
+}
+
+/**
+ * Resuelve un servidor de Frigate a partir del identificador solicitado.
+ */
+export function resolve_frigate_server(server_id?: string | number | null): FrigateServer | undefined {
+  if (typeof server_id === 'string' && server_id.trim() !== '') {
+    return get_frigate_server_by_id(server_id);
+  }
+
+  if (typeof server_id === 'number') {
+    return get_frigate_server_by_id(server_id);
+  }
+
+  return get_primary_frigate_server();
+}

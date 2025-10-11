@@ -84,6 +84,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['driveway_entrance'],
     image: getImage('event_car'),
     has_clip: true,
+    has_snapshot: true,
+    score: 0.92,
+    top_score: 0.96,
   },
   {
     id: 'evt-2',
@@ -93,6 +96,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['front_porch'],
     image: getImage('event_person'),
     has_clip: true,
+    has_snapshot: true,
+    score: 0.88,
+    top_score: 0.93,
   },
   {
     id: 'evt-3',
@@ -102,6 +108,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['driveway_entrance'],
     image: getImage('event_lpr'),
     has_clip: true,
+    has_snapshot: true,
+    score: 0.95,
+    top_score: 0.98,
   },
   {
     id: 'evt-4',
@@ -111,6 +120,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['lawn'],
     image: getImage('event_dog'),
     has_clip: true,
+    has_snapshot: true,
+    score: 0.9,
+    top_score: 0.94,
   },
   {
     id: 'evt-5',
@@ -120,6 +132,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['garage_door'],
     image: getImage('event_person_2'),
     has_clip: true,
+    has_snapshot: true,
+    score: 0.87,
+    top_score: 0.9,
   },
   {
     id: 'evt-6',
@@ -129,6 +144,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['street'],
     image: getImage('event_car_2'),
     has_clip: true,
+    has_snapshot: true,
+    score: 0.91,
+    top_score: 0.95,
   },
     {
     id: 'evt-7',
@@ -138,6 +156,9 @@ export const EVENTS: FrigateEvent[] = [
     zones: ['walkway'],
     image: getImage('event_cat'),
     has_clip: false,
+    has_snapshot: false,
+    score: 0.5,
+    top_score: 0.6,
   },
 ];
 

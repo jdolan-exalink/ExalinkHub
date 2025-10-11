@@ -10,10 +10,10 @@ import path from 'path';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { type: string; path: string[] } }
+  context: { params: Promise<{ type: string; path: string[] }> }
 ) {
   try {
-    const { type, path: filePath } = await params;
+    const { type, path: filePath } = await context.params;
     const fileManager = getLPRFileManager();
 
     // Validar tipo

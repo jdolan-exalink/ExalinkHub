@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfigDatabase } from '@/lib/config-database';
-import { FRIGATE_SERVERS } from '@/lib/frigate-servers';
+import {
+  get_frigate_server_by_id,
+  getFrigateHeaders as get_frigate_headers
+} from '@/lib/frigate-servers';
 
 /**
  * Prueba la conexión con el servidor Frigate configurado
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar el servidor en la configuración
-    const server = FRIGATE_SERVERS.find(s => s.id === frigate_server_id);
+    const server = get_frigate_server_by_id(frigate_server_id);
     if (!server) {
       return NextResponse.json({
         success: false,
@@ -57,13 +60,13 @@ export async function POST(request: NextRequest) {
         // Probar endpoint de API de Frigate
         const test_url = `${server.baseUrl}/api/config`;
         
+        const headers = get_frigate_headers(server);
+        delete headers['Content-Type'];
+
         const response = await fetch(test_url, {
           method: 'GET',
           signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
+          headers
         });
 
         clearTimeout(timeout);
@@ -139,7 +142,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar el servidor configurado
-    const server = FRIGATE_SERVERS.find(s => s.id === backend_config.lpr_frigate_server_id);
+    const server = get_frigate_server_by_id(backend_config.lpr_frigate_server_id);
     if (!server) {
       return NextResponse.json({
         status: 'error',

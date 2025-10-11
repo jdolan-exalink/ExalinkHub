@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
-import { getActiveFrigateServers, getFrigateHeaders } from '@/lib/frigate-servers';
+import { create_frigate_api } from '@/lib/frigate-api';
+import {
+  get_active_frigate_servers,
+  getFrigateHeaders as get_frigate_headers,
+  get_primary_frigate_server
+} from '@/lib/frigate-servers';
 import { getConfigDatabase } from '@/lib/config-database';
 import { validateServerConnection } from '@/lib/frigate-auth';
 import type { ServerCamera } from '@/lib/types';
@@ -37,7 +41,7 @@ export async function GET(request: NextRequest) {
 
 // Función para obtener cámaras de múltiples servidores (Panel de Matrículas)
 async function getLPRCameras() {
-  const servers = getActiveFrigateServers();
+  const servers = get_active_frigate_servers();
   const cameras: ServerCamera[] = [];
   const serverStatus: Record<string, string> = {};
   const TIMEOUT_MS = 5000;
@@ -63,7 +67,7 @@ async function getLPRCameras() {
   const serverPromises = servers.map(async (server) => {
     try {
       const configUrl = `${server.baseUrl}/api/config`;
-      const headers = getFrigateHeaders(server);
+  const headers = get_frigate_headers(server);
       console.log(`[Conteo] Consultando cámaras de servidor: ${server.name} (${configUrl})`);
       const response = await fetchWithTimeout(configUrl, {
         method: 'GET',
@@ -132,29 +136,38 @@ async function getLPRCameras() {
 // Función para compatibilidad con el comportamiento existente
 async function getDefaultCameras() {
   console.log('=== CAMERAS ENDPOINT (Default Mode) ===');
-  console.log('Fetching cameras from Frigate...');
+  const primary_server = get_primary_frigate_server();
 
-  const config = await frigateAPI.getConfig();
+  if (!primary_server) {
+    console.warn('No active Frigate servers found in database');
+    return NextResponse.json([], { status: 200 });
+  }
+
+  console.log(`Fetching cameras from Frigate server ${primary_server.name} (${primary_server.baseUrl})...`);
+
+  const frigate_api = create_frigate_api(primary_server);
+  const config = await frigate_api.getConfig();
   console.log('Raw Frigate config received');
 
-  const cameraNames = Object.keys(config.cameras);
-  console.log('Found cameras:', cameraNames);
+  const camera_names = Object.keys(config.cameras);
+  console.log('Found cameras:', camera_names);
 
+  const base_url = primary_server.baseUrl;
   const cameras = await Promise.all(
-    cameraNames.map(async (name) => {
-      const cameraConfig = config.cameras[name];
-      console.log(`Processing camera ${name}:`, cameraConfig);
+    camera_names.map(async (camera_name) => {
+      const camera_config = config.cameras[camera_name];
+      console.log(`Processing camera ${camera_name}:`, camera_config);
 
       return {
-        id: name,
-        name: name,
-        enabled: cameraConfig.enabled,
-        recording: cameraConfig.recording?.enabled || false,
-        detection: cameraConfig.detect?.enabled || false,
-        snapshots: cameraConfig.snapshots?.enabled || false,
-        streamUrl: frigateAPI.getCameraStreamUrl(name),
-        snapshotUrl: `http://10.1.1.252:5000/api/${name}/latest.jpg`,
-        server: 'Casa'
+        id: camera_name,
+        name: camera_name,
+        enabled: camera_config.enabled,
+        recording: camera_config.recording?.enabled || false,
+        detection: camera_config.detect?.enabled || false,
+        snapshots: camera_config.snapshots?.enabled || false,
+        streamUrl: frigate_api.getCameraStreamUrl(camera_name),
+        snapshotUrl: `${base_url}/api/${camera_name}/latest.jpg`,
+        server: primary_server.name
       };
     })
   );

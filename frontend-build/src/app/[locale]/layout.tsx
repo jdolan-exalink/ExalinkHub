@@ -10,7 +10,7 @@ import '../globals.css';
 
 type LocaleLayoutProps = {
   children: ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 };
 
 /**

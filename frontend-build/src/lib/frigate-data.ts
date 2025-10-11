@@ -5,16 +5,15 @@ const CONNECTION_TIMEOUT = 45000; // 45 segundos
 const HEARTBEAT_INTERVAL = 30000; // 30 segundos entre pings
 const serverLastSeen = new Map<string, number>(); // Tracking de última conexión exitosa (usando string para id)
 
-// Servidor por defecto - Casa
+// Servidor por defecto sin configuración real
 export const DEFAULT_SERVER: FrigateServer = {
-  id: 'casa',
-  name: 'Casa',
-  url: 'http://10.1.1.252:5000',
-  status: 'online',
-  // apiKey: undefined // Sin clave API por defecto
+  id: 'placeholder',
+  name: 'Sin configurar',
+  url: '',
+  status: 'offline'
 };
 
-export const SERVERS: FrigateServer[] = [DEFAULT_SERVER];
+export const SERVERS: FrigateServer[] = [];
 
 /**
  * Verificar si un servidor está conectado basado en el último ping exitoso

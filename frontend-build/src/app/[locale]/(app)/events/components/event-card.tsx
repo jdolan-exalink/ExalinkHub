@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Bot, ChevronRight, Clock, Video, Tag, MapPin, Loader2, Sparkles } from 'lucide-react';
 import { categorizeAndPrioritizeEvents } from '@/ai/flows/categorize-and-prioritize-events';
 import type { FrigateEvent, CategorizedEvent } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 // Mock function to simulate reading a data URI
 async function toDataURI(url: string) {

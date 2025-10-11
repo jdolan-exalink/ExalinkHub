@@ -36,8 +36,20 @@ import {
   Calendar
 } from 'lucide-react';
 import type { BackendConfig } from '@/lib/config-database';
-import { FRIGATE_SERVERS, type FrigateServer } from '@/lib/frigate-servers';
 import { toast } from '@/hooks/use-toast';
+
+type FrigateServerOption = {
+  protocol: 'http' | 'https';
+  id: string;
+  name: string;
+  url: string;
+  port: number;
+  username?: string;
+  password?: string;
+  enabled: boolean;
+  baseUrl: string;
+  status?: Record<string, unknown>;
+};
 
 export default function BackendTab() {
   const translate = useTranslations('settings.backend');
@@ -52,6 +64,7 @@ export default function BackendTab() {
     counting: { status: 'stopped', uptime: 0, counted: 0, memory_mb: 0, cpu_percent: 0 },
     notifications: { status: 'stopped', uptime: 0, sent: 0, memory_mb: 0, cpu_percent: 0 }
   });
+  const [frigateServers, setFrigateServers] = useState<FrigateServerOption[]>([]);
 
   const [formData, setFormData] = useState({
     // LPR Configuration Settings
@@ -105,14 +118,45 @@ export default function BackendTab() {
     db_backup_interval: 7
   });
 
+  const loadFrigateServers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/config/servers');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (Array.isArray(data.servers)) {
+        const mapped: FrigateServerOption[] = data.servers.map((server: any) => ({
+          id: String(server.id),
+          name: server.name,
+          protocol: server.protocol,
+          url: server.url,
+          port: server.port,
+          username: server.username || undefined,
+          password: server.password || undefined,
+          enabled: !!server.enabled,
+          baseUrl: `${server.protocol}://${server.url}:${server.port}`,
+          status: server.status
+        }));
+        setFrigateServers(mapped);
+      } else {
+        setFrigateServers([]);
+      }
+    } catch (error) {
+      console.error('Error cargando servidores Frigate:', error);
+      setFrigateServers([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadBackendConfig();
     updateServiceStatus();
+    loadFrigateServers();
     
     // Actualizar estado de servicios cada 5 segundos
     const interval = setInterval(updateServiceStatus, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadFrigateServers]);
 
   const loadBackendConfig = async () => {
     try {
@@ -128,7 +172,7 @@ export default function BackendTab() {
           lpr_mqtt_password: data.config.lpr_mqtt_password || '',
           lpr_mqtt_use_ssl: data.config.lpr_mqtt_use_ssl || false,
           lpr_mqtt_topics_prefix: data.config.lpr_mqtt_topics_prefix || 'frigate',
-          lpr_frigate_server_id: data.config.lpr_frigate_server_id || '',
+          lpr_frigate_server_id: data.config.lpr_frigate_server_id ? String(data.config.lpr_frigate_server_id) : '',
           lpr_retention_events_days: data.config.lpr_retention_events_days || 60,
           lpr_retention_clips_days: data.config.lpr_retention_clips_days || 30,
           lpr_retention_snapshots_days: data.config.lpr_retention_snapshots_days || 60,
@@ -627,10 +671,10 @@ export default function BackendTab() {
                       <SelectValue placeholder="Seleccionar servidor Frigate" />
                     </SelectTrigger>
                     <SelectContent>
-                      {FRIGATE_SERVERS.filter(server => server.enabled).map(server => (
+                      {frigateServers.filter(server => server.enabled).map(server => (
                         <SelectItem key={server.id} value={server.id}>
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div className={`w-2 h-2 rounded-full ${server.status?.api_status === 'online' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                             <span>{server.name}</span>
                             <span className="text-muted-foreground text-xs">({server.baseUrl})</span>
                           </div>
@@ -644,20 +688,28 @@ export default function BackendTab() {
                   <div className="p-3 bg-muted rounded-lg">
                     <h4 className="text-sm font-medium mb-2">Servidor Seleccionado:</h4>
                     {(() => {
-                      const server = FRIGATE_SERVERS.find(s => s.id === formData.lpr_frigate_server_id);
-                      return server ? (
+                      const server = frigateServers.find(s => s.id === formData.lpr_frigate_server_id);
+                      if (!server) {
+                        return (
+                          <div className="text-sm text-muted-foreground">
+                            Servidor no encontrado o deshabilitado.
+                          </div>
+                        );
+                      }
+                      const is_online = server.status?.api_status === 'online';
+                      return (
                         <div className="space-y-1 text-sm">
                           <div><strong>Nombre:</strong> {server.name}</div>
                           <div><strong>URL:</strong> {server.baseUrl}</div>
                           <div className="flex items-center gap-2">
                             <strong>Estado:</strong>
-                            <Badge className="bg-green-500">
+                            <Badge className={is_online ? 'bg-green-500' : 'bg-yellow-500'}>
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              Disponible
+                              {is_online ? 'Disponible' : 'Sin verificar'}
                             </Badge>
                           </div>
                         </div>
-                      ) : null;
+                      );
                     })()}
                   </div>
                 )}

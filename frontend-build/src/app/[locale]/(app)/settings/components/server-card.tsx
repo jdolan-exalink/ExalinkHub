@@ -7,8 +7,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Server, Globe, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+type ServerCardData = FrigateServer & {
+  protocol?: 'http' | 'https';
+  port?: number;
+  username?: string;
+  enabled?: boolean;
+  status?: Record<string, unknown>;
+};
+
 type ServerCardProps = {
-  server: FrigateServer;
+  server: ServerCardData;
   onEdit: () => void;
   onDelete: () => void;
 };

@@ -1,7 +1,21 @@
 {
-  "currentVersion": "0.0.26",
-  "lastUpdated": "2025-10-11T09:00:00-03:00",
+  "currentVersion": "0.0.27",
+  "lastUpdated": "2025-10-11T11:30:00-03:00",
   "versions": {
+    "0.0.27": {
+      "releaseDate": "2025-10-11",
+      "description": "Sincronización automática de código fuente para Docker",
+      "changes": [
+        "Implementada sincronización automática de código fuente entre src/ y frontend-build/",
+        "Creados scripts sync-frontend.sh (Linux/Mac) y sync-frontend.bat (Windows)",
+        "Integración automática en scripts de despliegue (deploy.sh, deploy.bat, docker-deploy.sh)",
+        "Solucionado problema de versiones desactualizadas en contenedores Docker",
+        "Mejorada consistencia entre código fuente y contenedores desplegados",
+        "Documentación actualizada en AGENTS.md con nueva implementación"
+      ],
+      "type": "minor",
+      "breaking": false
+    },
     "0.0.26": {
       "releaseDate": "2025-10-11",
       "description": "Fix de sincronización de Docker y warnings de npm",

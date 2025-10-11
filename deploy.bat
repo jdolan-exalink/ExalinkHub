@@ -6,19 +6,28 @@ echo.
 
 cd /d "%~dp0"
 
-echo [1/4] Deteniendo servicios existentes...
+echo [1/5] Sincronizando codigo fuente...
+call sync-frontend.bat
+if errorlevel 1 (
+    echo [ERROR] Error al sincronizar codigo fuente
+    pause
+    exit /b 1
+)
+
+echo.
+echo [2/5] Deteniendo servicios existentes...
 docker compose down
 
 echo.
-echo [2/4] Construyendo imagenes...
+echo [3/5] Construyendo imagenes...
 docker compose build --no-cache
 
 echo.
-echo [3/4] Iniciando servicios backend...
+echo [4/5] Iniciando servicios backend...
 docker compose up -d lpr-backend lpr-redis conteo-backend notificaciones-backend
 
 echo.
-echo [4/4] Iniciando frontend...
+echo [5/5] Iniciando frontend...
 docker compose up -d frontend
 
 echo.

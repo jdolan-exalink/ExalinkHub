@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { get_active_frigate_servers } from '@/lib/frigate-servers';
 
 /**
  * Proxy para snapshots de eventos Frigate
@@ -11,11 +12,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const eventId = resolvedParams.id;
+    const { id: eventId } = await context.params;
     const { searchParams } = new URL(request.url);
     const download = searchParams.get('download') === '1';
 
@@ -26,20 +26,29 @@ export async function GET(
       );
     }
 
-    // URL del servidor Frigate principal (puedes hacer esto configurable)
-    const frigateBaseUrl = process.env.FRIGATE_BASE_URL || 'http://10.1.1.252:5000';
-    const snapshotUrl = `${frigateBaseUrl}/api/events/${eventId}/snapshot.jpg`;
+    // Obtener el servidor Frigate principal desde la base de datos
+    const servers = get_active_frigate_servers();
+    if (!servers.length) {
+      return NextResponse.json(
+        { error: 'No hay servidores Frigate configurados/en línea' },
+        { status: 500 }
+      );
+    }
+    const main_server = servers[0];
+    const snapshotUrl = `${main_server.baseUrl}/api/events/${eventId}/snapshot.jpg`;
 
     console.log(`[Event Snapshot] Fetching: ${eventId} -> ${snapshotUrl}`);
 
-    // Headers de autenticación si están configurados
+    // Headers de autenticación si están configurados en la base de datos
     const headers: HeadersInit = {
       'User-Agent': 'NextJS-Studio/1.0',
     };
-
-    // Agregar autenticación si está configurada
-    if (process.env.FRIGATE_API_KEY) {
-      headers['Authorization'] = `Bearer ${process.env.FRIGATE_API_KEY}`;
+    if (main_server.auth && main_server.auth.type === 'bearer' && main_server.auth.token) {
+      headers['Authorization'] = `Bearer ${main_server.auth.token}`;
+    }
+    if (main_server.auth && main_server.auth.type === 'basic' && main_server.auth.username && main_server.auth.password) {
+      const credentials = Buffer.from(`${main_server.auth.username}:${main_server.auth.password}`).toString('base64');
+      headers['Authorization'] = `Basic ${credentials}`;
     }
 
     // Fetch del snapshot desde Frigate

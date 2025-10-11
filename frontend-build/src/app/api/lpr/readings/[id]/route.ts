@@ -10,9 +10,13 @@ import { getLPRDatabase } from '@/lib/lpr-database';
  * PATCH /api/lpr/readings/[id]
  * Actualizar una lectura LPR específica
  */
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id);
+    const { id: idParam } = await context.params;
+    const id = parseInt(idParam);
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'ID inválido' },

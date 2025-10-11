@@ -35,22 +35,28 @@ print_status "Docker está disponible"
 # Cambiar al directorio del script
 cd "$(dirname "$0")"
 
-print_status "[1/4] Deteniendo servicios existentes..."
+print_status "[1/5] Sincronizando código fuente..."
+if ! ./sync-frontend.sh; then
+    print_error "Error al sincronizar código fuente"
+    exit 1
+fi
+
+print_status "[2/5] Deteniendo servicios existentes..."
 docker compose down
 
-print_status "[2/4] Construyendo imágenes..."
+print_status "[3/5] Construyendo imágenes..."
 if ! docker compose build --no-cache; then
     print_error "Error al construir las imágenes"
     exit 1
 fi
 
-print_status "[3/4] Iniciando servicios backend..."
+print_status "[4/5] Iniciando servicios backend..."
 if ! docker compose up -d lpr-backend lpr-redis conteo-backend notificaciones-backend; then
     print_error "Error al iniciar servicios backend"
     exit 1
 fi
 
-print_status "[4/4] Iniciando frontend..."
+print_status "[5/5] Iniciando frontend..."
 if ! docker compose up -d frontend; then
     print_error "Error al iniciar frontend"
     exit 1

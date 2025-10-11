@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolve_frigate_server, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
 
 export async function GET(
   request: NextRequest,
@@ -16,15 +17,26 @@ export async function GET(
     }
     
     // URL base de Frigate
-    const frigateUrl = `http://10.1.1.252:5000/api/${path}${queryString ? `?${queryString}` : ''}`;
+    const server_id = searchParams.get('server_id');
+    const target_server = resolve_frigate_server(server_id);
+
+    if (!target_server) {
+      return NextResponse.json({ error: 'No hay servidores Frigate disponibles' }, { status: 503 });
+    }
+
+    const frigateUrl = `${target_server.baseUrl}/api/${path}${queryString ? `?${queryString}` : ''}`;
     
     console.log(`🔄 Frigate Proxy: ${frigateUrl}`);
     
     // Hacer petición a Frigate
+    const auth_headers = get_frigate_headers(target_server);
+    delete auth_headers['Content-Type'];
+
     const response = await fetch(frigateUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/vnd.apple.mpegurl,application/x-mpegURL,application/octet-stream',
+        ...auth_headers
       },
     });
     

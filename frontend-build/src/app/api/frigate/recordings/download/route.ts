@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
+import { create_frigate_api } from '@/lib/frigate-api';
+import { resolve_frigate_server } from '@/lib/frigate-servers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,22 +8,23 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const camera = searchParams.get('camera');
-    const startTime = searchParams.get('start_time');
-    const endTime = searchParams.get('end_time');
+    const start_time_param = searchParams.get('start_time');
+    const end_time_param = searchParams.get('end_time');
+    const server_id = searchParams.get('server_id');
     
-    console.log('Download parameters:', { camera, startTime, endTime });
+    console.log('Download parameters:', { camera, start_time_param, end_time_param });
     
-    if (!camera || !startTime || !endTime) {
+    if (!camera || !start_time_param || !end_time_param) {
       return NextResponse.json(
         { error: 'Camera, start_time, and end_time parameters are required' }, 
         { status: 400 }
       );
     }
 
-    const startTimeNum = parseInt(startTime);
-    const endTimeNum = parseInt(endTime);
+    const start_time_num = parseInt(start_time_param);
+    const end_time_num = parseInt(end_time_param);
 
-    if (isNaN(startTimeNum) || isNaN(endTimeNum)) {
+    if (isNaN(start_time_num) || isNaN(end_time_num)) {
       return NextResponse.json({ 
         error: 'start_time and end_time must be valid Unix timestamps' 
       }, { status: 400 });
@@ -30,20 +32,35 @@ export async function GET(request: NextRequest) {
 
     console.log('Downloading clip:', {
       camera,
-      startTimeNum,
-      endTimeNum,
-      startISO: new Date(startTimeNum * 1000).toISOString(),
-      endISO: new Date(endTimeNum * 1000).toISOString(),
-      duration: endTimeNum - startTimeNum
+      start_time_num,
+      end_time_num,
+      startISO: new Date(start_time_num * 1000).toISOString(),
+      endISO: new Date(end_time_num * 1000).toISOString(),
+      duration: end_time_num - start_time_num
     });
 
     try {
+      const target_server = resolve_frigate_server(server_id);
+
+      if (!target_server) {
+        return NextResponse.json(
+          { 
+            error: 'No hay servidores Frigate disponibles',
+            camera,
+            startTime: start_time_num,
+            endTime: end_time_num
+          },
+          { status: 503 }
+        );
+      }
+
+      const frigate_api = create_frigate_api(target_server);
       // Download the clip from Frigate
-      const clipBlob = await frigateAPI.downloadRecordingClip(camera, startTimeNum, endTimeNum);
+      const clip_blob = await frigate_api.downloadRecordingClip(camera, start_time_num, end_time_num);
       
       // Convert blob to buffer for response
-      const arrayBuffer = await clipBlob.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const array_buffer = await clip_blob.arrayBuffer();
+      const buffer = Buffer.from(array_buffer);
 
       console.log('Download successful:', {
         size: buffer.length,
@@ -59,16 +76,16 @@ export async function GET(request: NextRequest) {
             error: 'Downloaded clip is too small or empty',
             size: buffer.length,
             camera,
-            startTime: startTimeNum,
-            endTime: endTimeNum
+            startTime: start_time_num,
+            endTime: end_time_num
           },
           { status: 404 }
         );
       }
 
       // Set appropriate headers for MP4 download
-      const startDate = new Date(startTimeNum * 1000);
-      const endDate = new Date(endTimeNum * 1000);
+      const startDate = new Date(start_time_num * 1000);
+      const endDate = new Date(end_time_num * 1000);
       const filename = `${camera}_${startDate.toISOString().slice(0, 19).replace(/:/g, '-')}_to_${endDate.toISOString().slice(0, 19).replace(/:/g, '-')}.mp4`;
 
       return new NextResponse(buffer as any, {
@@ -88,8 +105,8 @@ export async function GET(request: NextRequest) {
           error: 'Failed to download clip from Frigate server',
           details: frigateError instanceof Error ? frigateError.message : 'Unknown Frigate error',
           camera,
-          startTime: startTimeNum,
-          endTime: endTimeNum,
+          startTime: start_time_num,
+          endTime: end_time_num,
           suggestion: 'Check if Frigate server is accessible and recordings exist for this time range'
         },
         { status: 503 }

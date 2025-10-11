@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useLocale as use_locale } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +18,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Settings,
-  BarChart3
+  BarChart3,
+  CreditCard
 } from 'lucide-react';
-import Link from 'next/link';
 
 interface ServiceStatus {
   name: string;
@@ -35,7 +37,17 @@ interface SystemMetrics {
   totalServices: number;
 }
 
+/**
+ * Genera una ruta interna asegurando que incluya el locale actual.
+ */
+function build_locale_href(locale: string, path: string): string {
+  const sanitized_path = path.startsWith('/') ? path.slice(1) : path;
+  return `/${locale}/${sanitized_path}`;
+}
+
 export default function DashboardPage() {
+  const locale = use_locale();
+  
   const [services, setServices] = useState<ServiceStatus[]>([
     {
       name: 'LPR Backend',
@@ -175,7 +187,7 @@ export default function DashboardPage() {
             Actualizar
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="/settings">
+            <Link href={build_locale_href(locale, 'settings')}>
               <Settings className="h-4 w-4 mr-2" />
               Configuración
             </Link>
@@ -272,7 +284,7 @@ export default function DashboardPage() {
                   {getStatusBadge(service.status)}
                   {service.url && service.status === 'online' && (
                     <Button asChild size="sm" variant="ghost">
-                      <Link href={service.url}>
+                      <Link href={build_locale_href(locale, service.url)}>
                         Ver
                       </Link>
                     </Button>
@@ -292,28 +304,35 @@ export default function DashboardPage() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button asChild variant="outline" className="h-20 flex-col gap-2">
-              <Link href="/live">
+              <Link href={build_locale_href(locale, 'live')}>
                 <Camera className="h-6 w-6" />
                 Vista Live
               </Link>
             </Button>
 
             <Button asChild variant="outline" className="h-20 flex-col gap-2">
-              <Link href="/plates-lpr">
-                <Car className="h-6 w-6" />
-                LPR
+              <Link href={build_locale_href(locale, 'plates-lpr')}>
+                <CreditCard className="h-6 w-6" />
+                Matrículas
               </Link>
             </Button>
 
             <Button asChild variant="outline" className="h-20 flex-col gap-2">
-              <Link href="/counting">
-                <Activity className="h-6 w-6" />
-                Conteo
+              <Link href={build_locale_href(locale, 'counting')}>
+                <BarChart3 className="h-6 w-6" />
+                Conteo Personas
               </Link>
             </Button>
 
             <Button asChild variant="outline" className="h-20 flex-col gap-2">
-              <Link href="/settings">
+              <Link href={build_locale_href(locale, 'notifications')}>
+                <Mail className="h-6 w-6" />
+                Notificaciones
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-20 flex-col gap-2">
+              <Link href={build_locale_href(locale, 'settings')}>
                 <Settings className="h-6 w-6" />
                 Configuración
               </Link>

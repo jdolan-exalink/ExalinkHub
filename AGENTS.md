@@ -284,3 +284,32 @@ Este endpoint consulta el estado de todos los servidores Frigate activos, leyend
 - El endpoint ya no depende de la IP/puerto definidos en `.env`.
 - La lista de servidores Frigate es modificable desde la configuración y puede crecer dinámicamente.
 - Próximos pasos: migrar toda la configuración Frigate a la base de datos y permitir edición vía ajustes en el frontend.
+
+## Implementación: Sincronización automática de código fuente para Docker
+
+**Problema identificado:**
+El despliegue Docker utilizaba una versión desactualizada del sistema (0.0.16) porque el directorio `frontend-build/` no se sincronizaba automáticamente con los cambios del código fuente en `src/`.
+
+**Solución implementada:**
+- **Scripts de sincronización:** `sync-frontend.sh` (Linux/Mac) y `sync-frontend.bat` (Windows)
+- **Integración automática:** Los scripts de despliegue (`deploy.sh`, `deploy.bat`, `docker-deploy.sh`) ahora ejecutan la sincronización antes del build Docker
+- **Archivos sincronizados:** Todo el contenido de `src/`, archivos de configuración (`package.json`, `tsconfig.json`, etc.) y directorios adicionales (`messages/`, `public/`)
+
+**Cómo funciona:**
+```bash
+# Sincronización manual
+./sync-frontend.sh    # Linux/Mac
+./sync-frontend.bat   # Windows
+
+# Sincronización automática en despliegue
+./deploy.sh           # Incluye sincronización automática
+```
+
+**Archivos modificados:**
+- `deploy.sh`: Agregado paso de sincronización [1/5]
+- `deploy.bat`: Agregado paso de sincronización [1/5]  
+- `docker-deploy.sh`: Sincronización en función `build_images()`
+- Nuevos scripts: `sync-frontend.sh` y `sync-frontend.bat`
+
+**Resultado:**
+El despliegue Docker ahora incluye automáticamente todos los últimos cambios del código fuente, asegurando que la versión desplegada (0.0.26) coincida con la versión de desarrollo.

@@ -62,7 +62,13 @@ export default function CameraFeed({ camera, onRemove, gridCellId, streamDelay =
 
   // URL del snapshot estático
   const getSnapshotUrl = () => {
-    return `http://10.1.1.252:5000/api/${camera.id}/latest.jpg?${Date.now()}`;
+    const params = new URLSearchParams();
+    if (camera.server_id !== undefined) {
+      params.set('server_id', String(camera.server_id));
+    }
+    params.set('timestamp', Date.now().toString());
+    const query = params.toString();
+    return `/api/frigate/cameras/${encodeURIComponent(camera.id)}/snapshot${query ? `?${query}` : ''}`;
   };
   
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveFrigateServers, getFrigateHeaders } from '@/lib/frigate-servers';
+import { get_active_frigate_servers, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
+import type { FrigateServer as ConfiguredFrigateServer } from '@/lib/frigate-servers';
 import type { LPREvent, LPRSearchResult, LPRFilters, FrigateEvent } from '@/lib/types';
 
 /**
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     const filters = parseSearchParams(searchParams);
     console.log('🔍 [LPR] Filtros de búsqueda:', filters);
 
-    const servers = getActiveFrigateServers();
+    const servers = get_active_frigate_servers();
     const allEvents: LPREvent[] = [];
     const serverStatus: Record<string, string> = {};
     const TIMEOUT_MS = 10000; // Mayor timeout para búsquedas
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Consultar cada servidor
-    const serverPromises = servers.map(async (server) => {
+    const serverPromises = servers.map(async (server: ConfiguredFrigateServer) => {
       try {
         // Filtrar cámaras para este servidor
         const serverCameras = filters.cameras.filter(cam => 
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
           return;
         }
 
-        const headers = getFrigateHeaders(server);
+        const headers = get_frigate_headers(server);
         
         // Buscar eventos de license_plate directos
         const licenseUrl = buildEventsUrl(server.baseUrl, filters, serverCameras);

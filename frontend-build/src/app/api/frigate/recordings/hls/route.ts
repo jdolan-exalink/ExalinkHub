@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { frigateAPI } from '@/lib/frigate-api';
+import { create_frigate_api } from '@/lib/frigate-api';
+import { resolve_frigate_server } from '@/lib/frigate-servers';
 
 export async function GET(request: NextRequest) {
   console.log('=== HLS STREAM ENDPOINT ===');
@@ -9,6 +10,7 @@ export async function GET(request: NextRequest) {
     const camera = searchParams.get('camera');
     const start = searchParams.get('start');
     const end = searchParams.get('end');
+    const server_id = searchParams.get('server_id');
 
     console.log('HLS stream parameters:', { camera, start, end });
 
@@ -32,7 +34,17 @@ export async function GET(request: NextRequest) {
     });
 
     // Verificar si el stream HLS está disponible
-    const isAvailable = await frigateAPI.checkHLSStream(camera, startTime, endTime);
+    const target_server = resolve_frigate_server(server_id);
+
+    if (!target_server) {
+      return NextResponse.json(
+        { error: 'No hay servidores Frigate disponibles', available: false },
+        { status: 503 }
+      );
+    }
+
+    const frigate_api = create_frigate_api(target_server);
+    const isAvailable = await frigate_api.checkHLSStream(camera, startTime, endTime);
     
     if (!isAvailable) {
       console.log('HLS stream not available for this time range');
@@ -44,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Retornar la URL del stream HLS a través de nuestro proxy
     const proxyUrl = `/api/frigate/recordings/hls/proxy?camera=${encodeURIComponent(camera)}&start=${startTime}&end=${endTime}&file=master.m3u8`;
-    const originalUrl = frigateAPI.getRecordingStreamUrl(camera, startTime, endTime);
+    const originalUrl = frigate_api.getRecordingStreamUrl(camera, startTime, endTime);
     
     console.log('HLS proxy URL:', proxyUrl);
     console.log('Original Frigate URL:', originalUrl);

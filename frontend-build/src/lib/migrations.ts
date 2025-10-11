@@ -5,16 +5,19 @@
 
 import { getConfigDatabase } from './config-database';
 
-export function runAutoStartMigration() {
+/**
+ * Ejecuta la migración de auto_start usando una instancia de ConfigDatabase
+ * @param db Instancia de ConfigDatabase
+ */
+export function runAutoStartMigration(db: any) {
   try {
-    const db = getConfigDatabase();
 
     // Verificar si la columna auto_start ya existe intentando una consulta que la use
     try {
       // Intentar una consulta que incluya la columna auto_start usando un método público
-      const configs = db.getAllBackendConfigs();
+  const configs = db.getAllBackendConfigs();
       // Si podemos obtener las configs y alguna tiene auto_start definido, la columna existe
-      const hasAutoStart = configs.some(config => config.auto_start !== undefined);
+  const hasAutoStart = configs.some((config: any) => config.auto_start !== undefined);
       if (hasAutoStart) {
         console.log('ℹ️ Columna auto_start ya existe, migración omitida');
         return;

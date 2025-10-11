@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -57,6 +57,15 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
   const [availableObjectsInHour, setAvailableObjectsInHour] = useState<{label: string, count: number}[]>([]);
 
+  const selected_camera_data = useMemo(
+    () => cameras.find(
+      (camera_item) =>
+        camera_item.id === selectedCamera || camera_item.name === selectedCamera
+    ),
+    [cameras, selectedCamera]
+  );
+  const selected_server_id = selected_camera_data?.server_id;
+
   // Auto-select first camera
   useEffect(() => {
     if (cameras && cameras.length > 0 && !selectedCamera) {
@@ -87,9 +96,16 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - 60);
       
-      const response = await fetch(
-        `/api/frigate/recordings/summary?camera=${encodeURIComponent(selectedCamera)}&after=${Math.floor(startDate.getTime() / 1000)}&before=${Math.floor(endDate.getTime() / 1000)}`
-      );
+      const summary_params = new URLSearchParams({
+        camera: selectedCamera,
+        after: Math.floor(startDate.getTime() / 1000).toString(),
+        before: Math.floor(endDate.getTime() / 1000).toString()
+      });
+      if (selected_server_id !== undefined) {
+        summary_params.set('server_id', String(selected_server_id));
+      }
+
+      const response = await fetch(`/api/frigate/recordings/summary?${summary_params.toString()}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -143,7 +159,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   // Auto-play when time selection changes
   useEffect(() => {
     if (selectedTime) {
-      console.log('🎬 RecordingBrowser: selectedTime changed:', {
+      console.log('?? RecordingBrowser: selectedTime changed:', {
         selectedTime,
         date: new Date(selectedTime * 1000).toISOString(),
         time: format(new Date(selectedTime * 1000), 'HH:mm:ss')
@@ -166,7 +182,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               console.debug('RecordingBrowser: autoplay succeeded while muted');
             }
           } catch (err) {
-            // Autoplay was blocked. Do not call play again — wait for user interaction.
+            // Autoplay was blocked. Do not call play again � wait for user interaction.
             console.debug('RecordingBrowser: autoplay blocked, waiting for user interaction');
           }
         }, 500);
@@ -182,10 +198,15 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const recordings_params = new URLSearchParams({
+        camera: selectedCamera,
+        date: dateStr
+      });
+      if (selected_server_id !== undefined) {
+        recordings_params.set('server_id', String(selected_server_id));
+      }
 
-      const response = await fetch(
-        `/api/frigate/recordings?camera=${encodeURIComponent(selectedCamera)}&date=${dateStr}`
-      );
+      const response = await fetch(`/api/frigate/recordings?${recordings_params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch recordings: ${response.status}`);
@@ -208,7 +229,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   };
 
   const handleTimeSelect = (timestamp: number) => {
-    console.log('🎯 RecordingBrowser: Event clicked, navigating to timestamp:', {
+    console.log('?? RecordingBrowser: Event clicked, navigating to timestamp:', {
       timestamp,
       date: new Date(timestamp * 1000).toISOString(),
       time: format(new Date(timestamp * 1000), 'HH:mm:ss')
@@ -230,64 +251,47 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
     }));
 
     try {
-      // Usar directamente la URL VOD de Frigate sin el servidor proxy
-      const frigateBaseUrl = 'http://10.1.1.252:5000'; // URL directa de Frigate
-      const vodUrl = `${frigateBaseUrl}/vod/${encodeURIComponent(selectedCamera)}/start/${start}/end/${end}/master.m3u8`;
-      
-      console.log('Descargando directamente desde Frigate:', vodUrl);
-      console.log('Parámetros:', {
+      const download_params = new URLSearchParams({
         camera: selectedCamera,
-        start,
-        end,
-        startDate: new Date(start * 1000).toISOString(),
-        endDate: new Date(end * 1000).toISOString()
+        start_time: String(start),
+        end_time: String(end)
       });
-      
-      // Actualizar progreso
-      setDownloadProgress(prev => ({
-        ...prev,
-        [downloadKey]: { progress: 25, status: 'Conectando con Frigate...' }
-      }));
-
-      // Hacer petición directa a Frigate
-      const response = await fetch(vodUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Error de Frigate: ${response.status} ${response.statusText}`);
+      if (selected_server_id !== undefined) {
+        download_params.set('server_id', String(selected_server_id));
       }
 
-      // Obtener el contenido M3U8
-      const m3u8Content = await response.text();
-      console.log('M3U8 content:', m3u8Content);
+      console.log('Descargando clip a trav�s del backend:', download_params.toString());
 
-      // Actualizar progreso
       setDownloadProgress(prev => ({
         ...prev,
-        [downloadKey]: { progress: 75, status: 'Procesando stream...' }
+        [downloadKey]: { progress: 25, status: 'Preparando clip en Frigate...' }
       }));
 
-      // Crear un blob con el contenido M3U8
-      const blob = new Blob([m3u8Content], { type: 'application/vnd.apple.mpegurl' });
+      const response = await fetch(`/api/frigate/recordings/download?${download_params.toString()}`);
       
-      // Crear y descargar el archivo M3U8
+      if (!response.ok) {
+        throw new Error(`Error al generar clip: ${response.status} ${response.statusText}`);
+      }
+
+      setDownloadProgress(prev => ({
+        ...prev,
+        [downloadKey]: { progress: 70, status: 'Descargando MP4...' }
+      }));
+
+      const clip_blob = await response.blob();
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${selectedCamera}_${format(new Date(start * 1000), 'yyyy-MM-dd_HH-mm-ss')}_to_${format(new Date(end * 1000), 'HH-mm-ss')}.m3u8`;
+      link.href = URL.createObjectURL(clip_blob);
+      link.download = `${selectedCamera}_${format(new Date(start * 1000), 'yyyy-MM-dd_HH-mm-ss')}_to_${format(new Date(end * 1000), 'HH-mm-ss')}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
 
-      // Completar progreso
       setDownloadProgress(prev => ({
         ...prev,
-        [downloadKey]: { progress: 100, status: 'M3U8 descargado! (Usar con VLC o similar)' }
+        [downloadKey]: { progress: 100, status: 'Descarga completada' }
       }));
 
-      // Mostrar información al usuario
-      alert(`Se ha descargado el archivo M3U8.\n\nPara ver el video:\n1. Abre VLC Media Player\n2. Arrastra el archivo .m3u8 a VLC\n3. El video se reproducirá desde Frigate\n\nNota: Necesitas acceso a ${frigateBaseUrl} para que funcione.`);
-
-      // Limpiar progreso después de 5 segundos
       setTimeout(() => {
         setDownloadProgress(prev => {
           const newProgress = { ...prev };
@@ -309,9 +313,9 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       }));
 
       // Mostrar alerta de error
-      alert(`Error al descargar video: ${error instanceof Error ? error.message : 'Error desconocido'}\n\nVerifica que:\n1. Frigate esté ejecutándose en 10.1.1.252:5000\n2. Existan grabaciones para el período seleccionado\n3. La cámara '${selectedCamera}' sea válida`);
+      alert(`Error al descargar video: ${error instanceof Error ? error.message : 'Error desconocido'}\n\nVerifica que:\n1. El servidor Frigate configurado este en linea\n2. Existan grabaciones para el periodo seleccionado\n3. La camara '${selectedCamera}' sea valida`);
 
-      // Limpiar progreso después de 5 segundos
+      // Limpiar progreso despu�s de 5 segundos
       setTimeout(() => {
         setDownloadProgress(prev => {
           const newProgress = { ...prev };
@@ -372,13 +376,13 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
           }
           break;
         default:
-          alert('Error: Tipo de exportación inválido');
+          alert('Error: Tipo de exportaci�n inv�lido');
           return;
       }
 
       // Ensure we have valid timestamps
       if (!startTime || !endTime || startTime >= endTime) {
-        alert('Error: Rango de tiempo inválido para exportación');
+        alert('Error: Rango de tiempo inv�lido para exportaci�n');
         return;
       }
       
@@ -397,7 +401,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       
     } catch (error) {
       console.error('Error en handleExport:', error);
-      alert(`Error al procesar exportación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      alert(`Error al procesar exportaci�n: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -489,20 +493,20 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   // Object icon mapping
   const getObjectIcon = (label: string) => {
     const iconMap: {[key: string]: string} = {
-      person: '👤',
-      car: '🚗',
-      vehicle: '🚗',
-      truck: '🚛',
-      bicycle: '🚲',
-      bike: '🚲',
-      motorcycle: '🏍️',
-      bus: '🚌',
-      dog: '🐕',
-      cat: '🐱',
-      bird: '🐦',
-      package: '📦'
+      person: '??',
+      car: '??',
+      vehicle: '??',
+      truck: '??',
+      bicycle: '??',
+      bike: '??',
+      motorcycle: '???',
+      bus: '??',
+      dog: '??',
+      cat: '??',
+      bird: '??',
+      package: '??'
     };
-    return iconMap[label] || '❓';
+    return iconMap[label] || '?';
   };
 
   return (
@@ -512,16 +516,16 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         {/* Controles */}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Controles Izquierda: Cámara, Hora, Fecha */}
+            {/* Controles Izquierda: C�mara, Hora, Fecha */}
             <div className="flex items-center gap-6">
               <h1 className="font-semibold text-lg mr-4">{translate_recordings_browser('title')}</h1>
               
-              {/* Selector de Cámara */}
+              {/* Selector de C�mara */}
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm">{translate_recordings_browser('camera_label')}</span>
                 <Select value={selectedCamera} onValueChange={setSelectedCamera}>
                   <SelectTrigger className="w-48 h-9 bg-blue-600 border-blue-500 text-white font-medium hover:bg-blue-700">
-                    <SelectValue placeholder="Seleccionar cámara" />
+                    <SelectValue placeholder="Seleccionar c�mara" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     {cameras && cameras.length > 0 ? cameras.map(camera => (
@@ -534,7 +538,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                       </SelectItem>
                     )) : (
                       <SelectItem value="no-cameras" disabled className="text-gray-400">
-                        No hay cámaras disponibles
+                        No hay c�maras disponibles
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -615,7 +619,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     <SelectItem value="all" className="text-white hover:bg-orange-600">
-                      🔍 Todos ({currentHourObjects.totalCount})
+                      ?? Todos ({currentHourObjects.totalCount})
                     </SelectItem>
                     {currentHourObjects.objects.map(obj => (
                       <SelectItem key={obj.label} value={obj.label} className="text-white hover:bg-orange-600">
@@ -629,14 +633,14 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               {/* Estado */}
               <div className="flex items-center gap-2">
                 {isLoading && (
-                  <div className="text-yellow-400 text-sm font-medium">⏳ Cargando...</div>
+                  <div className="text-yellow-400 text-sm font-medium">? Cargando...</div>
                 )}
                 {error && (
-                  <div className="text-red-400 text-sm font-medium">❌ Error: {error}</div>
+                  <div className="text-red-400 text-sm font-medium">? Error: {error}</div>
                 )}
                 {recordingData && (
                   <div className="text-green-400 text-sm font-medium">
-                    📹 {recordingData.segments?.length || 0} {translate_recordings_browser('recordings_count_label')} • 🎯 {recordingData.events?.length || 0} {translate_recordings_browser('events_count_label')}
+                    ?? {recordingData.segments?.length || 0} {translate_recordings_browser('recordings_count_label')} � ?? {recordingData.events?.length || 0} {translate_recordings_browser('events_count_label')}
                   </div>
                 )}
               </div>
@@ -702,12 +706,12 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               </div>
             )}
             
-            {/* Overlay para controles de selección */}
+            {/* Overlay para controles de selecci�n */}
             {timelineSelectionMode && (
               <div className="absolute top-4 right-4 bg-blue-600/90 border border-blue-400 rounded-lg p-2 z-10">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
-                  <span className="text-white font-medium text-xs">Modo Selección</span>
+                  <span className="text-white font-medium text-xs">Modo Selecci�n</span>
                   {selectionRange && (
                     <span className="text-blue-100 text-xs">
                       {time_formatter.format(new Date(selectionRange.start * 1000))} - {time_formatter.format(new Date(selectionRange.end * 1000))}

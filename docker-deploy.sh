@@ -63,9 +63,15 @@ check_prerequisites() {
 
 # Construir imágenes
 build_images() {
+    log_info "Sincronizando código fuente..."
+    if ! ./sync-frontend.sh; then
+        log_error "Error al sincronizar código fuente"
+        exit 1
+    fi
+    
     log_info "Construyendo imágenes Docker..."
     
-    docker-compose build --no-cache lpr-backend conteo-backend notificaciones-backend
+    docker-compose build --no-cache lpr-backend conteo-backend notificaciones-backend frontend
     
     log_success "Imágenes construidas exitosamente"
 }

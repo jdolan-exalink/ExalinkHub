@@ -14,10 +14,11 @@ import { get_counting_database } from '@/lib/counting-database';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const area_id = parseInt(params.id);
+    const { id } = await context.params;
+    const area_id = parseInt(id);
     
     if (isNaN(area_id)) {
       return NextResponse.json(
@@ -77,10 +78,11 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const area_id = parseInt(params.id);
+    const { id } = await context.params;
+    const area_id = parseInt(id);
     
     if (isNaN(area_id)) {
       return NextResponse.json(
@@ -157,10 +159,11 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const area_id = parseInt(params.id);
+    const { id } = await context.params;
+    const area_id = parseInt(id);
     
     if (isNaN(area_id)) {
       return NextResponse.json(

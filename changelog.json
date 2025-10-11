@@ -1,0 +1,123 @@
+{
+  "currentVersion": "0.0.25",
+  "lastUpdated": "2025-10-11T09:00:00-03:00",
+  "versions": {
+    "0.0.25": {
+      "releaseDate": "2025-10-11",
+      "description": "Fix de sincronización de versión y changelog",
+      "changes": [
+        "Corregida sincronización de versión en package.json",
+        "Actualizado changelog.json a versión 0.0.25",
+        "Asegurada consistencia entre código fuente y contenedores Docker",
+        "Mejoras en documentación de despliegue y pruebas"
+      ],
+      "type": "patch",
+      "breaking": false
+    },
+    "0.0.24": {
+      "releaseDate": "2025-10-11",
+      "description": "Mejoras en interfaz y configuración",
+      "changes": [
+        "Renombrado 'Paneles' a 'Funciones' en toda la interfaz",
+        "Cambiado icono de matrículas por tarjeta de crédito",
+        "Restaurada visibilidad de todos los paneles en dashboard y navegación",
+        "Verificada y corregida funcionalidad de retención en ajustes",
+        "Agregadas traducciones faltantes para nueva sección de funciones",
+        "Mejoras en componentes de configuración y navegación",
+        "Actualizaciones de traducciones en español, inglés y portugués"
+      ],
+      "type": "minor",
+      "breaking": false
+    },
+    "0.0.23": {
+      "releaseDate": "2025-10-10",
+      "description": "Fix ENV format y mejoras de despliegue",
+      "changes": [
+        "Fix ENV format in Dockerfiles",
+        "Added forced recovery steps",
+        "Updated README documentation",
+        "Redirect to /live",
+        "Troubleshooting improvements"
+      ],
+      "type": "patch",
+      "breaking": false
+    },
+    "0.0.22": {
+      "releaseDate": "2025-10-09",
+      "description": "Advertencia sobre contexto de build",
+      "changes": [
+        "Advertencia sobre contexto de build de Docker",
+        "Actualización de versión en documentación"
+      ],
+      "type": "patch",
+      "breaking": false
+    },
+    "0.0.21": {
+      "releaseDate": "2025-10-08",
+      "description": "Actualización de README y versión",
+      "changes": [
+        "Mejoras en documentación README",
+        "Actualización de números de versión"
+      ],
+      "type": "patch",
+      "breaking": false
+    },
+    "0.0.20": {
+      "releaseDate": "2025-10-07",
+      "description": "Login UI simplificada",
+      "changes": [
+        "Login UI simplificada, solo título Exalink Hub",
+        "Mejoras en experiencia de usuario"
+      ],
+      "type": "minor",
+      "breaking": false
+    },
+    "0.0.19": {
+      "releaseDate": "2025-10-06",
+      "description": "Restauración de logs y mejoras",
+      "changes": [
+        "Logs button restored",
+        "Backend config improvements",
+        "Documentación y fixes de despliegue"
+      ],
+      "type": "minor",
+      "breaking": false
+    },
+    "0.0.18": {
+      "releaseDate": "2025-10-05",
+      "description": "Cambios y fixes",
+      "changes": [
+        "Mejoras generales y corrección de errores"
+      ],
+      "type": "patch",
+      "breaking": false
+    },
+    "0.0.17": {
+      "releaseDate": "2025-10-04",
+      "description": "Mejoras UI y despliegue",
+      "changes": [
+        "Mejoras en interfaz de usuario",
+        "Optimizaciones de despliegue"
+      ],
+      "type": "minor",
+      "breaking": false
+    },
+    "0.0.16": {
+      "releaseDate": "2025-10-03",
+      "description": "Sistema de conteo de vehículos",
+      "changes": [
+        "Implementación completa del sistema de conteo de vehículos",
+        "Mejoras en backend"
+      ],
+      "type": "major",
+      "breaking": false
+    }
+  },
+  "roadmap": [
+    "Sistema de crucesamientos",
+    "Mejoras en temas y apariencia unificada",
+    "Panel de análisis avanzado",
+    "Integración con más cámaras IP",
+    "Sistema de notificaciones push"
+  ]
+}

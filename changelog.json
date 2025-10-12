@@ -1,7 +1,19 @@
 {
-  "currentVersion": "0.0.27",
-  "lastUpdated": "2025-10-11T11:30:00-03:00",
+  "currentVersion": "0.0.28",
+  "lastUpdated": "2025-10-12T12:00:00-03:00",
   "versions": {
+    "0.0.28": {
+      "releaseDate": "2025-10-12",
+      "description": "Nueva opción de descarga de 30 minutos para grabaciones",
+      "changes": [
+        "Agregada opción 'Últimos 30 Minutos' en modal de exportación de grabaciones",
+        "Cambiado valor por defecto a 30 minutos para mejor compatibilidad con Frigate",
+        "Mejorada experiencia de usuario para descargas de grabaciones dentro de límites de Frigate",
+        "Optimizada selección de períodos de descarga para evitar errores 400 de Frigate"
+      ],
+      "type": "minor",
+      "breaking": false
+    },
     "0.0.27": {
       "releaseDate": "2025-10-11",
       "description": "Sincronización automática de código fuente para Docker",

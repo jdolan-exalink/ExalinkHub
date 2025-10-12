@@ -47,10 +47,38 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showExportModal, setShowExportModal] = useState(false);
+  // Verificar configuración de servidores Frigate
+  const [frigateServersStatus, setFrigateServersStatus] = useState<{
+    available: boolean;
+    count: number;
+    checked: boolean;
+  }>({ available: false, count: 0, checked: false });
+
+  useEffect(() => {
+    const checkFrigateServers = async () => {
+      try {
+        const response = await fetch('/api/frigate/servers');
+        if (response.ok) {
+          const data = await response.json();
+          const activeServers = data.servers?.filter((server: any) => server.enabled) || [];
+          setFrigateServersStatus({
+            available: activeServers.length > 0,
+            count: activeServers.length,
+            checked: true
+          });
+        }
+      } catch (error) {
+        console.warn('Error checking Frigate servers:', error);
+        setFrigateServersStatus({ available: false, count: 0, checked: true });
+      }
+    };
+
+    checkFrigateServers();
+  }, []);
   const [timelineSelectionMode, setTimelineSelectionMode] = useState(false);
   const [previewTime, setPreviewTime] = useState<number | undefined>();
   const [downloadProgress, setDownloadProgress] = useState<{ [key: string]: { progress: number; status: string } }>({});
+  const [showExportModal, setShowExportModal] = useState(false);
   const [daysWithRecordings, setDaysWithRecordings] = useState<Set<string>>(new Set());
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showVideoControls, setShowVideoControls] = useState(true);
@@ -242,6 +270,31 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   };
 
   const handleDownloadRequest = async (start: number, end: number) => {
+    // Validar que el período no sea mayor a 30 minutos (1800 segundos)
+    const duration = end - start;
+    if (duration > 1800) {
+      alert('El período de descarga no puede ser mayor a 30 minutos.\n\nPeríodo solicitado: ' + Math.round(duration / 60) + ' minutos.\n\nFrigate tiene limitaciones en la exportación de períodos largos. Selecciona un período más corto.');
+      return;
+    }
+    // Verificar que haya servidores Frigate configurados antes de intentar la descarga
+    try {
+      const serversResponse = await fetch('/api/frigate/servers');
+      if (!serversResponse.ok) {
+        throw new Error('No se pudo verificar la configuración de servidores');
+      }
+      
+      const serversData = await serversResponse.json();
+      const activeServers = serversData.servers?.filter((server: any) => server.enabled) || [];
+      
+      if (activeServers.length === 0) {
+        alert('No hay servidores Frigate configurados o habilitados.\n\nPara descargar grabaciones, necesitas:\n1. Configurar al menos un servidor Frigate en Ajustes > Servidores Frigate\n2. Asegurarte de que el servidor esté habilitado\n3. Verificar que el servidor esté accesible');
+        return;
+      }
+    } catch (serverCheckError) {
+      console.warn('Error checking Frigate servers:', serverCheckError);
+      // Continuar con la descarga aunque no se pueda verificar
+    }
+
     const downloadKey = `${start}-${end}`;
     
     // Mostrar progreso
@@ -262,15 +315,57 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
       console.log('Descargando clip a trav�s del backend:', download_params.toString());
 
-      setDownloadProgress(prev => ({
-        ...prev,
-        [downloadKey]: { progress: 25, status: 'Preparando clip en Frigate...' }
-      }));
+    setDownloadProgress(prev => ({
+      ...prev,
+      [downloadKey]: { progress: 10, status: 'Verificando disponibilidad de grabaciones...' }
+    }));
 
-      const response = await fetch(`/api/frigate/recordings/download?${download_params.toString()}`);
+    // Verificar que existan grabaciones para el período seleccionado (opcional)
+    try {
+      const checkParams = new URLSearchParams({
+        camera: selectedCamera,
+        after: String(start),
+        before: String(end)
+      });
+      if (selected_server_id !== undefined) {
+        checkParams.set('server_id', String(selected_server_id));
+      }
+
+      const checkResponse = await fetch(`/api/frigate/events?${checkParams.toString()}`);
+      if (checkResponse.ok) {
+        const events = await checkResponse.json();
+        if (!events || events.length === 0) {
+          // No hay eventos, pero puede que haya grabaciones continuas
+          console.log('No se encontraron eventos para el período, pero continuando con la descarga de grabaciones...');
+        }
+      }
+    } catch (checkError) {
+      console.warn('Error checking for recordings availability:', checkError);
+      // Continuar con la descarga aunque no se pueda verificar
+    }
+
+    setDownloadProgress(prev => ({
+      ...prev,
+      [downloadKey]: { progress: 25, status: 'Preparando clip en Frigate...' }
+    }));      const response = await fetch(`/api/frigate/recordings/download?${download_params.toString()}`);
       
       if (!response.ok) {
-        throw new Error(`Error al generar clip: ${response.status} ${response.statusText}`);
+        // Manejar errores específicos
+        if (response.status === 503) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.details || errorData.error || 'Servicio no disponible (503)');
+        } else if (response.status === 404) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.details || errorData.error || 'No se encontraron grabaciones para el período seleccionado');
+        } else if (response.status === 400) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.details || errorData.error || 'Solicitud inválida - período demasiado largo');
+        } else if (response.status === 400) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Parámetros inválidos');
+        } else {
+          throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+        }
       }
 
       setDownloadProgress(prev => ({
@@ -312,8 +407,20 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         }
       }));
 
-      // Mostrar alerta de error
-      alert(`Error al descargar video: ${error instanceof Error ? error.message : 'Error desconocido'}\n\nVerifica que:\n1. El servidor Frigate configurado este en linea\n2. Existan grabaciones para el periodo seleccionado\n3. La camara '${selectedCamera}' sea valida`);
+      // Mostrar alerta de error con información más detallada
+      let errorMessage = `Error al descargar video: ${error instanceof Error ? error.message : 'Error desconocido'}`;
+      
+      if (error instanceof Error && error.message.includes('Servicio no disponible')) {
+        errorMessage += '\n\nPosibles causas:\n• No hay servidores Frigate configurados\n• El servidor Frigate no está ejecutándose\n• Problemas de conectividad de red\n\nSolución: Verifica la configuración de servidores Frigate en Ajustes > Servidores Frigate';
+      } else if (error instanceof Error && error.message.includes('No se encontraron grabaciones')) {
+        errorMessage += '\n\nPosibles causas:\n• No hay grabaciones para la fecha/hora seleccionada\n• La cámara no estaba grabando en ese momento\n• Las grabaciones fueron eliminadas por retención\n\nSolución: Selecciona un período diferente o verifica que la cámara esté configurada para grabar';
+      } else if (error instanceof Error && error.message.includes('período demasiado largo')) {
+        errorMessage += '\n\nFrigate tiene limitaciones en la exportación de períodos largos.\n\nSolución: Selecciona un período de máximo 30 minutos para la descarga.';
+      } else {
+        errorMessage += '\n\nVerifica que:\n1. El servidor Frigate esté en línea\n2. Existan grabaciones para el período seleccionado\n3. La cámara seleccionada sea válida';
+      }
+      
+      alert(errorMessage);
 
       // Limpiar progreso despu�s de 5 segundos
       setTimeout(() => {
@@ -338,6 +445,10 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
       const currentTimestamp = Math.floor(baseDate.getTime() / 1000) + (selectedHour * 3600);
       
       switch (options.type) {
+        case 'last_30_minutes':
+          endTime = currentTimestamp;
+          startTime = currentTimestamp - 1800; // 30 minutes
+          break;
         case 'last_hour':
           endTime = currentTimestamp;
           startTime = currentTimestamp - 3600; // 1 hour

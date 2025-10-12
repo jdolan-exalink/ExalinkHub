@@ -22,7 +22,7 @@ interface ExportModalProps {
 }
 
 export interface ExportOptions {
-  type: 'last_hour' | 'last_4_hours' | 'last_8_hours' | 'last_12_hours' | 'last_24_hours' | 'timeline_selection' | 'custom';
+  type: 'last_30_minutes' | 'last_hour' | 'last_4_hours' | 'last_8_hours' | 'last_12_hours' | 'last_24_hours' | 'timeline_selection' | 'custom';
   name: string;
   startDate?: Date;
   endDate?: Date;
@@ -39,7 +39,7 @@ export default function ExportModal({
   onExport,
   onTimelineSelection
 }: ExportModalProps) {
-  const [exportType, setExportType] = useState<ExportOptions['type']>('last_hour');
+  const [exportType, setExportType] = useState<ExportOptions['type']>('last_30_minutes');
   const [exportName, setExportName] = useState('');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -67,6 +67,7 @@ export default function ExportModal({
 
   const generateDefaultName = () => {
     const typeNames = {
+      last_30_minutes: 'Ultimos_30_Minutos',
       last_hour: 'Ultima_Hora',
       last_4_hours: 'Ultimas_4_Horas',
       last_8_hours: 'Ultimas_8_Horas',
@@ -95,6 +96,11 @@ export default function ExportModal({
           {/* Export Type Selection */}
           <RadioGroup value={exportType} onValueChange={(value) => setExportType(value as ExportOptions['type'])}>
             <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="last_30_minutes" id="last_30_minutes" />
+                <Label htmlFor="last_30_minutes">Últimos 30 Minutos</Label>
+              </div>
+              
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="last_hour" id="last_hour" />
                 <Label htmlFor="last_hour">Última Hora</Label>

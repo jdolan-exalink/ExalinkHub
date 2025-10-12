@@ -1,11 +1,20 @@
 ﻿import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const withNextIntl = createNextIntlPlugin('./i18n.ts');
+
+// Leer la versión del package.json
+const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
+const appVersion = packageJson.version;
 
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
+  env: {
+    NEXT_PUBLIC_APP_VERSION: appVersion,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

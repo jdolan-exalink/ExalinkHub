@@ -92,7 +92,7 @@ export async function GET(
           {
             service,
             container: containerName,
-            logs: 'Contenedor no encontrado o no está ejecutándose',
+            logs: `Contenedor '${containerName}' no encontrado. El servicio no está ejecutándose o no ha sido desplegado.`,
             lines: 0,
             tail: true,
             timestamp: new Date().toISOString()

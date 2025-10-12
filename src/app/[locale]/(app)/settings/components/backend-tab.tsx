@@ -1,56 +1,16 @@
-                  {/* Botón Ver Logs al lado del título Matrículas */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLogs('LPR (Matrículas)')}
-                    className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Ver Logs
-                  </Button>
-                  {/* Botón Ver Logs al lado del título Conteo */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLogs('Conteo')}
-                    className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Ver Logs
-                  </Button>
-                  {/* Botón Ver Logs al lado del título Notificaciones */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLogs('Notificaciones')}
-                    className="ml-2 h-[28px] text-purple-600 border-purple-300 hover:bg-purple-50"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Ver Logs
-                  </Button>
-
-
-/**
- * Muestra un mensaje en consola al hacer clic en el botón Ver Logs de cada servicio.
- * @param service_name Nombre del servicio (Matrículas, Conteo, Notificaciones)
- */
-function handleViewLogs(service_name: string) {
-  console.log(`Ver Logs para el servicio: ${service_name}`);
-}
-
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  CreditCard, 
-  Users as UsersIcon, 
-  Bell, 
-  Save, 
-  Play, 
-  Square, 
+import {
+  CreditCard,
+  Users as UsersIcon,
+  Bell,
+  Save,
+  Play,
+  Square,
   Activity,
   Settings,
   AlertTriangle,
@@ -79,6 +39,14 @@ import type { BackendConfig } from '@/lib/config-database';
 
 import { toast } from '@/hooks/use-toast';
 import { CountingConfig } from '@/components/counting/counting-config';
+
+/**
+ * Muestra un mensaje en consola al hacer clic en el botón Ver Logs de cada servicio.
+ * @param service_name Nombre del servicio (Matrículas, Conteo, Notificaciones)
+ */
+function handleViewLogs(service_name: string) {
+  console.log(`Ver Logs para el servicio: ${service_name}`);
+}
 
 export default function BackendTab() {
   // const translate = useTranslations('settings.backend');
@@ -333,7 +301,13 @@ export default function BackendTab() {
   };
 
   const handleViewLogs = async (service: string) => {
-    const serviceSlug = service === 'Conteo' ? 'counting' : service.toLowerCase();
+    const serviceMap: Record<string, string> = {
+      'LPR (Matrículas)': 'lpr',
+      'Conteo': 'counting',
+      'Notificaciones': 'notifications'
+    };
+    
+    const serviceSlug = serviceMap[service] || service.toLowerCase();
     
     setLogsModal({
       open: true,
@@ -357,7 +331,7 @@ export default function BackendTab() {
         const error = await response.json();
         setLogsModal(prev => ({
           ...prev,
-          logs: `Error al obtener logs: ${error.error || 'Error desconocido'}`,
+          logs: error.logs || error.error || 'Error al obtener logs',
           loading: false
         }));
       }
@@ -591,10 +565,10 @@ export default function BackendTab() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services['LPR (Matrículas)']?.enabled ? 'outline' : 'default'}
+                    variant={services['LPR (Matrículas)']?.status === 'running' ? 'outline' : 'default'}
                     onClick={() => handleServiceAction('lpr', 'start')}
-                    disabled={services['LPR (Matrículas)']?.enabled}
-                    className={services['LPR (Matrículas)']?.enabled ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    disabled={services['LPR (Matrículas)']?.status === 'running'}
+                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
                     <Play className="h-3 w-3 mr-1" />
                     Iniciar
@@ -603,8 +577,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('lpr', 'stop')}
-                    disabled={!services['LPR (Matrículas)']?.enabled}
-                    className={services['LPR (Matrículas)']?.enabled ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={services['LPR (Matrículas)']?.status !== 'running'}
+                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Square className="h-3 w-3 mr-1" />
                     Detener
@@ -613,8 +587,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('lpr', 'restart')}
-                    disabled={!services['LPR (Matrículas)']?.enabled}
-                    className={services['LPR (Matrículas)']?.enabled ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={services['LPR (Matrículas)']?.status !== 'running'}
+                    className={services['LPR (Matrículas)']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
@@ -663,10 +637,10 @@ export default function BackendTab() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services['Conteo']?.enabled ? 'outline' : 'default'}
+                    variant={services['Conteo']?.status === 'running' ? 'outline' : 'default'}
                     onClick={() => handleServiceAction('counting', 'start')}
-                    disabled={services['Conteo']?.enabled}
-                    className={services['Conteo']?.enabled ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    disabled={services['Conteo']?.status === 'running'}
+                    className={services['Conteo']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
                     <Play className="h-3 w-3 mr-1" />
                     Iniciar
@@ -675,8 +649,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('counting', 'stop')}
-                    disabled={!services['Conteo']?.enabled}
-                    className={services['Conteo']?.enabled ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={services['Conteo']?.status !== 'running'}
+                    className={services['Conteo']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Square className="h-3 w-3 mr-1" />
                     Detener
@@ -685,8 +659,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('counting', 'restart')}
-                    disabled={!services['Conteo']?.enabled}
-                    className={services['Conteo']?.enabled ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={services['Conteo']?.status !== 'running'}
+                    className={services['Conteo']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar
@@ -735,10 +709,10 @@ export default function BackendTab() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
-                    variant={services['Notificaciones']?.enabled ? 'outline' : 'default'}
+                    variant={services['Notificaciones']?.status === 'running' ? 'outline' : 'default'}
                     onClick={() => handleServiceAction('notifications', 'start')}
-                    disabled={services['Notificaciones']?.enabled}
-                    className={services['Notificaciones']?.enabled ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    disabled={services['Notificaciones']?.status === 'running'}
+                    className={services['Notificaciones']?.status === 'running' ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}
                   >
                     <Play className="h-3 w-3 mr-1" />
                     Iniciar
@@ -747,8 +721,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('notifications', 'stop')}
-                    disabled={!services['Notificaciones']?.enabled}
-                    className={services['Notificaciones']?.enabled ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={services['Notificaciones']?.status !== 'running'}
+                    className={services['Notificaciones']?.status === 'running' ? 'text-red-600 border-red-300 hover:bg-red-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Square className="h-3 w-3 mr-1" />
                     Detener
@@ -757,8 +731,8 @@ export default function BackendTab() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleServiceAction('notifications', 'restart')}
-                    disabled={!services['Notificaciones']?.enabled}
-                    className={services['Notificaciones']?.enabled ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
+                    disabled={services['Notificaciones']?.status !== 'running'}
+                    className={services['Notificaciones']?.status === 'running' ? 'text-blue-600 border-blue-300 hover:bg-blue-50' : 'text-gray-400 border-gray-300 cursor-not-allowed'}
                   >
                     <Activity className="h-3 w-3 mr-1" />
                     Reiniciar

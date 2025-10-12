@@ -37,11 +37,11 @@ import { getDockerContainerStatus, isDockerAvailable } from '@/lib/docker-utils'
  *     },
  *     "Notificaciones": {
  *       "enabled": true,
- *       "status": "running",
- *       "uptime": 1800,
+ *       "status": "error",
+ *       "uptime": 0,
  *       "sent": 25,
- *       "memory_mb": 89.2,
- *       "cpu_percent": 3.1,
+ *       "memory_mb": 0,
+ *       "cpu_percent": 0,
  *       "auto_start": true,
  *       "config": "{...}"
  *     }
@@ -79,7 +79,7 @@ export async function GET() {
       console.log(`Processing ${config.service_name} -> ${displayName}, enabled: ${config.enabled}`);
       if (displayName) {
         const enabled = !!config.enabled;
-        let status: 'running' | 'stopped' = enabled ? 'running' : 'stopped';
+        let status: 'running' | 'stopped' | 'error' = enabled ? 'running' : 'stopped';
         let uptime = enabled ? 3600 : 0; // Default
         let memory_mb = 0;
         let cpu_percent = 0;
@@ -93,14 +93,20 @@ export async function GET() {
               uptime = containerStatus.uptime;
               memory_mb = containerStatus.memory_mb;
               cpu_percent = containerStatus.cpu_percent;
+            } else {
+              // Contenedor no encontrado
+              status = 'error';
+              uptime = 0;
+              memory_mb = 0;
+              cpu_percent = 0;
             }
           } catch (dockerError) {
-            console.warn(`Could not get Docker status for ${config.service_name}:`, dockerError);
-            // Usar valores simulados pero realistas cuando Docker no esté disponible
-            if (enabled) {
-              memory_mb = Math.random() * 50 + 10; // 10-60 MB
-              cpu_percent = Math.random() * 5 + 0.5; // 0.5-5.5%
-            }
+            console.error(`Error getting status for ${config.service_name}:`, dockerError);
+            // Contenedor no existe o error de Docker
+            status = 'error';
+            uptime = 0;
+            memory_mb = 0;
+            cpu_percent = 0;
           }
         } else {
           // Docker no disponible, usar valores simulados pero realistas

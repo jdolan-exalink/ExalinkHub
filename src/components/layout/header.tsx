@@ -20,6 +20,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { FC } from 'react';
 
+// Obtener la versión de la app desde package.json
+const getAppVersion = (): string => {
+  try {
+    // En producción, esto se reemplaza con la versión real durante el build
+    return process.env.NEXT_PUBLIC_APP_VERSION || '0.0.27';
+  } catch {
+    return '0.0.27';
+  }
+};
+
 type NavigationItem = {
   slug: string;
   label_key: string;
@@ -97,9 +107,14 @@ const Header: FC = () => {
           )}
           <Link href={`${locale_prefix}/live`} className="flex items-center gap-2">
             <ShieldCheck className="h-7 w-7 text-primary" />
-            <span className="font-headline text-xl font-semibold tracking-tight">
-              Exalink Hub
-            </span>
+            <div className="flex flex-col">
+              <span className="font-headline text-xl font-semibold tracking-tight">
+                Exalink Hub
+              </span>
+              <span className="text-xs text-muted-foreground -mt-1">
+                v{getAppVersion()}
+              </span>
+            </div>
           </Link>
         </div>
         <nav className="flex items-center space-x-4 lg:space-x-6 h-full flex-1">

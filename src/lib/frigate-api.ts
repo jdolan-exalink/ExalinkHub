@@ -47,18 +47,19 @@ export interface FrigateRecording {
   start_time: number;
   end_time: number;
   duration: number;
-  path: string;
-  size: number;
+  segment_size: number;
 }
 
 export interface FrigateRecordingSegment {
-  start_time: number;
-  end_time: number;
-  duration: number;
-  events: number;
+  id: string;
+  start: number;
+  end: number;
+  motion_detected: boolean;
 }
 
 export interface RecordingTimelineData {
+  camera: string;
+  date: string;
   segments: FrigateRecordingSegment[];
   events: FrigateEvent[];
 }
@@ -71,11 +72,41 @@ export class FrigateAPI {
   private baseUrl: string;
   private apiKey?: string;
   private extraHeaders: Record<string, string>;
+  private timezone_offset: number; // Offset en horas (ej: -3 para UTC-3)
 
   constructor(config: FrigateConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.apiKey = config.apiKey;
     this.extraHeaders = config.extraHeaders ?? {};
+    
+    // Obtener timezone offset de la configuración
+    try {
+      const { getConfigDatabase } = require('./config-database');
+      const db = getConfigDatabase();
+      this.timezone_offset = db.get_timezone_offset();
+      console.log(`🌍 Timezone offset configurado: UTC${this.timezone_offset >= 0 ? '+' : ''}${this.timezone_offset}`);
+    } catch (error) {
+      console.warn('⚠️ No se pudo obtener timezone, usando UTC-3 por defecto');
+      this.timezone_offset = -3;
+    }
+  }
+
+  /**
+   * Convierte un timestamp local a UTC (para enviar a Frigate).
+   * @param local_timestamp - Timestamp en timezone local (segundos)
+   * @returns Timestamp en UTC (segundos)
+   */
+  private local_to_utc(local_timestamp: number): number {
+    return local_timestamp - (this.timezone_offset * 3600);
+  }
+
+  /**
+   * Convierte un timestamp UTC a local (para mostrar al usuario).
+   * @param utc_timestamp - Timestamp en UTC (segundos)
+   * @returns Timestamp en timezone local (segundos)
+   */
+  private utc_to_local(utc_timestamp: number): number {
+    return utc_timestamp + (this.timezone_offset * 3600);
   }
 
   private getHeaders(): Record<string, string> {
@@ -455,30 +486,209 @@ export class FrigateAPI {
   }
 
   /**
-   * Iniciar exportación de clip de video (Frigate 0.16)
+   * Verificar si existen grabaciones para una cámara en un rango de tiempo
+   * IMPORTANTE: start_time y end_time deben venir en timezone LOCAL
    */
-  async startRecordingExport(camera: string, startTime: number, endTime: number): Promise<string> {
-    const url = this.getRecordingClipUrl(camera, startTime, endTime);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        ...this.getHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ playback: 'realtime' }),
+  async check_recordings_available(camera: string, start_time: number, end_time: number): Promise<{ available: boolean; duration?: number; message?: string }> {
+    try {
+      // IMPORTANTE: Frigate trabaja en timezone local del servidor, NO en UTC
+      // Por lo tanto, NO debemos convertir los timestamps
+
+      // Log para debugging utilizando timestamps en UTC y zona local
+      const start_time_utc = this.local_to_utc(start_time);
+      const end_time_utc = this.local_to_utc(end_time);
+      const now_utc_seconds = Math.floor(Date.now() / 1000);
+      const tolerance_seconds = 120; // tolerancia por desfase de relojes (~2 minutos)
+
+      const start_date_local = new Date((start_time_utc + this.timezone_offset * 3600) * 1000);
+      const end_date_local = new Date((end_time_utc + this.timezone_offset * 3600) * 1000);
+      const start_date_utc = new Date(start_time_utc * 1000);
+      const end_date_utc = new Date(end_time_utc * 1000);
+      const now_utc = new Date(now_utc_seconds * 1000);
+      const is_future = start_time_utc > (now_utc_seconds + tolerance_seconds);
+      
+      console.log('🔍 Verificando grabaciones:', {
+        camera,
+        start_time,
+        end_time,
+        start_date_local: start_date_local.toISOString(),
+        end_date_local: end_date_local.toISOString(),
+        start_date_utc: start_date_utc.toISOString(),
+        end_date_utc: end_date_utc.toISOString(),
+        current_date_utc: now_utc.toISOString(),
+        timezone_offset: this.timezone_offset,
+        tolerance_seconds,
+        is_future,
+        duration_requested: end_time - start_time,
+      });
+
+      // Verificar si la fecha LOCAL (convertida a UTC) es futura
+      if (is_future) {
+        console.warn('❌ Fecha de inicio es futura:', {
+          start_date_local: start_date_local.toISOString(),
+          start_date_utc: start_date_utc.toISOString(),
+          now_utc: now_utc.toISOString(),
+          tolerance_seconds,
+        });
+        return { 
+          available: false, 
+          duration: 0,
+          message: `Start time is in the future (${start_date_local.toISOString()}). Cannot export recordings that don't exist yet.` 
+        };
+      }
+
+      // Usar el endpoint de recordings para verificar disponibilidad (con timestamps locales)
+      const url = `${this.baseUrl}/api/${camera}/recordings/summary`;
+      const params = new URLSearchParams({
+        after: String(start_time),
+        before: String(end_time),
+      });
+
+      console.log('📡 Consultando Frigate (local timezone):', `${url}?${params}`);
+
+      const response = await fetch(`${url}?${params}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Failed to check recordings availability:', response.status);
+        // Si falla la verificación, NO permitir continuar - mejor prevenir
+        return { 
+          available: false, 
+          message: `Frigate API returned ${response.status}. Cannot verify recordings.` 
+        };
+      }
+
+      const data = await response.json();
+      console.log('📊 Datos de grabaciones recibidos:', data);
+      
+      // Verificar si hay datos de grabación
+      if (Array.isArray(data) && data.length > 0) {
+        const total_duration = data.reduce((sum: number, rec: any) => sum + (rec.duration || 0), 0);
+        console.log('✅ Grabaciones encontradas. Duración total:', total_duration, 'segundos');
+        
+        // Si la duración es 0, significa que no hay grabaciones reales
+        if (total_duration === 0) {
+          return { 
+            available: false, 
+            duration: 0,
+            message: 'No recordings with actual content found for this time range' 
+          };
+        }
+        
+        return { available: true, duration: total_duration };
+      }
+
+      console.log('❌ No se encontraron datos de grabación');
+      return { available: false, duration: 0, message: 'No recordings found for this time range' };
+    } catch (error) {
+      console.error('❌ Error checking recordings availability:', error);
+      // En caso de error, NO permitir que continúe
+      return { 
+        available: false, 
+        message: `Error verifying recordings: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
+  }
+
+  /**
+   * Iniciar exportación de clip de video
+   * NOTA: Frigate 0.16-0 no soporta el endpoint /api/{camera}/recordings/export
+   * Este método ya no intenta crear exports, solo retorna error descriptivo
+   */
+  async startRecordingExport(camera: string, startTime: number, endTime: number, options?: { name?: string; playback?: string }): Promise<string> {
+    console.log('🎬 Export requested:', {
+      camera,
+      startTime,
+      endTime,
+      start_date: new Date(startTime * 1000).toISOString(),
+      end_date: new Date(endTime * 1000).toISOString(),
+      duration: endTime - startTime,
+      name: options?.name,
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to start export: ${response.status} ${response.statusText}`);
+    // Frigate 0.16-0 no tiene endpoint de export funcional
+    // El endpoint documentado /api/{camera}/recordings/export no existe en esta versión
+    const error_msg = `Recording export is not supported in Frigate 0.16-0. 
+      
+Available alternatives:
+1. Download event clips: GET /api/events/{event_id}/clip.mp4
+2. Use HLS streaming: /vod/{camera}/start/{start}/end/{end}/master.m3u8
+3. Upgrade Frigate to version 0.17+ for export support
+
+Requested: ${camera} from ${new Date(startTime * 1000).toISOString()} to ${new Date(endTime * 1000).toISOString()}`;
+
+    console.error('❌ Export not supported:', error_msg);
+    throw new Error(error_msg);
+  }
+
+  /**
+   * Esperar a que un export esté listo para descargar
+   * Hace polling del estado hasta que complete o falle
+   */
+  async wait_for_export_ready(
+    export_id: string, 
+    options?: { 
+      max_wait_ms?: number; 
+      poll_interval_ms?: number;
+      on_progress?: (progress: number, status: string) => void;
+    }
+  ): Promise<{ ready: boolean; status: string; download_path?: string; error?: string }> {
+    const max_wait = options?.max_wait_ms ?? 300000; // 5 minutos por defecto
+    const poll_interval = options?.poll_interval_ms ?? 2000; // 2 segundos por defecto
+    const start_time = Date.now();
+
+    while (Date.now() - start_time < max_wait) {
+      try {
+        const status_data = await this.getExportStatus(export_id);
+        const status = status_data.status?.toLowerCase() || 'unknown';
+        const progress = status_data.progress ?? 0;
+
+        // Notificar progreso si hay callback
+        if (options?.on_progress) {
+          options.on_progress(progress, status);
+        }
+
+        // Verificar si está completo
+        if (status === 'complete' || status === 'completed') {
+          return {
+            ready: true,
+            status: 'complete',
+            download_path: status_data.download_path,
+          };
+        }
+
+        // Verificar si falló
+        if (status === 'failed' || status === 'error') {
+          return {
+            ready: false,
+            status: 'failed',
+            error: 'Export failed during processing',
+          };
+        }
+
+        // Si está procesando, esperar antes de volver a verificar
+        if (status === 'processing' || status === 'pending' || status === 'running') {
+          await new Promise(resolve => setTimeout(resolve, poll_interval));
+          continue;
+        }
+
+        // Estado desconocido, esperar un poco más
+        await new Promise(resolve => setTimeout(resolve, poll_interval));
+      } catch (error) {
+        console.warn('Error checking export status:', error);
+        // Esperar antes de reintentar
+        await new Promise(resolve => setTimeout(resolve, poll_interval));
+      }
     }
 
-    const result = await response.json();
-    if (!result.success || !result.export_id) {
-      throw new Error('Failed to get export ID');
-    }
-
-    return result.export_id;
+    // Timeout alcanzado
+    return {
+      ready: false,
+      status: 'timeout',
+      error: `Export did not complete within ${max_wait / 1000} seconds`,
+    };
   }
 
   /**
@@ -511,10 +721,102 @@ export class FrigateAPI {
         return { status: 'complete' };
       }
       
-      throw new Error(`Failed to get export status: ${response.status} ${response.statusText}`);
+      // Include body for diagnostics
+      let bodyText = '';
+      try { bodyText = await response.text(); } catch (e) { bodyText = `<failed to read response body: ${e instanceof Error ? e.message : String(e)}>`; }
+      throw new Error(`Failed to get export status: ${response.status} ${response.statusText} - ${bodyText}`);
     }
 
     return response.json();
+  }
+
+  /**
+   * Listar exports existentes en el servidor Frigate
+   * Devuelve un array de objetos con información básica de cada export.
+   */
+  async list_exports(): Promise<Array<{ export_id: string; name?: string; status?: string; created_at?: string; download_path?: string; camera?: string; start_time?: number; end_time?: number }>> {
+    // Algunos Frigate exponen /api/exports o /api/export/list; intentamos ambos
+    const candidates = ['/exports', '/export/list', '/export'];
+
+    for (const endpoint of candidates) {
+      try {
+        const url = `${this.baseUrl}/api${endpoint}`;
+        console.log('Attempting to list exports from', url);
+        const response = await fetch(url, { headers: this.getHeaders() });
+        if (!response.ok) {
+          console.warn(`List exports endpoint ${endpoint} returned ${response.status}`);
+          continue;
+        }
+
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+          continue;
+        }
+
+        try {
+          const data = JSON.parse(text);
+          // Normalizar varias formas posibles de respuesta
+          // Esperamos un array de objetos o un mapa { exports: [...] }
+          let items: any[] = [];
+          if (Array.isArray(data)) items = data;
+          else if (data && Array.isArray(data.exports)) items = data.exports;
+          else if (data && Array.isArray(data.items)) items = data.items;
+
+          // Mapear a forma simplificada
+          const mapped = items.map((it: any) => ({
+            export_id: it.export_id || it.id || it.name || String(it),
+            name: it.name || it.export_name || undefined,
+            status: it.status || undefined,
+            created_at: it.created_at || it.created || undefined,
+            download_path: it.download_path || it.path || undefined,
+            camera: it.camera || undefined,
+            start_time: it.start_time || undefined,
+            end_time: it.end_time || undefined,
+          }));
+
+          return mapped;
+        } catch (parseErr) {
+          console.warn('Failed to parse list exports response:', parseErr instanceof Error ? parseErr.message : String(parseErr));
+          continue;
+        }
+      } catch (err) {
+        console.warn('Error while trying to call list exports endpoint', endpoint, err instanceof Error ? err.message : String(err));
+        continue;
+      }
+    }
+
+    // Si no encontramos ningún endpoint, devolver array vacío
+    return [];
+  }
+
+  /**
+   * Eliminar un export del servidor Frigate
+   * @param export_id - ID del export a eliminar
+   * @returns true si se eliminó correctamente, false en caso contrario
+   */
+  async delete_export(export_id: string): Promise<boolean> {
+    const url = `${this.baseUrl}/api/export/${export_id}`;
+    
+    try {
+      console.log('Deleting export:', export_id, 'from', url);
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        let bodyText = '';
+        try { bodyText = await response.text(); } catch (e) { bodyText = `<failed to read response body: ${e instanceof Error ? e.message : String(e)}>`; }
+        console.error(`Failed to delete export ${export_id}: ${response.status} ${response.statusText} - ${bodyText}`);
+        return false;
+      }
+
+      console.log('Export deleted successfully:', export_id);
+      return true;
+    } catch (err) {
+      console.error('Error deleting export:', err instanceof Error ? err.message : String(err));
+      return false;
+    }
   }
 
   /**
@@ -528,39 +830,226 @@ export class FrigateAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to download exported clip: ${response.status} ${response.statusText}`);
+      let bodyText = '';
+      try { bodyText = await response.text(); } catch (e) { bodyText = `<failed to read response body: ${e instanceof Error ? e.message : String(e)}>`; }
+      throw new Error(`Failed to download exported clip: ${response.status} ${response.statusText} - ${bodyText}`);
     }
 
     return response.blob();
   }
 
   /**
-   * Descargar clip de video (método completo con espera)
+   * Descargar clip de video usando el endpoint directo start/end de Frigate.
+   * @param camera - Nombre de la cámara configurada en Frigate
+   * @param startTime - Timestamp de inicio en segundos (zona horaria local)
+   * @param endTime - Timestamp de fin en segundos (zona horaria local)
    */
-  async downloadRecordingClip(camera: string, startTime: number, endTime: number): Promise<Blob> {
-    // Iniciar exportación
-    const exportId = await this.startRecordingExport(camera, startTime, endTime);
-    
-    // Esperar a que se complete la exportación
-    const maxAttempts = 30; // 30 intentos (30 segundos máximo)
-    let attempts = 0;
-    
-    while (attempts < maxAttempts) {
-      const status = await this.getExportStatus(exportId);
-      
-      if (status.status === 'complete') {
-        // Descargar el archivo completado
-        return this.downloadExportedClip(exportId);
-      } else if (status.status === 'failed') {
-        throw new Error('Export failed');
-      }
-      
-      // Esperar 1 segundo antes del siguiente intento
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      attempts++;
+  async downloadRecordingClip(
+    camera: string,
+    startTime: number,
+    endTime: number,
+    options?: { disable_recording_file_fallback?: boolean }
+  ): Promise<Blob> {
+    const sanitized_camera = encodeURIComponent(camera);
+    const start_seconds = Math.floor(startTime);
+    const end_seconds = Math.floor(endTime);
+
+    if (end_seconds <= start_seconds) {
+      throw new Error(`Invalid time range for clip download: start ${start_seconds} >= end ${end_seconds}`);
     }
-    
-    throw new Error('Export timeout - took too long to complete');
+
+    const clip_url = `${this.baseUrl}/api/${sanitized_camera}/start/${start_seconds}/end/${end_seconds}/clip.mp4`;
+    console.log('Frigate direct clip download URL:', clip_url);
+
+    const max_attempts = 3;
+    const retry_delay_ms = 2000;
+    let last_empty_payload = false;
+    let array_buffer: ArrayBuffer | null = null;
+
+    for (let attempt = 1; attempt <= max_attempts; attempt += 1) {
+      last_empty_payload = false;
+
+      const response = await fetch(clip_url, {
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        let body_text = '';
+        try {
+          body_text = await response.text();
+        } catch (error) {
+          body_text = `<failed to read body: ${error instanceof Error ? error.message : String(error)}>`;
+        }
+
+        throw new Error(`Failed to download clip directly: ${response.status} ${response.statusText} - ${body_text}`);
+      }
+
+      array_buffer = await response.arrayBuffer();
+      if (array_buffer && array_buffer.byteLength > 0) {
+        break;
+      }
+
+      last_empty_payload = true;
+      console.warn(`Frigate clip download attempt ${attempt}/${max_attempts} returned empty payload`, {
+        camera,
+        start_seconds,
+        end_seconds,
+        clip_url,
+      });
+
+      if (attempt < max_attempts) {
+        await new Promise((resolve) => setTimeout(resolve, retry_delay_ms));
+      }
+    }
+
+    if (!array_buffer || array_buffer.byteLength === 0 || last_empty_payload) {
+      console.warn('Frigate clip download exhausted retries with empty payload, attempting HLS fallback', {
+        camera,
+        start_seconds,
+        end_seconds,
+        clip_url,
+      });
+
+      const hls_blob = await this.downloadRecordingClipFromHls(camera, start_seconds, end_seconds).catch((error) => {
+        console.warn(
+          'HLS fallback failed:',
+          error instanceof Error ? error.message : String(error)
+        );
+        return null;
+      });
+
+      if (hls_blob) {
+        return hls_blob;
+      }
+
+      if (!options?.disable_recording_file_fallback) {
+        const recording_blob = await this.downloadRecordingClipFromRecordingFiles(
+          camera,
+          start_seconds,
+          end_seconds
+        ).catch((error) => {
+          console.warn(
+            'Recording file fallback failed:',
+            error instanceof Error ? error.message : String(error)
+          );
+          return null;
+        });
+
+        if (recording_blob) {
+          return recording_blob;
+        }
+      }
+
+      throw new Error('frigate_clip_empty');
+    }
+
+    const byte_view = new Uint8Array(array_buffer);
+    const has_ftyp_box =
+      byte_view.length >= 8 &&
+      byte_view[4] === 0x66 &&
+      byte_view[5] === 0x74 &&
+      byte_view[6] === 0x79 &&
+      byte_view[7] === 0x70;
+
+    if (!has_ftyp_box) {
+      console.warn('Frigate clip download does not contain ftyp box at expected offset', {
+        first_bytes: Array.from(byte_view.slice(0, 12)),
+        clip_url,
+      });
+    }
+
+    return new Blob([array_buffer], { type: 'video/mp4' });
+  }
+
+  private async downloadRecordingClipFromHls(
+    camera: string,
+    start_seconds: number,
+    end_seconds: number
+  ): Promise<Blob | null> {
+    const sanitized_camera = encodeURIComponent(camera);
+    const vod_base = `${this.baseUrl}/vod/${sanitized_camera}/start/${start_seconds}/end/${end_seconds}`;
+    const master_url = `${vod_base}/master.m3u8`;
+
+    const fetch_with_headers = async (url: string) => {
+      return fetch(url, { headers: this.getHeaders() });
+    };
+
+    const master_response = await fetch_with_headers(master_url);
+    if (!master_response.ok) {
+      throw new Error(`Failed to fetch HLS master playlist: ${master_response.status} ${master_response.statusText}`);
+    }
+
+    const master_text = await master_response.text();
+    const variant_line = master_text
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 0 && !line.startsWith('#') && line.endsWith('.m3u8'));
+
+    if (!variant_line) {
+      throw new Error('HLS master playlist does not contain any variant streams');
+    }
+
+    const variant_url = new URL(variant_line, master_url).toString();
+    const variant_response = await fetch_with_headers(variant_url);
+    if (!variant_response.ok) {
+      throw new Error(`Failed to fetch HLS variant playlist: ${variant_response.status} ${variant_response.statusText}`);
+    }
+
+    const variant_text = await variant_response.text();
+    const lines = variant_text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    let init_uri: string | null = null;
+    const segment_uris: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith('#EXT-X-MAP:')) {
+        const matches = /URI="([^"]+)"/.exec(line);
+        if (matches && matches[1]) {
+          init_uri = new URL(matches[1], variant_url).toString();
+        }
+      } else if (!line.startsWith('#')) {
+        segment_uris.push(new URL(line, variant_url).toString());
+      }
+    }
+
+    if (segment_uris.length === 0) {
+      throw new Error('HLS variant playlist does not contain any segments');
+    }
+
+    const buffers: Uint8Array[] = [];
+
+    if (init_uri) {
+      const init_response = await fetch_with_headers(init_uri);
+      if (!init_response.ok) {
+        throw new Error(`Failed to fetch HLS init segment: ${init_response.status} ${init_response.statusText}`);
+      }
+      buffers.push(new Uint8Array(await init_response.arrayBuffer()));
+    }
+
+    for (const segment_uri of segment_uris) {
+      const segment_response = await fetch_with_headers(segment_uri);
+      if (!segment_response.ok) {
+        throw new Error(`Failed to fetch HLS segment ${segment_uri}: ${segment_response.status} ${segment_response.statusText}`);
+      }
+      buffers.push(new Uint8Array(await segment_response.arrayBuffer()));
+    }
+
+    const total_length = buffers.reduce((sum, chunk) => sum + chunk.length, 0);
+    if (total_length === 0) {
+      return null;
+    }
+
+    const merged = new Uint8Array(total_length);
+    let offset = 0;
+    for (const chunk of buffers) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return new Blob([merged], { type: 'video/mp4' });
   }
 
   /**

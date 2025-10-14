@@ -535,32 +535,194 @@ export class FrigateAPI {
   }
 
   /**
-   * Descargar clip de video (método completo con espera)
+   * Descargar clip de video usando el endpoint directo start/end de Frigate.
+   * @param camera - Nombre de la cámara configurada en Frigate
+   * @param startTime - Timestamp de inicio en segundos (zona horaria local)
+   * @param endTime - Timestamp de fin en segundos (zona horaria local)
    */
   async downloadRecordingClip(camera: string, startTime: number, endTime: number): Promise<Blob> {
-    // Iniciar exportación
-    const exportId = await this.startRecordingExport(camera, startTime, endTime);
-    
-    // Esperar a que se complete la exportación
-    const maxAttempts = 30; // 30 intentos (30 segundos máximo)
-    let attempts = 0;
-    
-    while (attempts < maxAttempts) {
-      const status = await this.getExportStatus(exportId);
-      
-      if (status.status === 'complete') {
-        // Descargar el archivo completado
-        return this.downloadExportedClip(exportId);
-      } else if (status.status === 'failed') {
-        throw new Error('Export failed');
-      }
-      
-      // Esperar 1 segundo antes del siguiente intento
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      attempts++;
+    const sanitized_camera = encodeURIComponent(camera);
+    const start_seconds = Math.floor(startTime);
+    const end_seconds = Math.floor(endTime);
+
+    if (end_seconds <= start_seconds) {
+      throw new Error(`Invalid time range for clip download: start ${start_seconds} >= end ${end_seconds}`);
     }
-    
-    throw new Error('Export timeout - took too long to complete');
+
+    const clip_url = `${this.baseUrl}/api/${sanitized_camera}/start/${start_seconds}/end/${end_seconds}/clip.mp4`;
+    console.log('Frigate direct clip download URL:', clip_url);
+
+    const max_attempts = 3;
+    const retry_delay_ms = 2000;
+    let array_buffer: ArrayBuffer | null = null;
+    let last_empty_payload = false;
+
+    for (let attempt = 1; attempt <= max_attempts; attempt += 1) {
+      last_empty_payload = false;
+
+      const response = await fetch(clip_url, {
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        let body_text = '';
+        try {
+          body_text = await response.text();
+        } catch (error) {
+          body_text = `<failed to read body: ${error instanceof Error ? error.message : String(error)}>`;
+        }
+
+        throw new Error(`Failed to download clip directly: ${response.status} ${response.statusText} - ${body_text}`);
+      }
+
+      array_buffer = await response.arrayBuffer();
+      if (array_buffer && array_buffer.byteLength > 0) {
+        break;
+      }
+
+      last_empty_payload = true;
+      console.warn(`Frigate clip download attempt ${attempt}/${max_attempts} returned empty payload`, {
+        camera,
+        start_seconds,
+        end_seconds,
+        clip_url,
+      });
+
+      if (attempt < max_attempts) {
+        await new Promise((resolve) => setTimeout(resolve, retry_delay_ms));
+      }
+    }
+
+    if (!array_buffer || array_buffer.byteLength === 0 || last_empty_payload) {
+      console.warn('Frigate clip download exhausted retries with empty payload, attempting HLS fallback', {
+        camera,
+        start_seconds,
+        end_seconds,
+        clip_url,
+      });
+
+      const hls_blob = await this.downloadRecordingClipFromHls(camera, start_seconds, end_seconds).catch((error) => {
+        console.warn(
+          'HLS fallback failed:',
+          error instanceof Error ? error.message : String(error)
+        );
+        return null;
+      });
+
+      if (hls_blob) {
+        return hls_blob;
+      }
+
+      throw new Error('frigate_clip_empty');
+    }
+
+    const byte_view = new Uint8Array(array_buffer);
+    const has_ftyp_box =
+      byte_view.length >= 8 &&
+      byte_view[4] === 0x66 &&
+      byte_view[5] === 0x74 &&
+      byte_view[6] === 0x79 &&
+      byte_view[7] === 0x70;
+
+    if (!has_ftyp_box) {
+      console.warn('Frigate clip download does not contain ftyp box at expected offset', {
+        first_bytes: Array.from(byte_view.slice(0, 12)),
+        clip_url,
+      });
+    }
+
+    return new Blob([array_buffer], { type: 'video/mp4' });
+  }
+
+  private async downloadRecordingClipFromHls(
+    camera: string,
+    start_seconds: number,
+    end_seconds: number
+  ): Promise<Blob | null> {
+    const sanitized_camera = encodeURIComponent(camera);
+    const vod_base = `${this.baseUrl}/vod/${sanitized_camera}/start/${start_seconds}/end/${end_seconds}`;
+    const master_url = `${vod_base}/master.m3u8`;
+
+    const fetch_with_headers = async (url: string) => {
+      return fetch(url, { headers: this.getHeaders() });
+    };
+
+    const master_response = await fetch_with_headers(master_url);
+    if (!master_response.ok) {
+      throw new Error(`Failed to fetch HLS master playlist: ${master_response.status} ${master_response.statusText}`);
+    }
+
+    const master_text = await master_response.text();
+    const variant_line = master_text
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 0 && !line.startsWith('#') && line.endsWith('.m3u8'));
+
+    if (!variant_line) {
+      throw new Error('HLS master playlist does not contain any variant streams');
+    }
+
+    const variant_url = new URL(variant_line, master_url).toString();
+    const variant_response = await fetch_with_headers(variant_url);
+    if (!variant_response.ok) {
+      throw new Error(`Failed to fetch HLS variant playlist: ${variant_response.status} ${variant_response.statusText}`);
+    }
+
+    const variant_text = await variant_response.text();
+    const lines = variant_text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    let init_uri: string | null = null;
+    const segment_uris: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith('#EXT-X-MAP:')) {
+        const matches = /URI="([^"]+)"/.exec(line);
+        if (matches && matches[1]) {
+          init_uri = new URL(matches[1], variant_url).toString();
+        }
+      } else if (!line.startsWith('#')) {
+        segment_uris.push(new URL(line, variant_url).toString());
+      }
+    }
+
+    if (segment_uris.length === 0) {
+      throw new Error('HLS variant playlist does not contain any segments');
+    }
+
+    const buffers: Uint8Array[] = [];
+
+    if (init_uri) {
+      const init_response = await fetch_with_headers(init_uri);
+      if (!init_response.ok) {
+        throw new Error(`Failed to fetch HLS init segment: ${init_response.status} ${init_response.statusText}`);
+      }
+      buffers.push(new Uint8Array(await init_response.arrayBuffer()));
+    }
+
+    for (const segment_uri of segment_uris) {
+      const segment_response = await fetch_with_headers(segment_uri);
+      if (!segment_response.ok) {
+        throw new Error(`Failed to fetch HLS segment ${segment_uri}: ${segment_response.status} ${segment_response.statusText}`);
+      }
+      buffers.push(new Uint8Array(await segment_response.arrayBuffer()));
+    }
+
+    const total_length = buffers.reduce((sum, chunk) => sum + chunk.length, 0);
+    if (total_length === 0) {
+      return null;
+    }
+
+    const merged = new Uint8Array(total_length);
+    let offset = 0;
+    for (const chunk of buffers) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return new Blob([merged], { type: 'video/mp4' });
   }
 
   /**

@@ -362,20 +362,39 @@
       "filters_label": "Filtros:",
       "recordings_count_label": "gravações",
       "events_count_label": "eventos"
-    }
-  ,
+    },
+    "exports": {
+      "title": "Exports Salvos",
+      "refresh": "Atualizar",
+      "close": "Fechar",
+      "loading": "Carregando exports...",
+      "no_exports": "Nenhum export salvo",
+      "download": "Baixar",
+      "share": "Compartilhar",
+      "delete": "Excluir",
+      "confirm_delete": "Excluir export?",
+      "delete_description": "Esta ação não pode ser desfeita",
+      "cancel": "Cancelar",
+      "share_title": "Compartilhar Export",
+      "share_description": "Gerar um link temporário para compartilhar",
+      "duration_label": "Duração do link (horas)",
+      "generate_link": "Gerar Link",
+      "copy_link": "Copiar Link",
+      "open_link": "Abrir",
+      "link_copied": "Link copiado",
+      "link_copied_description": "Link copiado para a área de transferência",
+      "error_loading": "Erro ao carregar exports",
+      "error_deleting": "Erro ao excluir export",
+      "error_sharing": "Erro ao gerar link",
+      "delete_success": "Export excluído",
+      "stats": "{count} export(s) em {servers} servidor(es)"
+    },
     "player": {
       "loading": "Carregando gravação...",
       "select_time_prompt": "Selecione um horário na linha do tempo para ver a gravação",
       "download": "Baixar",
       "export": "Exportar"
     }
-  },
-  "player": {
-    "loading": "Carregando gravação...",
-    "select_time_prompt": "Selecione um horário na linha do tempo para ver a gravação",
-    "download": "Baixar",
-    "export": "Exportar"
   },
   "live": {
     "heading": "Visualizacao ao vivo",

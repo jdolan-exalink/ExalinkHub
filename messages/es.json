@@ -377,6 +377,32 @@
       "filters_label": "Filtros:",
       "recordings_count_label": "grabaciones",
       "events_count_label": "eventos"
+    },
+    "exports": {
+      "title": "Exports Guardados",
+      "refresh": "Actualizar",
+      "close": "Cerrar",
+      "loading": "Cargando exports...",
+      "no_exports": "No hay exports guardados",
+      "download": "Descargar",
+      "share": "Compartir",
+      "delete": "Eliminar",
+      "confirm_delete": "¿Eliminar export?",
+      "delete_description": "Esta acción no se puede deshacer",
+      "cancel": "Cancelar",
+      "share_title": "Compartir Export",
+      "share_description": "Genera un enlace temporal para compartir",
+      "duration_label": "Duración del enlace (horas)",
+      "generate_link": "Generar Enlace",
+      "copy_link": "Copiar Enlace",
+      "open_link": "Abrir",
+      "link_copied": "Enlace copiado",
+      "link_copied_description": "El enlace se copió al portapapeles",
+      "error_loading": "Error al cargar exports",
+      "error_deleting": "Error al eliminar export",
+      "error_sharing": "Error al generar enlace",
+      "delete_success": "Export eliminado",
+      "stats": "{count} export(s) en {servers} servidor(es)"
     }
   },
   "player": {

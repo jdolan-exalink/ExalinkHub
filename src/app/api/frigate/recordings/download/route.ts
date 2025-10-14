@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { create_frigate_api } from '@/lib/frigate-api';
 import { resolve_frigate_server } from '@/lib/frigate-servers';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { execFileSync } from 'child_process';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,12 +92,154 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      console.log('Checking for recordings in Frigate for requested range...');
+      try {
+        const recordings = await frigate_api.getRecordings({ camera, after: start_time_num, before: end_time_num });
+        console.log('Frigate recordings found for range:', recordings.length);
+
+        if (!recordings || recordings.length === 0) {
+          console.warn('No recordings found in Frigate for the requested time range');
+          return NextResponse.json(
+            {
+              error: 'No se encontraron grabaciones para el período seleccionado',
+              details: 'Frigate indicó que no hay grabaciones para el período solicitado',
+              camera,
+              startTime: start_time_num,
+              endTime: end_time_num,
+              suggestion: 'Selecciona un período diferente o verifica que la cámara esté configurada para grabar'
+            },
+            { status: 404 }
+          );
+        }
+      } catch (recError) {
+        console.warn('Error checking recordings summary:', recError);
+        // Continue to attempt export; the export will fail if Frigate truly has no recordings
+      }
+
+      // If caller only wants to create the export and get the link, support create_only and name params
+      const create_only = searchParams.get('create_only') === 'true';
+      const export_name = searchParams.get('name') || undefined;
+
+      if (create_only) {
+        console.log('create_only requested - creating export and returning links', { camera, start_time_num, end_time_num, export_name });
+        try {
+          const export_id = await frigate_api.startRecordingExport(camera, start_time_num, end_time_num, { name: export_name });
+          const status_url = `${target_server.baseUrl.replace(/\/$/, '')}/api/export/${export_id}`;
+          const download_url = `${target_server.baseUrl.replace(/\/$/, '')}/api/export/${export_id}/download`;
+
+          return NextResponse.json({ success: true, export_id, status_url, download_url });
+        } catch (createErr) {
+          console.error('Failed to create export:', createErr);
+          return NextResponse.json({ success: false, error: createErr instanceof Error ? createErr.message : String(createErr) }, { status: 500 });
+        }
+      }
+
       console.log('Downloading clip from Frigate...');
-      const clip_blob = await frigate_api.downloadRecordingClip(camera, start_time_num, end_time_num);
+      let clip_blob: any;
+      let clip_buffer: Buffer | undefined;
+      try {
+        clip_blob = await frigate_api.downloadRecordingClip(camera, start_time_num, end_time_num);
+        // Normalize to Buffer if possible
+        if (clip_blob && typeof clip_blob.arrayBuffer === 'function') {
+          const ab = await clip_blob.arrayBuffer();
+          clip_buffer = Buffer.from(ab);
+        } else if (Buffer.isBuffer(clip_blob)) {
+          clip_buffer = clip_blob as Buffer;
+        }
+      } catch (exportErr) {
+        console.warn('Direct export failed, will attempt chunked export fallback:', exportErr instanceof Error ? exportErr.message : String(exportErr));
+
+        // If Frigate reported 'No recordings found' or export failed, try chunked export
+        const chunk_seconds = 300; // 5 minutes
+        const temp_dir = path.join(os.tmpdir(), `frigate_export_${Date.now()}_${Math.random().toString(36).slice(2,8)}`);
+        fs.mkdirSync(temp_dir, { recursive: true });
+        const chunk_files: string[] = [];
+
+        try {
+          for (let s = start_time_num; s < end_time_num; s += chunk_seconds) {
+            const e = Math.min(s + chunk_seconds, end_time_num);
+            console.log(`Attempting chunk export ${s} -> ${e}`);
+            try {
+              const chunk_blob = await frigate_api.downloadRecordingClip(camera, s, e);
+              const ab = await chunk_blob.arrayBuffer();
+              const buf = Buffer.from(ab);
+              if (buf.length > 2000) { // ensure not an error response
+                const fname = path.join(temp_dir, `chunk_${s}_${e}.mp4`);
+                fs.writeFileSync(fname, buf);
+                chunk_files.push(fname);
+                console.log('Wrote chunk file:', fname, 'size', buf.length);
+              } else {
+                console.log('Chunk too small, skipping:', s, e, 'size', buf.length);
+              }
+            } catch (chunkErr) {
+              console.warn('Chunk export failed:', chunkErr instanceof Error ? chunkErr.message : String(chunkErr));
+              // continue trying other chunks
+            }
+          }
+
+          if (chunk_files.length === 0) {
+            console.warn('No chunk files produced, aborting');
+            return NextResponse.json(
+              {
+                error: 'No se encontraron grabaciones para el período seleccionado (intento por chunks fallido)',
+                details: exportErr instanceof Error ? exportErr.message : String(exportErr),
+                camera,
+                startTime: start_time_num,
+                endTime: end_time_num,
+                suggestion: 'Selecciona un período diferente o verifica las grabaciones en Frigate'
+              },
+              { status: 404 }
+            );
+          }
+
+          if (chunk_files.length === 1) {
+            const singleBuf = fs.readFileSync(chunk_files[0]);
+            clip_buffer = singleBuf;
+          } else {
+            // Try to concatenate using ffmpeg concat demuxer
+            const list_file = path.join(temp_dir, 'inputs.txt');
+            const out_file = path.join(temp_dir, 'output_concat.mp4');
+            const list_content = chunk_files.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
+            fs.writeFileSync(list_file, list_content);
+
+            try {
+              console.log('Running ffmpeg concat to produce', out_file);
+              execFileSync('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', list_file, '-c', 'copy', out_file], { stdio: 'inherit', timeout: 120000 });
+              const outBuf = fs.readFileSync(out_file);
+              clip_buffer = outBuf;
+            } catch (ffErr) {
+              console.error('FFmpeg concat failed:', ffErr instanceof Error ? ffErr.message : String(ffErr));
+              // If ffmpeg failed, fall back to returning first chunk
+              const firstBuf = fs.readFileSync(chunk_files[0]);
+              clip_buffer = firstBuf;
+            }
+          }
+
+        } finally {
+          // Cleanup temp files asynchronously (best effort)
+          try {
+            chunk_files.forEach(f => { try { fs.unlinkSync(f); } catch(e) {} });
+            try { fs.unlinkSync(path.join(temp_dir, 'inputs.txt')); } catch(e) {}
+            try { fs.unlinkSync(path.join(temp_dir, 'output_concat.mp4')); } catch(e) {}
+            try { fs.rmdirSync(temp_dir); } catch(e) {}
+          } catch(e) {
+            console.warn('Temp cleanup failed:', e instanceof Error ? e.message : String(e));
+          }
+        }
+      }
       
-      // Convert blob to buffer for response
-      const array_buffer = await clip_blob.arrayBuffer();
-      const buffer = Buffer.from(array_buffer);
+      // Ensure we have a Buffer to send
+      let buffer: Buffer;
+      if (clip_buffer) {
+        buffer = clip_buffer;
+      } else if (clip_blob && typeof clip_blob.arrayBuffer === 'function') {
+        const array_buffer = await clip_blob.arrayBuffer();
+        buffer = Buffer.from(array_buffer);
+      } else if (Buffer.isBuffer(clip_blob)) {
+        buffer = clip_blob as Buffer;
+      } else {
+        throw new Error('Unable to normalize downloaded clip to a buffer');
+      }
 
       console.log('Download successful:', {
         size: buffer.length,

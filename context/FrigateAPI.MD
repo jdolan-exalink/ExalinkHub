@@ -237,7 +237,35 @@ print(response.status_code, response.text)
 
 text
 
----
+### Descargar clip por rango start/end
+
+Frigate permite descargar directamente un segmento de grabación sin pasar por el sistema de exports usando la ruta:
+
+```
+/api/<CAMARA>/start/<TIMESTAMP_INICIO>/end/<TIMESTAMP_FIN>/clip.mp4
+```
+
+Ejemplo con `curl` (descarga 60 segundos de la cámara Portones):
+
+```bash
+curl -o portones-00AM.mp4 "http://10.1.1.252:5000/api/Portones/start/1760324400/end/1760324460/clip.mp4"
+```
+
+Notas importantes:
+- Los timestamps deben expresarse en segundos (no milisegundos) y en la zona horaria local configurada en Frigate.
+- La duración recomendada es ≤ 60 s. Para rangos más largos se debe fragmentar en varias descargas.
+- El endpoint respeta los mecanismos de autenticación configurados (Basic, Bearer, API Key). Incluye las cabeceras necesarias en la petición.
+
+Desde el backend (TypeScript) ahora se utiliza este flujo directo:
+
+```ts
+const url = `${base_url}/api/${encodeURIComponent(camera)}/start/${start_seconds}/end/${end_seconds}/clip.mp4`;
+const response = await fetch(url, { headers: auth_headers });
+if (!response.ok) throw new Error(`Frigate devolvió ${response.status}`);
+const blob = await response.blob();
+```
+
+--- 
 
 ## 10. Configuración y Schemas
 

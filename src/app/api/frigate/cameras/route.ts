@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error in cameras endpoint:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch cameras', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    // En caso de error, devolver un array vacío para mantener compatibilidad con el cliente
+    // (el frontend espera una lista de cámaras). También se puede inspeccionar los logs
+    // para diagnosticar el problema en el servidor.
+    return NextResponse.json([], { status: 200 });
   }
 }
 
@@ -146,8 +146,15 @@ async function getDefaultCameras() {
   console.log(`Fetching cameras from Frigate server ${primary_server.name} (${primary_server.baseUrl})...`);
 
   const frigate_api = create_frigate_api(primary_server);
-  const config = await frigate_api.getConfig();
-  console.log('Raw Frigate config received');
+  let config: any;
+  try {
+    config = await frigate_api.getConfig();
+    console.log('Raw Frigate config received');
+  } catch (err) {
+    console.error(`Failed to fetch config from primary server ${primary_server.name}:`, err);
+    // Devolver array vacío para mantener compatibilidad con el frontend
+    return NextResponse.json([], { status: 200 });
+  }
 
   const camera_names = Object.keys(config.cameras);
   console.log('Found cameras:', camera_names);

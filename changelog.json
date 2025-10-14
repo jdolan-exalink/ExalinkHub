@@ -1,7 +1,54 @@
 {
-  "currentVersion": "0.0.28",
-  "lastUpdated": "2025-10-12T12:00:00-03:00",
+  "currentVersion": "0.0.31",
+  "lastUpdated": "2025-10-13T23:30:00-03:00",
   "versions": {
+    "0.0.31": {
+      "releaseDate": "2025-10-13",
+      "description": "Sistema completo de exports persistentes y compartidos para Frigate",
+      "changes": [
+        "Se verifica disponibilidad real de grabaciones antes de iniciar un export",
+        "Nuevo polling wait_for_export_ready() con seguimiento en tiempo real del progreso",
+        "Todas las descargas se guardan como exports en Frigate y abren la barra lateral de historial",
+        "Tokens temporales para compartir exports con expiración y límite de descargas",
+        "Interfaz de grabaciones actualizada con mensajes de error claros y estados de exportación",
+        "Documentación y registros ampliados para depuración del flujo de exports"
+      ],
+      "type": "minor",
+      "breaking": false,
+      "technical_notes": "Se añadieron validaciones previas contra la API de Frigate, un sistema de polling configurable y un módulo de tokens en memoria. El frontend ajusta el flujo de descargas para depender exclusivamente de exports almacenados en Frigate."
+    },
+    "0.0.30": {
+      "releaseDate": "2025-10-13",
+      "description": "Fix crítico: Frigate trabaja en timezone local, no en UTC",
+      "changes": [
+        "Corregida asunción incorrecta sobre timezone de Frigate",
+        "Eliminada conversión UTC→Local que causaba errores de 'No recordings found'",
+        "Frigate trabaja en la misma timezone del servidor (UTC-3), NO en UTC",
+        "Los timestamps ahora se envían directamente sin conversión a Frigate",
+        "Actualizada documentación con el comportamiento correcto de timezone",
+        "El sistema de timezone queda solo como informativo para el usuario",
+        "Solucionado definitivamente el problema de exports de grabaciones"
+      ],
+      "type": "patch",
+      "breaking": false,
+      "technical_notes": "La asunción de que Frigate trabaja en UTC era incorrecta. Frigate trabaja en la timezone local del servidor. La conversión de timestamps local→UTC causaba que se buscaran grabaciones 3 horas en el futuro (para UTC-3), generando errores 400. El HLS player funcionaba porque NO hacía conversión."
+    },
+    "0.0.29": {
+      "releaseDate": "2025-10-13",
+      "description": "Fix crítico de timezone en frontend para exports de grabaciones",
+      "changes": [
+        "Corregida conversión automática UTC en timestamps del frontend",
+        "Implementada función date_to_local_timestamp() para manejar fechas locales correctamente",
+        "Solucionado problema de 'fecha futura' al intentar exportar grabaciones",
+        "Eliminada doble conversión de timezone (frontend + backend) que causaba errores de 'No recordings found'",
+        "Actualizado recording-browser.tsx para enviar timestamps en timezone local al backend",
+        "Mejorada documentación de sistema de timezone con ejemplos y troubleshooting",
+        "Agregada validación de timestamps coherentes en logs para debugging"
+      ],
+      "type": "patch",
+      "breaking": false,
+      "technical_notes": "El problema raíz era que Date.getTime() en JavaScript convierte automáticamente a UTC, causando que los timestamps se enviaran con 3 horas adelante (para UTC-3), lo que generaba errores al sumar el offset nuevamente en el backend."
+    },
     "0.0.28": {
       "releaseDate": "2025-10-12",
       "description": "Nueva opción de descarga de 30 minutos para grabaciones",

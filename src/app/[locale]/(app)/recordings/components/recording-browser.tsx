@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -13,6 +13,17 @@ import FrigateTimeline from '@/components/ui/frigate-timeline';
 import ExportModal, { type ExportOptions } from '@/components/ui/export-modal';
 import type { Camera } from '@/lib/types';
 import type { RecordingTimelineData } from '@/lib/frigate-api';
+
+function date_to_local_timestamp(date: Date): number {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  const utc_date = new Date(Date.UTC(year, month, day, hours, minutes, seconds));
+  return Math.floor(utc_date.getTime() / 1000);
+}
 
 interface RecordingBrowserProps {
   cameras: Camera[];
@@ -47,7 +58,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Verificar configuración de servidores Frigate
+  // Verificar configuraciÃ³n de servidores Frigate
   const [frigateServersStatus, setFrigateServersStatus] = useState<{
     available: boolean;
     count: number;
@@ -210,7 +221,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               console.debug('RecordingBrowser: autoplay succeeded while muted');
             }
           } catch (err) {
-            // Autoplay was blocked. Do not call play again � wait for user interaction.
+            // Autoplay was blocked. Do not call play again ï¿½ wait for user interaction.
             console.debug('RecordingBrowser: autoplay blocked, waiting for user interaction');
           }
         }, 500);
@@ -270,24 +281,24 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
   };
 
   const handleDownloadRequest = async (start: number, end: number) => {
-    // Validar que el período no sea mayor a 30 minutos (1800 segundos)
+    // Validar que el perÃ­odo no sea mayor a 30 minutos (1800 segundos)
     const duration = end - start;
     if (duration > 1800) {
-      alert('El período de descarga no puede ser mayor a 30 minutos.\n\nPeríodo solicitado: ' + Math.round(duration / 60) + ' minutos.\n\nFrigate tiene limitaciones en la exportación de períodos largos. Selecciona un período más corto.');
+      alert('El perÃ­odo de descarga no puede ser mayor a 30 minutos.\n\nPerÃ­odo solicitado: ' + Math.round(duration / 60) + ' minutos.\n\nFrigate tiene limitaciones en la exportaciÃ³n de perÃ­odos largos. Selecciona un perÃ­odo mÃ¡s corto.');
       return;
     }
     // Verificar que haya servidores Frigate configurados antes de intentar la descarga
     try {
       const serversResponse = await fetch('/api/frigate/servers');
       if (!serversResponse.ok) {
-        throw new Error('No se pudo verificar la configuración de servidores');
+        throw new Error('No se pudo verificar la configuraciÃ³n de servidores');
       }
       
       const serversData = await serversResponse.json();
       const activeServers = serversData.servers?.filter((server: any) => server.enabled) || [];
       
       if (activeServers.length === 0) {
-        alert('No hay servidores Frigate configurados o habilitados.\n\nPara descargar grabaciones, necesitas:\n1. Configurar al menos un servidor Frigate en Ajustes > Servidores Frigate\n2. Asegurarte de que el servidor esté habilitado\n3. Verificar que el servidor esté accesible');
+        alert('No hay servidores Frigate configurados o habilitados.\n\nPara descargar grabaciones, necesitas:\n1. Configurar al menos un servidor Frigate en Ajustes > Servidores Frigate\n2. Asegurarte de que el servidor estÃ© habilitado\n3. Verificar que el servidor estÃ© accesible');
         return;
       }
     } catch (serverCheckError) {
@@ -313,14 +324,14 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         download_params.set('server_id', String(selected_server_id));
       }
 
-      console.log('Descargando clip a trav�s del backend:', download_params.toString());
+      console.log('Descargando clip a travï¿½s del backend:', download_params.toString());
 
     setDownloadProgress(prev => ({
       ...prev,
       [downloadKey]: { progress: 10, status: 'Verificando disponibilidad de grabaciones...' }
     }));
 
-    // Verificar que existan grabaciones para el período seleccionado (opcional)
+    // Verificar que existan grabaciones para el perÃ­odo seleccionado (opcional)
     try {
       const checkParams = new URLSearchParams({
         camera: selectedCamera,
@@ -336,7 +347,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         const events = await checkResponse.json();
         if (!events || events.length === 0) {
           // No hay eventos, pero puede que haya grabaciones continuas
-          console.log('No se encontraron eventos para el período, pero continuando con la descarga de grabaciones...');
+          console.log('No se encontraron eventos para el perÃ­odo, pero continuando con la descarga de grabaciones...');
         }
       }
     } catch (checkError) {
@@ -350,19 +361,19 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
     }));      const response = await fetch(`/api/frigate/recordings/download?${download_params.toString()}`);
       
       if (!response.ok) {
-        // Manejar errores específicos
+        // Manejar errores especÃ­ficos
         if (response.status === 503) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.details || errorData.error || 'Servicio no disponible (503)');
         } else if (response.status === 404) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.details || errorData.error || 'No se encontraron grabaciones para el período seleccionado');
+          throw new Error(errorData.details || errorData.error || 'No se encontraron grabaciones para el perÃ­odo seleccionado');
         } else if (response.status === 400) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.details || errorData.error || 'Solicitud inválida - período demasiado largo');
+          throw new Error(errorData.details || errorData.error || 'Solicitud invÃ¡lida - perÃ­odo demasiado largo');
         } else if (response.status === 400) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Parámetros inválidos');
+          throw new Error(errorData.error || 'ParÃ¡metros invÃ¡lidos');
         } else {
           throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
         }
@@ -407,22 +418,22 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         }
       }));
 
-      // Mostrar alerta de error con información más detallada
+      // Mostrar alerta de error con informaciÃ³n mÃ¡s detallada
       let errorMessage = `Error al descargar video: ${error instanceof Error ? error.message : 'Error desconocido'}`;
       
       if (error instanceof Error && error.message.includes('Servicio no disponible')) {
-        errorMessage += '\n\nPosibles causas:\n• No hay servidores Frigate configurados\n• El servidor Frigate no está ejecutándose\n• Problemas de conectividad de red\n\nSolución: Verifica la configuración de servidores Frigate en Ajustes > Servidores Frigate';
+        errorMessage += '\n\nPosibles causas:\nâ¢ No hay servidores Frigate configurados\nâ¢ El servidor Frigate no estÃ¡ ejecutÃ¡ndose\nâ¢ Problemas de conectividad de red\n\nSoluciÃ³n: Verifica la configuraciÃ³n de servidores Frigate en Ajustes > Servidores Frigate';
       } else if (error instanceof Error && error.message.includes('No se encontraron grabaciones')) {
-        errorMessage += '\n\nPosibles causas:\n• No hay grabaciones para la fecha/hora seleccionada\n• La cámara no estaba grabando en ese momento\n• Las grabaciones fueron eliminadas por retención\n\nSolución: Selecciona un período diferente o verifica que la cámara esté configurada para grabar';
-      } else if (error instanceof Error && error.message.includes('período demasiado largo')) {
-        errorMessage += '\n\nFrigate tiene limitaciones en la exportación de períodos largos.\n\nSolución: Selecciona un período de máximo 30 minutos para la descarga.';
+        errorMessage += '\n\nPosibles causas:\nâ¢ No hay grabaciones para la fecha/hora seleccionada\nâ¢ La cÃ¡mara no estaba grabando en ese momento\nâ¢ Las grabaciones fueron eliminadas por retenciÃ³n\n\nSoluciÃ³n: Selecciona un perÃ­odo diferente o verifica que la cÃ¡mara estÃ© configurada para grabar';
+      } else if (error instanceof Error && error.message.includes('perÃ­odo demasiado largo')) {
+        errorMessage += '\n\nFrigate tiene limitaciones en la exportaciÃ³n de perÃ­odos largos.\n\nSoluciÃ³n: Selecciona un perÃ­odo de mÃ¡ximo 30 minutos para la descarga.';
       } else {
-        errorMessage += '\n\nVerifica que:\n1. El servidor Frigate esté en línea\n2. Existan grabaciones para el período seleccionado\n3. La cámara seleccionada sea válida';
+        errorMessage += '\n\nVerifica que:\n1. El servidor Frigate estÃ© en lÃ­nea\n2. Existan grabaciones para el perÃ­odo seleccionado\n3. La cÃ¡mara seleccionada sea vÃ¡lida';
       }
       
       alert(errorMessage);
 
-      // Limpiar progreso despu�s de 5 segundos
+      // Limpiar progreso despuï¿½s de 5 segundos
       setTimeout(() => {
         setDownloadProgress(prev => {
           const newProgress = { ...prev };
@@ -439,80 +450,87 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
 
   const handleExport = async (options: ExportOptions) => {
     try {
-      let startTime: number, endTime: number;
-      // Use date from selected recordings instead of current time
-      const baseDate = new Date(selectedDate);
-      const currentTimestamp = Math.floor(baseDate.getTime() / 1000) + (selectedHour * 3600);
-      
+      let startTime: number;
+      let endTime: number;
+
+      const nowLocalTimestamp = date_to_local_timestamp(new Date());
+
+      const referenceTimestamp = (() => {
+        if (typeof selectedTime === 'number' && !Number.isNaN(selectedTime)) {
+          return selectedTime;
+        }
+
+        const baseDate = new Date(selectedDate);
+        baseDate.setHours(0, 0, 0, 0);
+        const baseTimestamp = date_to_local_timestamp(baseDate);
+        return baseTimestamp + (selectedHour * 3600);
+      })();
+
       switch (options.type) {
-        case 'last_30_minutes':
-          endTime = currentTimestamp;
-          startTime = currentTimestamp - 1800; // 30 minutes
+        case 'next_30_minutes': {
+          startTime = referenceTimestamp;
+          endTime = referenceTimestamp + 1800;
           break;
-        case 'last_hour':
-          endTime = currentTimestamp;
-          startTime = currentTimestamp - 3600; // 1 hour
+        }
+        case 'next_hour': {
+          startTime = referenceTimestamp;
+          endTime = referenceTimestamp + 3600;
           break;
-        case 'last_4_hours':
-          endTime = currentTimestamp;
-          startTime = currentTimestamp - (4 * 3600); // 4 hours
-          break;
-        case 'last_8_hours':
-          endTime = currentTimestamp;
-          startTime = currentTimestamp - (8 * 3600); // 8 hours
-          break;
-        case 'last_12_hours':
-          endTime = currentTimestamp;
-          startTime = currentTimestamp - (12 * 3600); // 12 hours
-          break;
-        case 'last_24_hours':
-          endTime = currentTimestamp;
-          startTime = currentTimestamp - (24 * 3600); // 24 hours
-          break;
-        case 'custom':
-          if (options.startDate && options.endDate && options.startTime && options.endTime) {
-            const startDateTime = new Date(options.startDate);
-            const [startHour, startMinute] = options.startTime.split(':');
-            startDateTime.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-            
-            const endDateTime = new Date(options.endDate);
-            const [endHour, endMinute] = options.endTime.split(':');
-            endDateTime.setHours(parseInt(endHour), parseInt(endMinute), 59, 999);
-            
-            startTime = Math.floor(startDateTime.getTime() / 1000);
-            endTime = Math.floor(endDateTime.getTime() / 1000);
-          } else {
-            alert('Error: Rango de fecha personalizado no especificado');
+        }
+        case 'custom': {
+          if (!options.startTime || !options.endTime) {
+            alert('Error: Debes especificar hora de inicio y fin.');
             return;
           }
+
+          const [startHour, startMinute] = options.startTime.split(':').map(Number);
+          const [endHour, endMinute] = options.endTime.split(':').map(Number);
+
+          const selectedDay = new Date(selectedDate);
+          selectedDay.setHours(0, 0, 0, 0);
+
+          const startDateTime = new Date(selectedDay);
+          startDateTime.setHours(startHour, startMinute, 0, 0);
+
+          const endDateTime = new Date(selectedDay);
+          endDateTime.setHours(endHour, endMinute, 0, 0);
+
+          startTime = date_to_local_timestamp(startDateTime);
+          endTime = Math.min(date_to_local_timestamp(endDateTime), nowLocalTimestamp);
           break;
-        default:
-          alert('Error: Tipo de exportaci�n inv�lido');
+        }
+        default: {
+          alert('Error: Tipo de exportacion invalido');
           return;
+        }
       }
 
-      // Ensure we have valid timestamps
-      if (!startTime || !endTime || startTime >= endTime) {
-        alert('Error: Rango de tiempo inv�lido para exportaci�n');
+      if (startTime === undefined || endTime === undefined) {
+        alert('Error: Rango de tiempo invalido para exportacion');
         return;
       }
-      
+
+      if (startTime >= endTime) {
+        alert('No hay grabaciones posteriores a la hora seleccionada.');
+        return;
+      }
+
       console.log('Export time range:', {
+        type: options.type,
         startTime,
         endTime,
         startDate: new Date(startTime * 1000).toISOString(),
         endDate: new Date(endTime * 1000).toISOString(),
         selectedDate,
-        selectedHour
+        selectedHour,
+        selectedTime
       });
-      
-      // Cerrar modal y descargar
+
       setShowExportModal(false);
       await handleDownloadRequest(startTime, endTime);
-      
     } catch (error) {
       console.error('Error en handleExport:', error);
-      alert(`Error al procesar exportaci�n: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      alert(`Error al procesar exportacion: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -627,16 +645,16 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
         {/* Controles */}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Controles Izquierda: C�mara, Hora, Fecha */}
+            {/* Controles Izquierda: Cï¿½mara, Hora, Fecha */}
             <div className="flex items-center gap-6">
               <h1 className="font-semibold text-lg mr-4">{translate_recordings_browser('title')}</h1>
               
-              {/* Selector de C�mara */}
+              {/* Selector de Cï¿½mara */}
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm">{translate_recordings_browser('camera_label')}</span>
                 <Select value={selectedCamera} onValueChange={setSelectedCamera}>
                   <SelectTrigger className="w-48 h-9 bg-blue-600 border-blue-500 text-white font-medium hover:bg-blue-700">
-                    <SelectValue placeholder="Seleccionar c�mara" />
+                    <SelectValue placeholder="Seleccionar cï¿½mara" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     {cameras && cameras.length > 0 ? cameras.map(camera => (
@@ -649,7 +667,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                       </SelectItem>
                     )) : (
                       <SelectItem value="no-cameras" disabled className="text-gray-400">
-                        No hay c�maras disponibles
+                        No hay cï¿½maras disponibles
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -751,7 +769,7 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
                 )}
                 {recordingData && (
                   <div className="text-green-400 text-sm font-medium">
-                    ?? {recordingData.segments?.length || 0} {translate_recordings_browser('recordings_count_label')} � ?? {recordingData.events?.length || 0} {translate_recordings_browser('events_count_label')}
+                    ?? {recordingData.segments?.length || 0} {translate_recordings_browser('recordings_count_label')} ï¿½ ?? {recordingData.events?.length || 0} {translate_recordings_browser('events_count_label')}
                   </div>
                 )}
               </div>
@@ -817,12 +835,12 @@ export default function RecordingBrowser({ cameras }: RecordingBrowserProps) {
               </div>
             )}
             
-            {/* Overlay para controles de selecci�n */}
+            {/* Overlay para controles de selecciï¿½n */}
             {timelineSelectionMode && (
               <div className="absolute top-4 right-4 bg-blue-600/90 border border-blue-400 rounded-lg p-2 z-10">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
-                  <span className="text-white font-medium text-xs">Modo Selecci�n</span>
+                  <span className="text-white font-medium text-xs">Modo Selecciï¿½n</span>
                   {selectionRange && (
                     <span className="text-blue-100 text-xs">
                       {time_formatter.format(new Date(selectionRange.start * 1000))} - {time_formatter.format(new Date(selectionRange.end * 1000))}

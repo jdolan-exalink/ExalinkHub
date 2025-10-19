@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageSquare, Database, Shield, Save, TestTube, RefreshCw, CheckCircle, XCircle, AlertTriangle, FolderOpen, Calendar, HardDrive, Settings, Server, Camera } from 'lucide-react';
+import { MessageSquare, Database, Shield, Save, TestTube, RefreshCw, CheckCircle, XCircle, AlertTriangle, AlertCircle, FolderOpen, Calendar, HardDrive, Settings, Server, Camera } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +58,9 @@ interface frigate_config {
   username?: string;
   password?: string;
   api_key?: string;
+  ssh_username?: string; // Usuario SSH para acceder a clips (default: frigate)
+  ssh_password?: string; // Contraseña SSH (default: frigate123)
+  ssh_clips_path?: string; // Ruta de clips en servidor remoto (default: /media/frigate/clips)
 }
 
 interface database_config {
@@ -530,6 +533,48 @@ const FrigateConfigSection: React.FC<{
           onCheckedChange={(checked) => on_change({ ...config, use_ssl: checked })}
         />
         <Label htmlFor="frigate-ssl">Usar HTTPS</Label>
+      </div>
+
+      <Separator className="my-4" />
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          <h4 className="text-sm font-medium">Acceso SSH para Clips Remotos</h4>
+        </div>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Configura las credenciales SSH para acceder a los clips almacenados en el servidor Frigate remoto.
+          </AlertDescription>
+        </Alert>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Usuario SSH</Label>
+            <Input
+              value={config.ssh_username || 'frigate'}
+              onChange={(e) => on_change({ ...config, ssh_username: e.target.value || 'frigate' })}
+              placeholder="frigate"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Contraseña SSH</Label>
+            <Input
+              type="password"
+              value={config.ssh_password || 'frigate123'}
+              onChange={(e) => on_change({ ...config, ssh_password: e.target.value || 'frigate123' })}
+              placeholder="frigate123"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Ruta de clips en servidor</Label>
+          <Input
+            value={config.ssh_clips_path || '/media/frigate/clips'}
+            onChange={(e) => on_change({ ...config, ssh_clips_path: e.target.value || '/media/frigate/clips' })}
+            placeholder="/media/frigate/clips"
+          />
+        </div>
       </div>
 
       <Button

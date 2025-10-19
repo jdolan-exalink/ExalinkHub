@@ -56,108 +56,130 @@ export async function GET(request: NextRequest) {
       }
 
       const frigate_api = create_frigate_api(target_server);
-      // Iniciar exportación
-      console.log('Starting export...');
-      const exportId = await frigate_api.startRecordingExport(camera, startTime, endTime);
-      console.log('Export started with ID:', exportId);
-      
-      // Esperar a que se complete con progreso
-      const maxAttempts = 60; // 60 segundos máximo
-      let attempts = 0;
-      
-      while (attempts < maxAttempts) {
-        const status = await frigate_api.getExportStatus(exportId);
-        console.log(`Export status (attempt ${attempts + 1}):`, status);
-        
-        if (status.status === 'complete') {
-          console.log('Export completed, downloading...');
-          // Descargar el archivo completado
-          const videoBlob = await frigate_api.downloadExportedClip(exportId);
-          
-          // Convert blob to array buffer
-          const arrayBuffer = await videoBlob.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
 
-          console.log('Successfully downloaded video clip:', {
-            size: buffer.length,
-            sizeKB: Math.round(buffer.length / 1024),
-            sizeMB: Math.round(buffer.length / (1024 * 1024))
-          });
+      console.log('Fetching recording segments summary before download...');
+      const recording_segments = await frigate_api.getRecordings({
+        camera,
+        after: startTime,
+        before: endTime,
+      }).catch((segment_error: unknown) => {
+        console.warn('Failed to fetch recording segments summary:', segment_error);
+        return [];
+      });
 
-          // Check if we got actual video data
-          if (buffer.length < 1000) {
-            console.warn('Video file seems too small:', buffer.length, 'bytes');
-            return NextResponse.json(
-              { 
-                error: 'Video clip too small or empty',
-                size: buffer.length,
-                camera,
-                startTime,
-                endTime,
-                exportId
-              },
-              { status: 404 }
-            );
-          }
-
-          // Return the video file with proper headers for download
-          return new NextResponse(buffer as any, {
-            status: 200,
-            headers: {
-              'Content-Type': 'video/mp4',
-              'Content-Length': buffer.length.toString(),
-              'Content-Disposition': `attachment; filename="${camera}_${new Date(startTime * 1000).toISOString().slice(0, 19).replace(/[:.]/g, '-')}_to_${new Date(endTime * 1000).toISOString().slice(11, 19).replace(/:/g, '-')}.mp4"`,
-              'Cache-Control': 'public, max-age=3600',
-              // Enable CORS for video download
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET',
-              'Access-Control-Allow-Headers': 'Range, Content-Type',
-            },
-          });
-          
-        } else if (status.status === 'failed') {
-          console.error('Export failed');
-          return NextResponse.json(
-            { 
-              error: 'Export failed',
-              camera,
-              startTime,
-              endTime,
-              exportId
-            },
-            { status: 500 }
-          );
-        }
-        
-        // Esperar 1 segundo antes del siguiente intento
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        attempts++;
-      }
-      
-      console.error('Export timeout');
-      return NextResponse.json(
-        { 
-          error: 'Export timeout - took too long to complete',
+      if (!Array.isArray(recording_segments) || recording_segments.length === 0) {
+        console.warn('No recording segments found for requested range', {
           camera,
           startTime,
           endTime,
-          exportId,
-          maxWaitTime: maxAttempts
-        },
-        { status: 408 }
+        });
+        return NextResponse.json(
+          {
+            error: 'Frigate no reporta grabaciones para el rango solicitado.',
+            camera,
+            startTime,
+            endTime,
+            suggestion: 'Selecciona un rango diferente o verifica que la camara haya estado grabando en ese periodo.',
+          },
+          { status: 404 }
+        );
+      }
+
+      const normalized_start = Math.max(
+        startTime,
+        Math.min(...recording_segments.map((segment: any) => segment.start_time ?? startTime))
+      );
+      const normalized_end = Math.min(
+        endTime,
+        Math.max(...recording_segments.map((segment: any) => segment.end_time ?? endTime))
       );
 
+      if (normalized_end <= normalized_start) {
+        console.warn('Recording segments summary produced invalid normalized range', {
+          camera,
+          startTime,
+          endTime,
+          normalized_start,
+          normalized_end,
+        });
+        return NextResponse.json(
+          {
+            error: 'No se encontraron segmentos validos dentro del rango solicitado.',
+            camera,
+            startTime,
+            endTime,
+            suggestion: 'Intenta con un rango mas corto o revisa las grabaciones disponibles en la linea de tiempo.',
+          },
+          { status: 404 }
+        );
+      }
+
+      console.log('Downloading clip via direct start/end endpoint...', {
+        requested_range: { startTime, endTime },
+        normalized_range: { normalized_start, normalized_end },
+      });
+      const clip_blob = await frigate_api.downloadRecordingClip(camera, normalized_start, normalized_end);
+
+      const array_buffer = await clip_blob.arrayBuffer();
+      const buffer = Buffer.from(array_buffer);
+
+      console.log('Successfully downloaded video clip:', {
+        size: buffer.length,
+        sizeKB: Math.round(buffer.length / 1024),
+        sizeMB: Math.round(buffer.length / (1024 * 1024))
+      });
+
+      if (buffer.length < 1000) {
+        console.warn('Video file seems too small:', buffer.length, 'bytes');
+        return NextResponse.json(
+          { 
+            error: 'Video clip too small or empty',
+            size: buffer.length,
+            camera,
+            startTime: normalized_start,
+            endTime: normalized_end
+          },
+          { status: 404 }
+        );
+      }
+
+      return new NextResponse(buffer as any, {
+        status: 200,
+        headers: {
+          'Content-Type': 'video/mp4',
+          'Content-Length': buffer.length.toString(),
+          'Content-Disposition': `attachment; filename="${camera}_${new Date(normalized_start * 1000).toISOString().slice(0, 19).replace(/[:.]/g, '-')}_to_${new Date(normalized_end * 1000).toISOString().slice(11, 19).replace(/:/g, '-')}.mp4"`,
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Headers': 'Range, Content-Type',
+        },
+      });
+
     } catch (frigateError) {
-      console.error('Frigate video export error:', frigateError);
+      console.error('Frigate video download error:', frigateError);
+
+      if (frigateError instanceof Error && frigateError.message === 'frigate_clip_empty') {
+        return NextResponse.json(
+          {
+            error: 'Frigate devolvió un clip vacío para el rango solicitado',
+            camera,
+            startTime,
+            endTime,
+            suggestion: 'Intenta reproducir el segmento mediante HLS (/api/frigate/recordings/hls) o verifica si existen grabaciones en ese rango.',
+          },
+          { status: 404 }
+        );
+      }
       
       return NextResponse.json(
         { 
-          error: 'Failed to export video from Frigate server',
+          error: 'Failed to download video clip from Frigate server',
           details: frigateError instanceof Error ? frigateError.message : 'Unknown Frigate error',
           camera,
           startTime,
           endTime,
-          suggestion: 'Check if Frigate server is accessible and recordings exist for this time range'
+          suggestion: 'Check connectivity with Frigate and confirm recordings exist for this range'
         },
         { status: 503 }
       );

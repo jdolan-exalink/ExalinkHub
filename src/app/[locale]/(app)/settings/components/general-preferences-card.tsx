@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTheme } from 'next-themes';
@@ -12,10 +12,24 @@ import { useToast } from '@/hooks/use-toast';
 
 const theme_choices = ['light', 'dark', 'system'] as const;
 const language_choices = ['es', 'en', 'pt'] as const;
+const timezone_choices = [
+  'America/Argentina/Buenos_Aires',
+  'America/Sao_Paulo',
+  'America/Santiago',
+  'America/Lima',
+  'America/Bogota',
+  'America/Mexico_City',
+  'America/New_York',
+  'America/Los_Angeles',
+  'Europe/Madrid',
+  'Europe/London',
+  'UTC'
+] as const;
 
 type ApplicationSettingsState = {
   theme: string;
   language: string;
+  timezone: string;
 };
 
 /**
@@ -31,9 +45,11 @@ export default function general_preferences_card() {
 
   const [selected_theme, set_selected_theme] = useState<string>(theme ?? 'system');
   const [selected_language, set_selected_language] = useState<string>(locale);
+  const [selected_timezone, set_selected_timezone] = useState<string>('America/Argentina/Buenos_Aires');
   const [initial_settings, set_initial_settings] = useState<ApplicationSettingsState>({
     theme: theme ?? 'system',
     language: locale,
+    timezone: 'America/Argentina/Buenos_Aires',
   });
   const [is_loading, set_is_loading] = useState<boolean>(true);
   const [is_saving, set_is_saving] = useState<boolean>(false);
@@ -50,9 +66,11 @@ export default function general_preferences_card() {
         const data = (await response.json()) as Record<string, string>;
         const persisted_theme = data.theme ?? 'system';
         const persisted_language = data.language ?? locale;
+        const persisted_timezone = data.timezone ?? 'America/Argentina/Buenos_Aires';
         set_selected_theme(persisted_theme);
         set_selected_language(persisted_language);
-        set_initial_settings({ theme: persisted_theme, language: persisted_language });
+        set_selected_timezone(persisted_timezone);
+        set_initial_settings({ theme: persisted_theme, language: persisted_language, timezone: persisted_timezone });
         if (persisted_theme !== (theme ?? 'system')) {
           setTheme(persisted_theme);
         }
@@ -79,7 +97,9 @@ export default function general_preferences_card() {
   }, [theme]);
 
   const is_dirty =
-    selected_theme !== initial_settings.theme || selected_language !== initial_settings.language;
+    selected_theme !== initial_settings.theme || 
+    selected_language !== initial_settings.language || 
+    selected_timezone !== initial_settings.timezone;
 
   const handle_save = async () => {
     try {
@@ -90,6 +110,7 @@ export default function general_preferences_card() {
         body: JSON.stringify({
           theme: selected_theme,
           language: selected_language,
+          timezone: selected_timezone,
         }),
       });
 
@@ -98,7 +119,7 @@ export default function general_preferences_card() {
       }
 
       setTheme(selected_theme);
-      set_initial_settings({ theme: selected_theme, language: selected_language });
+      set_initial_settings({ theme: selected_theme, language: selected_language, timezone: selected_timezone });
 
       toast({
         title: translate_settings('success_message'),
@@ -166,6 +187,26 @@ export default function general_preferences_card() {
               {theme_choices.map((theme_option) => (
                 <SelectItem key={theme_option} value={theme_option}>
                   {translate_settings(theme_option)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Zona Horaria</label>
+          <p className="text-sm text-muted-foreground">Selecciona tu zona horaria para mostrar fechas y horas correctamente</p>
+          <Select
+            value={selected_timezone}
+            onValueChange={set_selected_timezone}
+            disabled={is_loading || is_saving}
+          >
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Zona Horaria" />
+            </SelectTrigger>
+            <SelectContent>
+              {timezone_choices.map((tz) => (
+                <SelectItem key={tz} value={tz}>
+                  {tz.replace(/_/g, ' ')}
                 </SelectItem>
               ))}
             </SelectContent>

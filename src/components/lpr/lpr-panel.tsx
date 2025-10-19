@@ -83,7 +83,7 @@ interface SystemStats {
   traffic_light_stats: Record<string, number>;
 }
 
-const LRP_API_BASE_URL = 'http://localhost:2221/api';
+const LRP_API_BASE_URL = '/api/lpr';
 
 /**
  * Hook personalizado para manejar la autenticación con la API LPR

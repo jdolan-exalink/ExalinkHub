@@ -466,7 +466,16 @@ class ConfigDatabase {
       const stmt = this.db.prepare(`INSERT INTO app_settings (key, value) VALUES (?, ?)`);
       stmt.run('theme', 'system');
       stmt.run('language', 'es');
+      stmt.run('timezone_offset', '-3'); // UTC-3 por defecto (Argentina)
       console.log('🔧 Configuraciones de aplicación por defecto creadas');
+      console.log('🌍 Timezone configurado: UTC-3 (Argentina)');
+    } else {
+      // Verificar si existe timezone_offset, si no, agregarlo
+      const timezone_setting = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get('timezone_offset') as { value: string } | undefined;
+      if (!timezone_setting) {
+        this.db.prepare(`INSERT INTO app_settings (key, value) VALUES (?, ?)`).run('timezone_offset', '-3');
+        console.log('🌍 Timezone agregado: UTC-3 (Argentina)');
+      }
     }
 
   }
@@ -492,6 +501,24 @@ class ConfigDatabase {
       VALUES (?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `).run(setting_key, setting_value);
+  }
+
+  /**
+   * Obtiene el offset de timezone configurado (en horas).
+   * Por defecto -3 (UTC-3 para Argentina).
+   * Frigate siempre usa UTC, necesitamos convertir.
+   */
+  get_timezone_offset(): number {
+    const setting = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get('timezone_offset') as { value: string } | undefined;
+    return setting ? parseInt(setting.value, 10) : -3;
+  }
+
+  /**
+   * Establece el offset de timezone (en horas).
+   * Ejemplo: -3 para UTC-3, 0 para UTC, +1 para UTC+1
+   */
+  set_timezone_offset(offset: number): void {
+    this.set_application_setting('timezone_offset', String(offset));
   }
 
   // === MÉTODOS PARA SERVIDORES ===

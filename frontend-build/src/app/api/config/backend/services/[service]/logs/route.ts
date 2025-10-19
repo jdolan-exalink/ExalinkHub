@@ -62,79 +62,90 @@ export async function GET(
     console.log(`Obteniendo logs para ${service} (${containerName}): líneas=${lines}, tail=${tail}`);
 
     try {
-      // Usar comando docker directamente
-      const command = tail
-        ? `docker logs --tail ${lines} ${containerName} 2>&1`
-        : `docker logs ${containerName} 2>&1 | tail -n ${lines}`;
+      // Verificar si Docker está disponible
+      execSync('docker --version', { 
+        encoding: 'utf8',
+        timeout: 3000,
+        stdio: 'pipe',
+        windowsHide: true
+      });
+      console.log('✅ Docker está disponible');
 
+      // Verificar si el contenedor existe
+      const inspectCommand = `docker inspect ${containerName}`;
+      execSync(inspectCommand, {
+        encoding: 'utf8',
+        timeout: 3000,
+        stdio: 'pipe',
+        windowsHide: true
+      });
+      console.log(`✅ Contenedor ${containerName} existe`);
+
+      // Obtener logs del contenedor
+      const command = `docker logs --tail ${lines} ${containerName} 2>&1`;
       console.log(`Ejecutando comando: ${command}`);
 
       const logsOutput = execSync(command, {
         encoding: 'utf8',
-        timeout: 10000,
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+        timeout: 15000,
+        maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+        stdio: 'pipe',
+        windowsHide: true
       });
+
+      // Verificar si la salida contiene errores comunes
+      if (logsOutput.includes('docker: command not found') || logsOutput.includes('docker is not recognized')) {
+        throw new Error('Docker no está instalado o no está en PATH');
+      }
+
+      if (logsOutput.includes('No such container') || logsOutput.includes('container does not exist')) {
+        throw new Error(`Contenedor '${containerName}' no existe`);
+      }
 
       return NextResponse.json({
         service,
         container: containerName,
-        logs: logsOutput.trim(),
+        logs: logsOutput.trim() || 'El contenedor no tiene logs disponibles.',
         lines: lines,
         tail,
         timestamp: new Date().toISOString()
       });
+
     } catch (execError: any) {
       console.error('Error ejecutando comando docker:', execError);
 
-      // Si el contenedor no existe
-      if (execError.stderr && execError.stderr.includes('No such container')) {
-        return NextResponse.json(
-          {
-            service,
-            container: containerName,
-            logs: 'Contenedor no encontrado o no está ejecutándose',
-            lines: 0,
-            tail: true,
-            timestamp: new Date().toISOString()
-          },
-          { status: 404 }
-        );
+      // Determinar el tipo de error y dar mensaje específico
+      let error_message = 'Error desconocido al obtener logs';
+      let status_code = 500;
+
+      if (execError.message?.includes('command not found') || execError.message?.includes('not recognized')) {
+        error_message = 'Docker no está instalado o no está disponible en el sistema. Verifica que Docker Desktop esté ejecutándose.';
+        status_code = 503;
+      } else if (execError.message?.includes('No such container') || execError.message?.includes('does not exist')) {
+        error_message = `El contenedor '${containerName}' no existe. El servicio no está desplegado o fue eliminado.`;
+        status_code = 404;
+      } else if (execError.message?.includes('timeout')) {
+        error_message = 'Timeout obteniendo logs del contenedor. El contenedor puede estar ocupado o los logs son muy grandes.';
+        status_code = 504;
+      } else if (execError.code === 'ENOBUFS' || execError.message?.includes('maxBuffer')) {
+        error_message = 'Los logs del contenedor son demasiado grandes. Intenta con menos líneas (lines=50).';
+        status_code = 413;
+      } else {
+        error_message = `Error al obtener logs: ${execError.message || 'Error desconocido'}`;
       }
 
-      // Si docker no está disponible, intentar con curl a la API de Docker
-      try {
-        console.log('Intentando con Docker API via curl...');
-        const apiCommand = `curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/${containerName}/logs?stdout=1&stderr=1${tail ? `&tail=${lines}` : ''}&follow=0"`;
-
-        const apiLogsOutput = execSync(apiCommand, {
-          encoding: 'utf8',
-          timeout: 10000,
-          maxBuffer: 1024 * 1024 * 10
-        });
-
-        return NextResponse.json({
+      return NextResponse.json(
+        {
           service,
           container: containerName,
-          logs: apiLogsOutput.trim(),
-          lines: lines,
-          tail,
-          timestamp: new Date().toISOString()
-        });
-      } catch (apiError: any) {
-        console.error('Error con Docker API:', apiError);
-
-        return NextResponse.json(
-          {
-            service,
-            container: containerName,
-            logs: 'No se pudieron obtener los logs. Verifique que Docker esté disponible.',
-            lines: 0,
-            tail: true,
-            timestamp: new Date().toISOString()
-          },
-          { status: 500 }
-        );
-      }
+          logs: error_message,
+          lines: 0,
+          tail: true,
+          timestamp: new Date().toISOString(),
+          error: execError.code || 'execution_error'
+        },
+        { status: status_code }
+      );
     }
 
   } catch (error: any) {

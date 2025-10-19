@@ -1,11 +1,13 @@
 {
   "navigation": {
     "live": "Vivo",
+    "dashboard": "Dashboard",
     "recordings": "Grabaciones",
     "events": "Eventos",
     "plates_lpr": "Matriculas",
     "counting": "Conteo",
     "vehicle_counting": "Conteo Vehicular",
+    "violations": "Infracciones",
     "settings": "Ajustes"
   },
   "user_menu": {

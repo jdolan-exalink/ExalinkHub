@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+paho-mqtt
+requests
+paramiko
+python-dateutil
+psutil

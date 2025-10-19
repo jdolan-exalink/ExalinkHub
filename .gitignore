@@ -19,7 +19,8 @@
 
 # production
 /build
-
+check*
+test*
 # misc
 .DS_Store
 *.pem
@@ -43,3 +44,9 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+#archivos
+MEDIA/*
+LOG/*
+TEMP/*
+DB/*

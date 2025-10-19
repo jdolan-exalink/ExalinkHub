@@ -11,9 +11,9 @@ const execAsync = promisify(exec);
  * Mapeo de servicios a nombres de contenedores Docker
  */
 const SERVICE_CONTAINER_MAP: Record<string, string> = {
-  'lpr': 'exalink-lpr-backend',
-  'counting': 'exalink-conteo-backend',
-  'notifications': 'exalink-notificaciones-backend'
+  'LPR (Matrículas)': 'matriculas-listener',
+  'Conteo de Personas': 'exalink-conteo-backend',
+  'Notificaciones': 'exalink-notificaciones-backend'
 };
 
 /**
@@ -103,11 +103,11 @@ export async function getDockerContainerStatus(serviceName: string): Promise<Doc
     const inspectOutput = execSync(`docker inspect ${containerName}`, { encoding: 'utf8' });
     const inspectData = JSON.parse(inspectOutput)[0];
 
-    // Obtener métricas de docker stats con formato más específico
+    // Obtener métricas de docker stats con formato por defecto
     let statsOutput = '';
     try {
-      // Usar formato CSV más confiable
-      statsOutput = execSync(`docker stats ${containerName} --no-stream --format "csv"`, { encoding: 'utf8' });
+      // Usar formato por defecto que es más confiable
+      statsOutput = execSync(`docker stats ${containerName} --no-stream`, { encoding: 'utf8' });
       console.log(`Docker stats output for ${containerName}:`, statsOutput);
     } catch (statsError) {
       console.warn(`Could not get stats for ${containerName}, using defaults:`, statsError);
@@ -136,36 +136,30 @@ export async function getDockerContainerStatus(serviceName: string): Promise<Doc
 
     if (statsOutput && statsOutput.trim()) {
       try {
-        // El formato CSV incluye headers, así que tomamos la segunda línea
+        // El formato por defecto incluye headers, así que tomamos la segunda línea
         const lines = statsOutput.trim().split('\n');
         if (lines.length >= 2) {
           const dataLine = lines[1]; // Saltar header
-          // Formato CSV: "CONTAINER ID,NAME,CPU %,MEM USAGE / LIMIT,MEM %,NET I/O,BLOCK I/O,PIDS"
-          const parts = dataLine.split(',');
-          if (parts.length >= 4) {
-            // CPU % está en la columna 2 (índice 2)
-            const cpuStr = parts[2].replace(/"/g, '').trim();
-            const cpuMatch = cpuStr.match(/(\d+\.?\d*)%/);
-            if (cpuMatch) {
-              cpuPercent = parseFloat(cpuMatch[1]);
-            }
+          // Formato por defecto: "CONTAINER ID   NAME   CPU %   MEM USAGE / LIMIT   MEM %   NET I/O   BLOCK I/O   PIDS"
+          // Usar regex para extraer los valores
+          const cpuMatch = dataLine.match(/(\d+\.\d+)%/);
+          if (cpuMatch) {
+            cpuPercent = parseFloat(cpuMatch[1]);
+          }
 
-            // MEM USAGE está en la columna 3 (índice 3)
-            const memStr = parts[3].replace(/"/g, '').trim();
-            // Formato típico: "123.4MiB / 1GiB"
-            const memMatch = memStr.match(/(\d+\.?\d*)MiB/);
-            if (memMatch) {
-              memoryMb = parseFloat(memMatch[1]);
-            } else {
-              // Intentar con otros formatos (KB, GB)
-              const memKbMatch = memStr.match(/(\d+\.?\d*)kB/);
-              if (memKbMatch) {
-                memoryMb = parseFloat(memKbMatch[1]) / 1024; // Convertir KB a MB
-              }
-              const memGbMatch = memStr.match(/(\d+\.?\d*)GiB/);
-              if (memGbMatch) {
-                memoryMb = parseFloat(memGbMatch[1]) * 1024; // Convertir GB a MB
-              }
+          // Extraer memoria (formato: "40.61MiB / 7.654GiB")
+          const memMatch = dataLine.match(/(\d+\.\d+)MiB/);
+          if (memMatch) {
+            memoryMb = parseFloat(memMatch[1]);
+          } else {
+            // Intentar con otros formatos
+            const memKbMatch = dataLine.match(/(\d+\.\d+)kB/);
+            if (memKbMatch) {
+              memoryMb = parseFloat(memKbMatch[1]) / 1024; // Convertir KB a MB
+            }
+            const memGbMatch = dataLine.match(/(\d+\.\d+)GiB/);
+            if (memGbMatch) {
+              memoryMb = parseFloat(memGbMatch[1]) * 1024; // Convertir GB a MB
             }
           }
         }
@@ -209,6 +203,7 @@ export function isDockerAvailable(): boolean {
   }
 }
 
+
 /**
  * Configura el restart policy de un contenedor
  */
@@ -228,5 +223,27 @@ export async function setContainerRestartPolicy(serviceName: string, autoStart: 
   } catch (error) {
     console.error(`Error setting restart policy for ${serviceName}:`, error);
     return false;
+  }
+}
+
+/**
+ * Obtiene los últimos logs de un contenedor Docker
+ * @param service_name Nombre del servicio (ej: 'LPR (Matrículas)')
+ * @param lines Número de líneas de logs a obtener (default: 50)
+ * @returns Array de líneas de log
+ */
+export async function get_docker_container_logs(service_name: string, lines: number = 50): Promise<string[]> {
+  try {
+    const container_name = SERVICE_CONTAINER_MAP[service_name];
+    if (!container_name) {
+      console.error(`No container mapping found for service: ${service_name}`);
+      return [];
+    }
+    // Ejecutar comando docker logs
+    const logs_output = execSync(`docker logs --tail ${lines} ${container_name}`, { encoding: 'utf8' });
+    return logs_output.trim().split('\n');
+  } catch (error) {
+    console.error(`Error getting logs for ${service_name}:`, error);
+    return [];
   }
 }

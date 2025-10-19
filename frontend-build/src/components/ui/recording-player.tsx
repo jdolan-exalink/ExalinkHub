@@ -480,9 +480,60 @@ export default function RecordingPlayer({
             }
           };
           
-          videoRef.current.onerror = (e) => {
-            console.error('RecordingPlayer: Legacy video error:', e);
-            setError('Failed to play video - format may not be supported');
+          videoRef.current.onerror = (event) => {
+            const media_error = videoRef.current?.error;
+            const log_details = {
+              event_type: event?.type ?? null,
+              media_error_code: media_error?.code ?? null,
+              media_error_message: media_error?.message ?? null,
+              media_error: media_error ?? null,
+              camera,
+              video_src: videoRef.current?.currentSrc || videoRef.current?.src || null,
+              ready_state: videoRef.current?.readyState ?? null,
+              network_state: videoRef.current?.networkState ?? null,
+              request_context: {
+                timestamp: time,
+                selection_start: selectionRange?.start ?? null,
+                selection_end: selectionRange?.end ?? null,
+              },
+              video_metadata: {
+                duration: videoRef.current?.duration ?? null,
+                buffered: videoRef.current?.buffered?.length ?? 0,
+                error_details: videoRef.current?.error
+                  ? {
+                      code: videoRef.current.error.code,
+                      message: videoRef.current.error.message,
+                      name: videoRef.current.error.name ?? 'MediaError',
+                    }
+                  : null,
+              },
+            };
+            console.error('RecordingPlayer: Legacy video error', log_details);
+
+            let fallback_message = 'Failed to play video - format may not be supported';
+            const network_empty =
+              media_error?.code === MediaError.MEDIA_ERR_NETWORK &&
+              (videoRef.current?.networkState === HTMLMediaElement.NETWORK_NO_SOURCE ||
+                videoRef.current?.networkState === HTMLMediaElement.NETWORK_EMPTY);
+
+            if (media_error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+              fallback_message = 'Video format not supported or clip unavailable. Try downloading the clip manually.';
+            } else if (network_empty) {
+              fallback_message =
+                'Frigate did not return video data for this range. Try a shorter segment or play via HLS.';
+            } else if (media_error?.code === MediaError.MEDIA_ERR_NETWORK) {
+              fallback_message = 'Network error while loading video clip. Check server connectivity.';
+            } else if (media_error?.code === MediaError.MEDIA_ERR_DECODE) {
+              fallback_message = 'Browser failed to decode the video clip. Try downloading it manually.';
+            } else if (media_error?.message) {
+              fallback_message = `Failed to play video: ${media_error.message}`;
+            }
+
+            setError(
+              media_error?.message
+                ? `Failed to play video: ${media_error.message}`
+                : fallback_message
+            );
             URL.revokeObjectURL(videoUrl);
           };
           

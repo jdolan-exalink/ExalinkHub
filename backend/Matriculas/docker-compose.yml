@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  listener:
+    build:
+      context: .
+      dockerfile: listener/Dockerfile
+    container_name: matriculas-listener
+    ports:
+      - "${PORT:-2221}:2221"
+    environment:
+      - DB_DIR=/app/DB
+      - MEDIA_DIR=/app/MEDIA
+      - LOG_DIR=/app/LOG
+      - CONF_PATH=/app/matriculas.conf
+    volumes:
+      - ./DB:/app/DB
+      - ./MEDIA:/app/MEDIA
+      - ./LOG:/app/LOG
+      - ./matriculas.conf:/app/matriculas.conf:ro
+    restart: unless-stopped

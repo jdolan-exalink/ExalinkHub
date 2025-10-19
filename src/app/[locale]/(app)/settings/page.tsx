@@ -20,7 +20,7 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">{translate_settings('heading_description')}</p>
         </div>
 
-        <Tabs defaultValue="users" className="w-full">
+        <Tabs defaultValue="servers" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="servers" className="flex items-center gap-2">
               <Server className="h-4 w-4" />

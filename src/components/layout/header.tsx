@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, CreditCard, LogOut, User, Car } from 'lucide-react';
+import { ShieldCheck, Video, History, ListVideo, Settings, Menu, BarChart3, CreditCard, LogOut, User, Car, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -38,11 +38,13 @@ type NavigationItem = {
 
 const navigation_item_definitions: NavigationItem[] = [
   { slug: 'live', label_key: 'live', icon: Video },
+  { slug: 'dashboard', label_key: 'dashboard', icon: LayoutDashboard },
   { slug: 'recordings', label_key: 'recordings', icon: History },
   { slug: 'events', label_key: 'events', icon: ListVideo },
-  { slug: 'plates-lpr', label_key: 'plates_lpr', icon: CreditCard },
+  { slug: 'lpr', label_key: 'plates_lpr', icon: CreditCard },
   { slug: 'counting', label_key: 'counting', icon: BarChart3 },
   { slug: 'vehicle-counting', label_key: 'vehicle_counting', icon: Car },
+  { slug: 'violations', label_key: 'violations', icon: AlertTriangle },
   { slug: 'settings', label_key: 'settings', icon: Settings },
 ];
 
@@ -62,11 +64,13 @@ const Header: FC = () => {
     // Mapear slugs a módulos
     const module_map: Record<string, string> = {
       'live': 'live',
+      'dashboard': 'live', // Dashboard requiere acceso a vista en vivo
       'recordings': 'recordings',
       'events': 'events',
       'plates-lpr': 'events', // LPR requiere acceso a eventos
       'counting': 'statistics',
       'vehicle-counting': 'statistics',
+      'violations': 'events', // Infracciones requiere acceso a eventos
       'settings': 'settings'
     };
     

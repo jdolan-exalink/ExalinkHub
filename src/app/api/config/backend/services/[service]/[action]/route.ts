@@ -46,10 +46,19 @@ export async function POST(
       );
     }
 
+    // Mapeo de slug -> nombre mostrado usado en DB y docker-utils
+    const service_slug_to_name: Record<string, string> = {
+      lpr: 'LPR (Matrículas)',
+      counting: 'Conteo de Personas',
+      notifications: 'Notificaciones'
+    };
+
+    const display_service_name = service_slug_to_name[service];
+
     // Control real: actualizar campo enabled en la base de datos
     const ConfigDatabase = (await import('@/lib/config-database')).default;
     const db = new ConfigDatabase();
-    const config = db.getBackendConfigByService(service);
+    const config = db.getBackendConfigByService(display_service_name);
     if (!config) {
       return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 });
     }
@@ -60,26 +69,26 @@ export async function POST(
     // restart: mantiene enabled como está
 
     // Actualizar configuración en DB
-    db.updateBackendConfig(service, config.config, enabled);
+    db.updateBackendConfig(display_service_name, config.config, enabled);
 
     // Control del contenedor Docker
     let dockerSuccess = false;
     try {
       switch (action) {
         case 'start':
-          dockerSuccess = await startDockerContainer(service);
+          dockerSuccess = await startDockerContainer(display_service_name);
           break;
         case 'stop':
-          dockerSuccess = await stopDockerContainer(service);
+          dockerSuccess = await stopDockerContainer(display_service_name);
           break;
         case 'restart':
-          dockerSuccess = await restartDockerContainer(service);
+          dockerSuccess = await restartDockerContainer(display_service_name);
           break;
       }
 
       // Configurar política de restart según auto_start
       if (config.auto_start !== undefined) {
-        await setContainerRestartPolicy(service, config.auto_start);
+        await setContainerRestartPolicy(display_service_name, config.auto_start);
       }
     } catch (dockerError) {
       console.error(`Error controlling Docker container for ${service}:`, dockerError);

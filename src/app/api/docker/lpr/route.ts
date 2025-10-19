@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
     // También obtener estado de salud si está corriendo
     if (status.status === 'running') {
       try {
-        const health_response = await fetch('http://localhost:2221/health', {
+        const health_response = await fetch(`http://${service_name}:2221/health`, {
           signal: AbortSignal.timeout(5000)
         });
         status.health = health_response.ok ? 'healthy' : 'unhealthy';

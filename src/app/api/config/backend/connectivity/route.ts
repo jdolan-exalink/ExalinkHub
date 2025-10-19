@@ -6,6 +6,46 @@ import {
 } from '@/lib/frigate-servers';
 
 /**
+ * Prueba conectividad con la base de datos LPR (SQLite)
+ * Intenta abrir DB/matriculas.db en modo solo lectura y ejecutar una consulta simple
+ */
+async function test_database_connectivity(): Promise<boolean> {
+  try {
+    const Database = require('better-sqlite3');
+    const path = require('path');
+    const db_path = path.join(process.cwd(), 'DB', 'matriculas.db');
+    const db = new Database(db_path, { readonly: true, fileMustExist: true });
+    db.prepare('SELECT 1 as ok').get();
+    db.close();
+    return true;
+  } catch (e: any) {
+    console.warn('Database connectivity test failed:', e?.message || e);
+    return false;
+  }
+}
+
+/**
+ * Prueba el endpoint de salud del backend LPR dentro de la red docker
+ * Usa host de servicio por defecto 'matriculas-listener' y puerto 2221, a menos que la config override
+ */
+async function test_lpr_backend_health(backend_config: any): Promise<boolean> {
+  try {
+    let backend_host = 'matriculas-listener';
+    let backend_port = 2221;
+    try {
+      if (backend_config?.lpr_backend_host) backend_host = backend_config.lpr_backend_host;
+      if (backend_config?.lpr_api_port) backend_port = backend_config.lpr_api_port;
+    } catch {}
+
+    const url = `http://${backend_host}:${backend_port}/health`;
+    const resp = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(2000) });
+    return resp.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * Verifica el estado de conectividad de MQTT y Frigate para el sistema LPR
  * @param {NextRequest} request - The incoming request
  * @returns {Promise<NextResponse>} Estado de conectividad completo
@@ -22,7 +62,9 @@ export async function GET(request: NextRequest) {
       frigate_configured: false,
       frigate_status: 'not_configured',
       system_ready: false,
-      issues: [] as string[]
+      issues: [] as string[],
+      database: { connected: false } as { connected: boolean },
+      lpr_backend: { running: false } as { running: boolean }
     };
 
 
@@ -110,10 +152,36 @@ export async function GET(request: NextRequest) {
       status.issues.push('Servidor Frigate no seleccionado');
     }
 
+    // Verificación real de base de datos LPR
+    try {
+      const db_ok = await test_database_connectivity();
+      status.database.connected = db_ok;
+      if (!db_ok) {
+        status.issues.push('Base de datos LPR no accesible');
+      }
+    } catch (err: any) {
+      status.database.connected = false;
+      status.issues.push('Error comprobando base de datos LPR');
+    }
+
+    // Verificación real de backend LPR (health)
+    try {
+      const health_ok = await test_lpr_backend_health(backend_config);
+      status.lpr_backend.running = health_ok;
+      if (!health_ok) {
+        status.issues.push('Backend LPR no responde /health');
+      }
+    } catch (err: any) {
+      status.lpr_backend.running = false;
+      status.issues.push('Error comprobando salud del backend LPR');
+    }
+
     // Verificar si el sistema está listo
     status.system_ready = status.lpr_enabled && 
                          status.mqtt_configured && 
                          status.frigate_configured &&
+                         status.database.connected &&
+                         status.lpr_backend.running &&
                          status.issues.length === 0;
 
     console.log('LPR System connectivity status:', status);

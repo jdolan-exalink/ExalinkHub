@@ -42,7 +42,8 @@ RUN adduser --system --uid 1001 nextjs
 # Instalar docker-cli también en la imagen final
 RUN apk add --no-cache docker-cli
 
-# Agregar el usuario nextjs al grupo docker para que pueda ejecutar comandos docker
+# Crear grupo docker si no existe y agregar el usuario nextjs
+RUN addgroup -S docker || true
 RUN addgroup nextjs docker
 
 COPY --from=builder /app/public ./public

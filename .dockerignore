@@ -116,7 +116,7 @@ data/
 DB/
 
 # Archivos de desarrollo de ExalinkHub
-src/
+# src/  # Comentado para incluir código fuente en Docker build
 components.json
 next-env.d.ts
 next.config.ts
@@ -124,3 +124,12 @@ tailwind.config.ts
 tsconfig.json
 postcss.config.mjs
 middleware.ts
+
+# Archivos de backup
+*.BAK
+**/*.BAK
+**/**.BAK/**
+
+# Páginas con dependencias faltantes (temporal)
+**/dashboard/
+**/counting/

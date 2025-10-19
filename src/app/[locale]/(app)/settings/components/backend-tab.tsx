@@ -247,7 +247,13 @@ export default function BackendTab() {
       const data = await response.json();
       
       if (data.services) {
-        setServices(data.services);
+        // Normalizar claves de servicios del backend a las usadas en la UI
+        const normalized: Record<string, any> = {
+          'LPR (Matrículas)': data.services['LPR (Matrículas)'] || services['LPR (Matrículas)'],
+          'Conteo': data.services['Conteo de Personas'] || data.services['Conteo'] || services['Conteo'],
+          'Notificaciones': data.services['Notificaciones'] || services['Notificaciones']
+        };
+        setServices(normalized);
       }
     } catch (error) {
       console.error('Error obteniendo estado de servicios:', error);

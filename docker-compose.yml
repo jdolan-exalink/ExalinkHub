@@ -1,25 +1,27 @@
-
-version: '3.8'
 services:
-  lpr-backend:
+  matriculas-listener:
     build:
-      context: ./backend/lpr
-      dockerfile: Dockerfile
-    image: exalink/lpr-backend:latest
-    container_name: exalink-lpr-backend
+      context: ./backend/Matriculas
+      dockerfile: listener/Dockerfile
+    image: exalink/matriculas-listener:latest
+    container_name: matriculas-listener
     restart: unless-stopped
     ports:
       - "${LPR_PORT:-2221}:2221"
     environment:
-      - LPR_HOST=0.0.0.0
+      - DB_DIR=/app/DB
+      - MEDIA_DIR=/app/MEDIA
+      - LOG_DIR=/app/LOG
+      - CONF_PATH=/app/matriculas.conf
+    volumes:
+      - ./DB:/app/DB
+      - ./MEDIA:/app/MEDIA
+      - ./LOG:/app/LOG
+      - ./backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
     networks:
       - lpr-network
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.lpr.rule=Host(`lpr.local`)"
-      - "traefik.http.services.lpr.loadbalancer.server.port=2221"
-      - "com.exalink.service=lpr-backend"
-      - "com.exalink.version=1.0.0"
+      - "com.exalink.service=matriculas-listener"
 
   lpr-redis:
     image: redis:7-alpine
@@ -133,15 +135,16 @@ services:
     volumes:
       - ./DB:/app/DB:rw
       - ./data:/app/data:rw
+      - ./MEDIA:/app/MEDIA:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - lpr-network
     depends_on:
-      - lpr-backend
+      - matriculas-listener
       - conteo-backend
       - notificaciones-backend
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -169,14 +172,7 @@ volumes:
     driver: local
     labels:
       - "com.exalink.volume=counting-db"
-  matriculas-db:
-    driver: local
-    labels:
-      - "com.exalink.volume=matriculas-db"
-  lpr-readings-db:
-    driver: local
-    labels:
-      - "com.exalink.volume=lpr-readings-db"
+  # se usan carpetas bind para DB/MEDIA/LOG de Matriculas (no named volumes)
 
 networks:
   lpr-network:

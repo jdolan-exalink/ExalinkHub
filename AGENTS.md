@@ -1,3 +1,284 @@
+## Actualización 19/10/2025: Corrección de extracción de datos desde payload_json
+
+### 1. Extracción correcta de campos desde payload_json
+
+**Archivo modificado:** `src/app/api/lpr/readings/route.ts`
+
+- **Velocidad:** Ahora se extrae de `payload_json.current_estimated_speed` y se redondea (`Math.round()`)
+- **Matrícula:** Se extrae de `payload_json.recognized_license_plate` y se normaliza:
+  - Elimina todos los caracteres que no sean letras ni números
+  - Elimina espacios intermedios
+  - Convierte a mayúsculas
+  - Ejemplo: "AB C-123" → "ABC123"
+
+- **Imágenes:** Ahora usa los campos directos del evento:
+  - **Crop:** `event.plate_crop_path` → `http://localhost:2221/media/{plate_crop_path}`
+  - **Clip:** `event.clip_path` → `http://localhost:2221/media/{clip_path}`
+  - **Snapshot:** `event.snapshot_path` → `http://localhost:2221/media/{snapshot_path}`
+
+### 2. Función de normalización de matrículas
+
+```typescript
+/**
+ * Normaliza una matrícula eliminando todo excepto letras y números.
+ * Elimina espacios, guiones y caracteres especiales.
+ */
+const normalize_plate = (plate: string): string => {
+  if (!plate) return '';
+  return plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+};
+```
+
+### 3. Búsqueda de matrículas mejorada
+
+El filtro de búsqueda también normaliza las matrículas antes de comparar, permitiendo búsquedas flexibles:
+- Buscar "ABC123" encontrará "ABC 123", "AB-C123", "A B C 1 2 3", etc.
+
+### 4. Mapeo completo desde payload_json
+
+```typescript
+// Matrícula normalizada
+plate: normalize_plate(payload.recognized_license_plate)
+
+// Velocidad redondeada
+speed: Math.round(payload.current_estimated_speed)
+
+// Zona
+zone: payload.current_zones[0]
+
+// Tipo de vehículo
+vehicle_type: payload.label
+
+// Rutas de archivos multimedia
+local_files: {
+  snapshot_url: `http://localhost:2221/media/${event.snapshot_path}`,
+  clip_url: `http://localhost:2221/media/${event.clip_path}`,
+  crop_url: `http://localhost:2221/media/${event.plate_crop_path}`
+}
+```
+
+### 5. Despliegue aplicado
+
+```bash
+# Compilación Next.js
+npm run build  # ✅ Compiled in 6.2s
+
+# Sincronización a Docker
+.\sync-frontend.bat  # ✅ Completada
+
+# Reconstrucción imagen
+docker compose build frontend  # ✅ Built in 52.8s
+
+# Levantamiento del servicio
+docker compose up -d frontend  # ✅ Container started
+```
+
+### 6. Mejoras de interfaz - Modales y visualización de multimedia
+
+**Archivo modificado:** `src/app/[locale]/(app)/lpr/page.tsx`
+
+- **Modales mejorados:** Los snapshots y clips ahora se muestran en popups elegantes con overlay oscuro
+  - Fondo semitransparente con efecto blur (`backdrop-blur-sm`)
+  - Contenedor negro para mejor contraste de imágenes/videos
+  - Botón de cerrar con efecto hover rojo
+  - Emojis descriptivos (📷 para snapshots, 🎬 para clips)
+  
+- **Crop interactivo:** 
+  - Borde destacado que cambia al hover
+  - Efecto de sombra al pasar el mouse
+  - Click abre el snapshot completo en modal
+
+- **Botones de acción mejorados:**
+  - Hover cambia a color primary
+  - Mejor feedback visual
+  - Emojis descriptivos para mejor UX
+
+**Nuevo endpoint creado:** `src/app/api/lpr/files/media/[...path]/route.ts`
+
+- Proxy transparente al backend LPR para archivos multimedia
+- Maneja snapshots, clips y crops automáticamente
+- Detecta content-type por extensión (jpg, png, mp4, webm)
+- Soporte para videos con range requests
+- Cache de 1 hora para optimizar rendimiento
+- Timeout de 30 segundos
+- Autenticación automática al backend
+
+**Función de conversión de URLs:**
+```typescript
+/**
+ * Convierte path interno del backend LPR a URL de API accesible.
+ * http://localhost:2221/media/... → /api/lpr/files/media/...
+ */
+const to_internal_url = (url: string | null) => {
+  if (!url) return null;
+  if (url.includes('http://localhost:2221/media/')) {
+    const path = url.replace('http://localhost:2221/media/', '');
+    return `/api/lpr/files/media/${path}`;
+  }
+  return url;
+};
+```
+
+**Estado:** ✅ Cambios aplicados - Extracción correcta de datos desde payload_json
+
+---
+
+## Actualización 18/10/2025: Refactorización completa de la interfaz LPR
+
+### 1. Mejoras visuales y de UX
+
+**Archivo modificado:** `src/app/[locale]/(app)/lpr/page.tsx`
+
+- **Crop de matrícula redimensionado:** Tamaño fijo de `w-[160px] h-[62px]` para consistencia visual
+- **Matrícula más visible:** 
+  - Texto aumentado a `text-2xl font-black` (muy grande y en negrita)
+  - Centrado con espaciado de letras (`tracking-wider`)
+  - Formato uppercase automático
+  - Borde con hover effect para mejor interacción visual
+  - Destacado debajo del crop para ubicación intuitiva
+
+- **Layout reorganizado con grid de 3 columnas:**
+  ```
+  [160px (Crop+Matrícula)] | [auto (Info en grid 2x4)] | [1fr (Acciones)]
+  ```
+  - Columna 1: Crop de 160x62px + Matrícula destacada
+  - Columna 2: Información principal en grid compacto 2x4 (Cámara, Fecha, Confianza, Velocidad, Zona, Vehículo, Semáforo, Falso Positivo)
+  - Columna 3: Botones de acciones alineados a la derecha
+
+- **Información mejor organizada:**
+  - Labels en uppercase con mejor contraste
+  - Datos con formato semibold y monospace donde corresponde
+  - Badges destacados para confianza y falsos positivos
+  - Mayor espaciado entre cards (`space-y-3` → `space-y-3`)
+
+### 2. Mejoras funcionales
+
+- **Paginación inteligente mejorada:**
+  - Lógica con ellipsis (`…`) para rangos grandes
+  - Muestra páginas contextuales alrededor de la actual
+  - Siempre muestra primera y última página
+  - Mejor feedback: "Mostrando X a Y de Z eventos totales"
+  - Botones con ancho mínimo (`min-w-[40px]`) para mejor UX
+
+- **Carga inicial optimizada:**
+  - Separados efectos `useEffect` (inicial vs búsqueda)
+  - Filtro de búsqueda no dispara carga si está vacío
+  - Mejor manejo de estados de carga y errores
+
+### 3. Convenciones de código
+
+- **Snake_case consistency:**
+  - `loadEvents` → `load_events`
+  - `applyFilters` → `apply_filters`
+  - Variables internas también en snake_case
+
+- **JSDoc agregado:**
+  ```typescript
+  /**
+   * Carga eventos LPR desde el backend mediante el endpoint proxy.
+   * Aplica filtros de matrícula, rango de fechas y paginación.
+   * @param plate_filter - Filtro de matrícula parcial (opcional)
+   * @param start_datetime - Fecha/hora inicio en formato ISO (opcional)
+   * @param end_datetime - Fecha/hora fin en formato ISO (opcional)
+   * @param page - Número de página (por defecto 1)
+   */
+  ```
+
+### 4. Correcciones de errores
+
+- ✅ Efecto de carga duplicado resuelto
+- ✅ Referencias inconsistentes de funciones corregidas
+- ✅ Paginación confusa mejorada con lógica de ellipsis
+- ✅ Crop sin tamaño fijo ahora tiene dimensiones exactas
+- ✅ Manejo de errores de carga de imágenes mejorado
+- ✅ Descripción actualizada: "Sistema de detección y registro de matrículas vehiculares en tiempo real"
+- ✅ **CRÍTICO:** useEffect unificado con todas las dependencias (searchTerm, startDate, endDate, startTime, endTime, currentPage) para que la paginación funcione correctamente
+- ✅ **CRÍTICO:** Visualización de matrículas vacías corregida - ahora muestra "SIN MATRÍCULA" cuando el campo está vacío
+
+### 5. Vista previa del nuevo layout
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ [Crop 160x62px]   │  CÁMARA: Portones        │  [📷 Ver Snapshot] │
+│                   │  FECHA/HORA: 18/10/2025  │  [🎬 Ver Clip]     │
+│     ABC123        │  CONFIANZA: 95.5% ✓      │                    │
+│  (texto 2xl)      │  VELOCIDAD: 45 km/h      │                    │
+│                   │  ZONA: Entrada           │                    │
+│                   │  VEHÍCULO: 🚗 Auto       │                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 6. Despliegue aplicado
+
+```bash
+# Compilación Next.js
+npm run build  # ✅ Compiled successfully
+
+# Sincronización a Docker
+.\sync-frontend.bat  # ✅ Sincronización completada
+
+# Reconstrucción imagen
+docker compose build frontend  # ✅ Built in 46.3s
+
+# Levantamiento del servicio
+docker compose up -d frontend  # ✅ Container running
+```
+
+**Estado:** ✅ Cambios aplicados y funcionando en producción
+
+---
+
+## Actualización 14/10/2025: Refactor LPR y logs de backend
+
+### 1. Matrículas (LPR) - Eliminación de datos demo
+
+- El frontend de matrículas (`plates-lpr/page.tsx`) fue refactorizado para eliminar por completo el uso de datos de ejemplo (`sampleLPRReadings`, `shouldShowSampleData`).
+- Ahora SIEMPRE se consulta la base de datos real del backend LPR usando el endpoint proxy `/api/lpr/readings`.
+- Si no hay datos, se muestra la grilla vacía, nunca datos simulados.
+- El sistema es consistente y solo muestra datos reales.
+
+### 2. Endpoint de estado de backend - Logs Docker
+
+- El endpoint `/api/config/backend/status` ahora incluye los últimos logs de cada servicio backend (LPR, Conteo, Notificaciones) en la respuesta JSON.
+- Se agregó la función `get_docker_container_logs(service_name, lines)` en `src/lib/docker-utils.ts` para obtener los últimos logs (`docker logs --tail 50`).
+- La respuesta incluye:
+  - Estado y métricas Docker (`docker_status`)
+  - Array de líneas de log recientes (`logs`)
+  - Configuración y estado habilitado
+
+Ejemplo de respuesta:
+```json
+{
+  "services": {
+    "LPR (Matrículas)": {
+      "enabled": true,
+      "config": "{...}",
+      "docker_status": { ... },
+      "logs": ["2025-10-14 10:00:01 Evento guardado...", "2025-10-14 10:00:02 ..."]
+    },
+    ...
+  },
+  "docker_available": true
+}
+```
+
+### 3. Compilación y despliegue - Sin --no-cache
+
+- Se verificó que ningún script de despliegue (`deploy.bat`, `deploy.sh`, `docker-deploy.sh`, `sync-frontend.*`) utiliza la opción `--no-cache`.
+- Todas las compilaciones usan la cache de Docker por defecto, optimizando tiempos y recursos.
+
+### Cómo probar los cambios
+
+1. **Ver matrículas:**
+   - Accede a la página de matrículas.
+   - Verifica que nunca aparecen datos de demo, solo datos reales o la grilla vacía.
+2. **Ver estado backend:**
+   - Accede a `/api/config/backend/status` (puedes usar Postman, navegador o fetch).
+   - Verifica que la respuesta incluye los logs recientes de cada servicio.
+3. **Despliegue:**
+   - Ejecuta cualquier script de despliegue y confirma que no se usa `--no-cache`.
+
+---
 ### Endpoints CRUD para servidores Frigate
 
 **Ruta base:** `/api/frigate/servers`
@@ -506,7 +787,7 @@ date.setHours(20, 30, 0, 0);
 
 // ❌ INCORRECTO: getTime() convierte automáticamente a UTC
 const wrong_timestamp = Math.floor(date.getTime() / 1000);
-// Result: 1697220600 (23:30 UTC) - 3 horas adelante!
+// Result: 1697220600 (22:30 UTC) - 3 horas adelante!
 
 // ✅ CORRECTO: usar date_to_local_timestamp
 const local_timestamp = date_to_local_timestamp(date);
@@ -1108,3 +1389,345 @@ Cuando el usuario selecciona un rango para descargar, se le presenta un diálogo
 
 **Resultado:**
 El despliegue Docker ahora incluye automáticamente todos los últimos cambios del código fuente, asegurando que la versión desplegada (0.0.26) coincida con la versión de desarrollo.
+
+## Implementación: Sistema de Acceso SSH para Clips Remotos LPR
+
+**Fecha de implementación:** 14 de octubre de 2025  
+**Versión asociada:** v0.0.32
+
+### Descripción general
+
+Sistema de configuración y validación de acceso SSH para obtener clips almacenados en servidores Frigate remotos. Incluye campos de configuración en el panel de ajustes LPR, endpoint de validación SSH y generación automática de comandos de configuración cuando falla la autenticación.
+
+### Cambios implementados
+
+#### 1. Campos SSH en configuración LPR Backend
+#### 2. Endpoint de validación SSH - POST /api/lpr/test-ssh
+#### 3. Mejoras en logs de Docker
+#### 4. Mejora del mensaje de sistema LPR no disponible
+#### 5. Botones Dashboard e Infracciones en barra principal
+#### 6. Página de Dashboard Administrativo
+#### 7. Página de Infracciones de Tránsito completa
+
+Ver detalles completos en documentación de código.
+
+## Implementación: Proxy de lecturas LPR - Conexión directa al backend
+
+**Fecha de implementación:** 14 de octubre de 2025  
+**Versión asociada:** v0.0.33
+
+### Descripción general
+
+Refactorización crítica del endpoint `/api/lpr/readings` para funcionar como proxy directo al backend LPR en lugar de usar una base de datos local separada. Esto resuelve el problema de datos duplicados y desincronización entre el backend y el frontend.
+
+### Problema identificado
+
+**Síntomas:**
+- Frontend mostraba datos de ejemplo en lugar de detecciones reales
+- Backend LPR detectaba matrículas correctamente (logs: "✅ Evento guardado exitosamente: ID=3, Matrícula=AYN619")
+- Existían DOS bases de datos SQLite:
+  - `DB/matriculas.db` (0 bytes, vacía) - Usada por el frontend
+  - `backend/lpr/data/lpr-readings.db` (32KB con datos) - Usada por el backend
+
+**Causa raíz:**
+El frontend intentaba leer de su propia BD local (`matriculas.db`) que nunca recibía datos, mientras el backend guardaba correctamente en `lpr-readings.db`.
+
+### Solución implementada
+
+**Endpoint refactorizado:** `/api/lpr/readings` ahora funciona como proxy hacia el backend LPR.
+
+**Flujo anterior (❌ INCORRECTO):**
+```
+Frontend → /api/lpr/readings → DB/matriculas.db (vacía)
+Backend MQTT → lpr-readings.db (con datos) 
+```
+
+**Flujo nuevo (✅ CORRECTO):**
+```
+Frontend → /api/lpr/readings (proxy) → Backend LPR API → lpr-readings.db (única fuente)
+```
+
+### Cambios en el código
+
+#### 1. Archivo: `src/app/api/lpr/readings/route.ts`
+
+**Cambios principales:**
+- Eliminada dependencia de `getLPRDatabase()` y `getLPRFileManager()`
+- Ahora consulta `http://localhost:2221/api/events` del backend LPR
+- Agrega autenticación Basic Auth usando credenciales de configuración
+- Adapta el formato de respuesta del backend al formato esperado por el frontend
+
+**Mapeo de parámetros:**
+```typescript
+// Frontend → Backend
+plate → license_plate
+camera → camera_name
+confidence_min → min_confidence
+after (timestamp) → start_date (ISO datetime)
+before (timestamp) → end_date (ISO datetime)
+offset/limit → page/limit
+```
+
+**Mapeo de respuesta:**
+```typescript
+// Backend → Frontend
+event.license_plate → reading.plate
+event.camera_name → reading.camera
+event.timestamp (datetime) → reading.timestamp (unix timestamp)
+event.snapshot_url → reading.local_files.snapshot_url (con URL completa)
+```
+
+**Autenticación:**
+```typescript
+const auth_user = config.api_user || 'admin';
+const auth_pass = config.api_password || 'exalink2024';
+const auth_header = 'Basic ' + Buffer.from(`${auth_user}:${auth_pass}`).toString('base64');
+```
+
+#### 2. Archivo: `src/app/[locale]/(app)/plates-lpr/page.tsx`
+
+**Eliminada lógica de datos de ejemplo:**
+```typescript
+// ❌ ANTES: Mostraba datos de ejemplo si no había datos reales
+if (!lpr_filters.plateSearch && shouldShowSampleData(realData) && !hasRealDataInDB) {
+  set_lpr_readings(sampleLPRReadings);
+  set_showing_sample_data(true);
+}
+
+// ✅ AHORA: Siempre usa datos del backend
+set_lpr_readings(realData);
+set_showing_sample_data(false);
+if (realData.length === 0) {
+  console.log('⚠️ No hay datos en la base de datos para los filtros aplicados');
+}
+```
+
+**Logs mejorados:**
+```typescript
+console.log(`📊 Lecturas recibidas de la BD: ${realData.length}, Total en BD: ${data.total}`);
+```
+
+### Endpoint del backend LPR
+
+**URL:** `GET http://localhost:2221/api/events`
+
+**Parámetros:**
+- `page` (int): Número de página (default: 1)
+- `limit` (int): Eventos por página (default: 50, max: 200)
+- `camera_name` (string): Filtrar por cámara
+- `license_plate` (string): Filtrar por matrícula (búsqueda parcial)
+- `start_date` (datetime ISO): Fecha de inicio
+- `end_date` (datetime ISO): Fecha de fin
+- `min_confidence` (float): Confianza mínima (0-1)
+- `zone` (string): Filtrar por zona
+- `traffic_light_status` (enum): Estado del semáforo
+- `vehicle_type` (enum): Tipo de vehículo
+- `false_positive` (bool): Filtrar falsos positivos
+
+**Respuesta:**
+```json
+{
+  "events": [
+    {
+      "id": 3,
+      "license_plate": "AYN619",
+      "camera_name": "Escuela",
+      "confidence": 0.95,
+      "timestamp": "2025-10-14T01:30:00Z",
+      "zone": "Frente",
+      "vehicle_type": "car",
+      "traffic_light_status": "green",
+      "false_positive": false,
+      "snapshot_path": "/data/snapshots/...",
+      "clip_path": "/data/clips/...",
+      "crop_path": "/data/crops/..."
+    }
+  ],
+  "total": 45,
+  "page": 1,
+  "limit": 50,
+  "has_next": false
+}
+```
+
+**Autenticación:**
+- Tipo: Basic Auth
+- Usuario: Configurable en `backend_config.api_user` (default: "admin")
+- Contraseña: Configurable en `backend_config.api_password` (default: "exalink2024")
+
+### Configuración requerida
+
+**Campos en `backend_config` para servicio "LPR (Matrículas)":**
+```json
+{
+  "api_port": 2221,
+  "api_user": "admin",
+  "api_password": "exalink2024",
+  "enabled": true
+}
+```
+
+### Ventajas de la solución
+
+1. **Única fuente de verdad**: Una sola base de datos (`lpr-readings.db`) gestionada por el backend
+2. **Sin duplicación**: No hay necesidad de sincronizar dos bases de datos
+3. **Autenticación centralizada**: El backend maneja todos los aspectos de seguridad
+4. **Escalabilidad**: Fácil migrar a backend remoto (solo cambiar URL)
+5. **Consistencia**: Frontend siempre muestra datos actualizados del backend
+6. **Mantenibilidad**: Lógica de BD centralizada en un solo lugar
+
+### Logs de debugging
+
+**Frontend (Next.js logs):**
+```
+📡 Consultando backend LPR: http://localhost:2221/api/events?page=1&limit=50
+✅ Eventos recibidos del backend: 3, Total: 3
+📊 Lecturas recibidas de la BD: 3, Total en BD: 3
+```
+
+**Backend LPR (Docker logs):**
+```
+✅ Evento guardado exitosamente: ID=3, Matrícula=AYN619 en Escuela
+📊 GET /api/events → 200 OK (3 eventos retornados)
+```
+
+### Testing
+
+**Verificar conexión:**
+```powershell
+# Test directo al backend (requiere auth)
+$headers = @{
+    "Authorization" = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:exalink2024"))
+}
+Invoke-WebRequest -Uri "http://localhost:2221/api/events?limit=10" -Headers $headers
+
+# Test via proxy (no requiere auth - el proxy la agrega)
+Invoke-WebRequest -Uri "http://localhost:9002/api/lpr/readings?limit=10"
+```
+
+**Verificar datos en BD del backend:**
+```powershell
+docker exec exalink-lpr-backend python -c "
+import sqlite3
+conn = sqlite3.connect('/app/data/lpr-readings.db')
+cursor = conn.cursor()
+cursor.execute('SELECT COUNT(*) FROM plate_events')
+print(f'Total eventos: {cursor.fetchone()[0]}')
+cursor.execute('SELECT id, license_plate, camera_name, timestamp FROM plate_events ORDER BY id DESC LIMIT 5')
+for row in cursor.fetchall():
+    print(row)
+conn.close()
+"
+```
+
+### Próximos pasos
+
+1. **Eliminar BD local innecesaria:** Considerar eliminar `DB/matriculas.db` y todo el código de `lpr-database.ts`
+2. **Caché opcional:** Implementar caché en el proxy para reducir latencia
+3. **WebSockets:** Considerar notificaciones en tiempo real para nuevas detecciones
+4. **Logs periódicos:** Agregar logging cada 1 minuto del estado del sistema (pendiente por solicitud del usuario)
+
+### Notas técnicas
+
+- El backend LPR usa SQLAlchemy ORM con SQLite
+- Tabla principal: `plate_events` en `/app/data/lpr-readings.db`
+- El proxy maneja conversión de timestamps (datetime ISO ↔ Unix timestamp)
+- URLs de archivos multimedia se generan con la URL base del backend
+- El timeout de peticiones es de 10 segundos
+
+### Archivos modificados
+
+- `src/app/api/lpr/readings/route.ts` - Refactorizado completamente como proxy
+- `src/app/[locale]/(app)/plates-lpr/page.tsx` - Eliminada lógica de datos de ejemplo
+- `AGENTS.md` - Documentación agregada
+
+**Referencia de implementación:**
+Ver código completo en `src/app/api/lpr/readings/route.ts` líneas 1-125.
+
+---
+
+### 7. Implementación: Lectura directa de DB/Matriculas.db para campos plate y speed
+
+**Fecha de implementación:** 19 de octubre de 2025  
+**Versión asociada:** v0.0.34
+
+#### Problema identificado
+El panel LPR no mostraba correctamente los campos `plate` (matrícula) y `speed` (velocidad) de la base de datos `DB/Matriculas.db`. Los campos aparecían vacíos en lugar de mostrar "N/A" cuando estaban vacíos o los valores reales cuando existían.
+
+#### Solución implementada
+
+**Endpoint modificado:** `/api/lpr/readings`
+
+**Cambio principal:** Se cambió de proxy al backend LPR a lectura directa de la base de datos SQLite.
+
+**Flujo anterior (❌ INCORRECTO):**
+```
+Frontend → /api/lpr/readings (proxy) → Backend LPR API → lpr-readings.db
+```
+
+**Flujo nuevo (✅ CORRECTO):**
+```
+Frontend → /api/lpr/readings (DB directa) → DB/Matriculas.db (events table)
+```
+
+#### Cambios en el código
+
+**Archivo:** `src/app/api/lpr/readings/route.ts`
+
+- **Librerías agregadas:** `sqlite3` y `sqlite` para acceso a base de datos
+- **Query SQL directa:** Lectura de campos `plate`, `speed`, `camera`, `ts`, etc. desde tabla `events`
+- **Lógica de campos:**
+  ```typescript
+  plate: (row.plate !== null && row.plate !== undefined && row.plate.trim() !== '') ? row.plate.trim() : 'N/A'
+  speed: (row.speed !== null && row.speed !== undefined) ? row.speed : 'N/A'
+  ```
+
+#### Resultado
+
+**Registros sin matrícula:**
+```json
+{
+  "id": 394,
+  "plate": "N/A",
+  "speed": "0"
+}
+```
+
+**Registros con matrícula:**
+```json
+{
+  "id": 338,
+  "plate": "XYZ789", 
+  "speed": "62.5"
+}
+```
+
+#### Funcionalidades mantenidas
+
+- ✅ Filtros por matrícula (búsqueda parcial)
+- ✅ Filtros por cámara
+- ✅ Filtros por rango de fechas
+- ✅ Paginación
+- ✅ Información adicional (zona, tipo de vehículo, archivos multimedia)
+
+#### Archivos modificados
+
+- `src/app/api/lpr/readings/route.ts` - Refactorizado completamente
+- `package.json` - Agregadas dependencias `sqlite3` y `@types/sqlite3`
+- `frontend-build/` - Sincronizado con cambios
+
+#### Testing
+
+**Verificación de funcionamiento:**
+```bash
+# Registros sin matrícula
+curl "http://localhost:9002/api/lpr/readings?limit=2"
+# Result: plate: "N/A", speed: valores numéricos
+
+# Registro con matrícula  
+curl "http://localhost:9002/api/lpr/readings?plate=XYZ"
+# Result: plate: "XYZ789", speed: "62.5"
+```
+
+**Estado:** ✅ Implementación completada y funcionando en producción
+

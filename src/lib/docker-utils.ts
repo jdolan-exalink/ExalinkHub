@@ -11,9 +11,9 @@ const execAsync = promisify(exec);
  * Mapeo de servicios a nombres de contenedores Docker
  */
 const SERVICE_CONTAINER_MAP: Record<string, string> = {
-  'lpr': 'exalink-lpr-backend',
-  'counting': 'exalink-conteo-backend',
-  'notifications': 'exalink-notificaciones-backend'
+  'LPR (Matrículas)': 'matriculas-listener',
+  'Conteo de Personas': 'exalink-conteo-backend',
+  'Notificaciones': 'exalink-notificaciones-backend'
 };
 
 /**
@@ -203,6 +203,7 @@ export function isDockerAvailable(): boolean {
   }
 }
 
+
 /**
  * Configura el restart policy de un contenedor
  */
@@ -222,5 +223,27 @@ export async function setContainerRestartPolicy(serviceName: string, autoStart: 
   } catch (error) {
     console.error(`Error setting restart policy for ${serviceName}:`, error);
     return false;
+  }
+}
+
+/**
+ * Obtiene los últimos logs de un contenedor Docker
+ * @param service_name Nombre del servicio (ej: 'LPR (Matrículas)')
+ * @param lines Número de líneas de logs a obtener (default: 50)
+ * @returns Array de líneas de log
+ */
+export async function get_docker_container_logs(service_name: string, lines: number = 50): Promise<string[]> {
+  try {
+    const container_name = SERVICE_CONTAINER_MAP[service_name];
+    if (!container_name) {
+      console.error(`No container mapping found for service: ${service_name}`);
+      return [];
+    }
+    // Ejecutar comando docker logs
+    const logs_output = execSync(`docker logs --tail ${lines} ${container_name}`, { encoding: 'utf8' });
+    return logs_output.trim().split('\n');
+  } catch (error) {
+    console.error(`Error getting logs for ${service_name}:`, error);
+    return [];
   }
 }

@@ -1,0 +1,219 @@
+# Docker Compose para desarrollo - Hot reload automático
+# Uso: docker-compose -f docker-compose.dev.yml up
+
+services:
+  # Frontend Next.js con hot reload
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: exalink-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-9002}:9002"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      # Montar código fuente para hot reload
+      - ./src:/app/src:cached
+      - ./public:/app/public:cached
+      - ./package.json:/app/package.json:cached
+      - ./package-lock.json:/app/package-lock.json:cached
+      - ./tsconfig.json:/app/tsconfig.json:cached
+      - ./next.config.ts:/app/next.config.ts:cached
+      - ./tailwind.config.ts:/app/tailwind.config.ts:cached
+      - ./postcss.config.mjs:/app/postcss.config.mjs:cached
+      - ./next-intl.config.mjs:/app/next-intl.config.mjs:cached
+      - ./middleware.ts:/app/middleware.ts:cached
+      - ./components.json:/app/components.json:cached
+      - ./messages:/app/messages:cached
+      # Montar datos persistentes
+      - ./DB:/app/DB:rw
+      - ./data:/app/data:rw
+      - ./MEDIA:/app/MEDIA:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - lpr-network
+    depends_on:
+      - matriculas-listener
+      - conteo-backend
+      - notificaciones-backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9002/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.exalink.service=frontend-dev"
+
+  # Backend LPR con código montado
+  matriculas-listener:
+    build:
+      context: ./backend/Matriculas/listener
+      dockerfile: Dockerfile.dev
+    container_name: matriculas-listener-dev
+    restart: unless-stopped
+    ports:
+      - "${LPR_PORT:-2221}:2221"
+    environment:
+      - DB_DIR=/app/DB
+      - MEDIA_DIR=/app/MEDIA
+      - LOG_DIR=/app/LOG
+      - CONF_PATH=/app/matriculas.conf
+      - PYTHONPATH=/app
+    volumes:
+      # Montar código fuente para desarrollo
+      - ./backend/Matriculas/listener:/app:cached
+      - ./backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
+      # Montar datos persistentes
+      - ./DB:/app/DB:rw
+      - ./MEDIA:/app/MEDIA:rw
+      - ./LOG:/app/LOG:rw
+    networks:
+      - lpr-network
+    labels:
+      - "com.exalink.service=matriculas-listener-dev"
+
+  # Backend de conteo con código montado
+  conteo-backend:
+    build:
+      context: ./backend/conteo
+      dockerfile: Dockerfile.dev
+    container_name: exalink-conteo-backend-dev
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+      - PYTHONPATH=/app
+    ports:
+      - "${CONTEO_PORT:-2223}:8012"
+    volumes:
+      # Montar código fuente
+      - ./backend/conteo:/app:cached
+      # Montar configuración
+      - ./backend/conteo/config:/app/config:rw
+    networks:
+      - lpr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.exalink.service=conteo-backend-dev"
+
+  # Backend de notificaciones con código montado
+  notificaciones-backend:
+    build:
+      context: ./backend/notificaciones
+      dockerfile: Dockerfile.dev
+    container_name: exalink-notificaciones-backend-dev
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+      - PYTHONPATH=/app
+    ports:
+      - "${NOTIFICACIONES_PORT:-2224}:8022"
+    volumes:
+      # Montar código fuente
+      - ./backend/notificaciones:/app:cached
+      # Montar configuración
+      - ./backend/notificaciones/config:/app/config:rw
+    networks:
+      - lpr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8022/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.exalink.service=notificaciones-backend-dev"
+
+  # Redis (igual que en producción)
+  lpr-redis:
+    image: redis:7-alpine
+    container_name: exalink-lpr-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-exalink123}
+    volumes:
+      - lpr-redis-data:/data
+    networks:
+      - lpr-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.exalink.service=lpr-redis-dev"
+
+  # Proxy Nginx (opcional para desarrollo)
+  lpr-proxy:
+    image: nginx:alpine
+    container_name: exalink-lpr-proxy-dev
+    restart: unless-stopped
+    ports:
+      - "${LPR_HTTPS_PORT:-2443}:443"
+      - "${LPR_HTTP_PORT:-2280}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - lpr-network
+      - public
+    depends_on:
+      - matriculas-listener
+    profiles:
+      - proxy
+    labels:
+      - "com.exalink.service=lpr-proxy-dev"
+
+  # Monitor (opcional para desarrollo)
+  lpr-monitor:
+    image: prom/node-exporter:latest
+    container_name: exalink-lpr-monitor-dev
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      - lpr-network
+    profiles:
+      - monitoring
+    labels:
+      - "com.exalink.service=lpr-monitor-dev"
+
+volumes:
+  lpr-data:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-data"
+  lpr-logs:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-logs"
+  lpr-redis-data:
+    driver: local
+    labels:
+      - "com.exalink.volume=lpr-redis-data"
+  config-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=config-db"
+  counting-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=counting-db"
+
+networks:
+  lpr-network:
+    driver: bridge
+    name: exalink-lpr-network-dev
+    labels:
+      - "com.exalink.network=lpr-internal-dev"
+  public:
+    driver: bridge
+    name: exalink-public-dev
+    labels:
+      - "com.exalink.network=public-dev"

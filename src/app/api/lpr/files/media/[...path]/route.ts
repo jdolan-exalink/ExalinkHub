@@ -17,7 +17,7 @@ export async function GET(
     
     // Construir URL del backend LPR
     const backend_path = filePath.join('/');
-    const backend_url = `http://matriculas-listener:2221/media/${backend_path}`;
+    const backend_url = `http://host.docker.internal:2221/media/${backend_path}`;
     
     console.log(`📡 Proxy LPR media: ${backend_url}`);
 

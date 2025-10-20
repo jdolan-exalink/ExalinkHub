@@ -1,7 +1,26 @@
 {
-  "currentVersion": "0.0.31",
-  "lastUpdated": "2025-10-13T23:30:00-03:00",
+  "currentVersion": "0.0.33",
+  "lastUpdated": "2025-10-19T12:00:00-03:00",
   "versions": {
+    "0.0.33": {
+      "releaseDate": "2025-10-19",
+      "description": "Refactorización completa del sistema LPR: proxy directo al backend y lectura directa de base de datos",
+      "changes": [
+        "Refactorización crítica del endpoint /api/lpr/readings como proxy directo al backend LPR",
+        "Eliminada duplicación de bases de datos - única fuente de verdad en backend LPR",
+        "Implementación de lectura directa de DB/Matriculas.db para campos plate y speed",
+        "Corrección de campos vacíos en matrículas - ahora muestra 'N/A' cuando corresponde",
+        "Mejorada autenticación Basic Auth configurable para backend LPR",
+        "Optimización de consultas con mapeo correcto de parámetros de búsqueda",
+        "Nuevo endpoint proxy /api/lpr/files/media/[...path] para archivos multimedia",
+        "Soporte completo para snapshots, clips y crops con cache de 1 hora",
+        "Manejo de content-type automático por extensión de archivo",
+        "Timeout de 30 segundos y soporte para range requests en videos"
+      ],
+      "type": "major",
+      "breaking": false,
+      "technical_notes": "Se resolvió el problema crítico de datos duplicados entre frontend y backend. El sistema ahora funciona como proxy directo al backend LPR, eliminando la necesidad de sincronización entre dos bases de datos SQLite. Los campos plate y speed ahora se leen correctamente de la base de datos local."
+    },
     "0.0.31": {
       "releaseDate": "2025-10-13",
       "description": "Sistema completo de exports persistentes y compartidos para Frigate",

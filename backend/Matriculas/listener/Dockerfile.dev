@@ -1,0 +1,27 @@
+# Dockerfile para desarrollo del backend LPR
+FROM python:3.11-slim
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tzdata \
+    openssh-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar requirements e instalar dependencias
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Para desarrollo, instalar también dependencias de desarrollo si existen
+RUN pip install --no-cache-dir watchdog || true
+
+# El código se montará como volumen, no se copia aquí
+
+# Exponer puerto
+EXPOSE 2221
+
+# Comando para desarrollo (con recarga automática si es posible)
+CMD ["python", "app.py"]

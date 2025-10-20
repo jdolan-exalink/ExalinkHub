@@ -1,0 +1,26 @@
+# Dockerfile para desarrollo del backend de conteo
+FROM python:3.11-slim
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tzdata \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar requirements e instalar dependencias
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Para desarrollo, instalar dependencias de desarrollo si existen
+RUN pip install --no-cache-dir watchdog || true
+
+# El código se montará como volumen, no se copia aquí
+
+# Exponer puerto
+EXPOSE 8012
+
+# Comando para desarrollo
+CMD ["python", "start.py"]

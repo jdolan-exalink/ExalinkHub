@@ -7,12 +7,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, RefreshCw, X, Calendar, Download, Home, Car, Bike, Truck, Bus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, RefreshCw, X, Calendar, Download, Home, Car, Bike, Truck, Bus, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
 import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,6 +38,8 @@ type LprEvent = {
 };
 
 export default function LprPanelPage() {
+  console.log('🔄 Renderizando LprPanelPage');
+
   const [events, setEvents] = useState<LprEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,15 +58,43 @@ export default function LprPanelPage() {
   const [showEndCalendar, setShowEndCalendar] = useState(false);
 
   // Estados para modales
-  const [imageModal, setImageModal] = useState<{ open: boolean; url: string; title: string }>({
+  const [imageModal, setImageModal] = useState<{
+    open: boolean;
+    url: string;
+    title: string;
+    zoom: number;
+    panX: number;
+    panY: number;
+    isDragging: boolean;
+    dragStart: { x: number; y: number };
+  }>({
     open: false,
     url: '',
-    title: ''
+    title: '',
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    isDragging: false,
+    dragStart: { x: 0, y: 0 }
   });
-  const [videoModal, setVideoModal] = useState<{ open: boolean; url: string; title: string }>({
+  const [videoModal, setVideoModal] = useState<{
+    open: boolean;
+    url: string;
+    title: string;
+    zoom: number;
+    panX: number;
+    panY: number;
+    isDragging: boolean;
+    dragStart: { x: number; y: number };
+  }>({
     open: false,
     url: '',
-    title: ''
+    title: '',
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    isDragging: false,
+    dragStart: { x: 0, y: 0 }
   });
 
   /**
@@ -193,6 +223,27 @@ export default function LprPanelPage() {
     return () => clearTimeout(timeoutId);
   }, [searchTerm, startDate, endDate, startTime, endTime, itemsPerPage]); // Agregado itemsPerPage
 
+  // Log cuando cambian los eventos
+  useEffect(() => {
+    console.log('📊 Eventos actualizados:', events.length, 'eventos');
+    if (events.length > 0) {
+      console.log('🎯 Primer evento de ejemplo:', {
+        id: events[0].id,
+        plate: events[0].plate,
+        urls: events[0].local_files
+      });
+    }
+  }, [events]);
+
+  // Log cuando cambian los modales
+  useEffect(() => {
+    console.log('🔍 Estado modal imagen:', { open: imageModal.open, url: imageModal.url, title: imageModal.title });
+  }, [imageModal]);
+
+  useEffect(() => {
+    console.log('🎬 Estado modal video:', { open: videoModal.open, url: videoModal.url, title: videoModal.title });
+  }, [videoModal]);
+
   // Formatear timestamp
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString('es-AR', {
@@ -244,24 +295,108 @@ export default function LprPanelPage() {
     }
   };
 
-  // Abrir modal de imagen
-  const openImageModal = (url: string, title: string) => {
-    setImageModal({ open: true, url, title });
+  // Estados para verificar existencia de archivos
+  const [checkingFile, setCheckingFile] = useState<{ type: 'image' | 'video' | null; title: string }>({
+    type: null,
+    title: ''
+  });
+
+  // Estado para manejar errores de video
+  const [videoError, setVideoError] = useState<string | null>(null);
+
+  // Abrir modal de imagen con verificación previa
+  const openImageModal = async (url: string, title: string) => {
+    console.log('🖼️ Intentando abrir modal de imagen:', { url, title });
+    setCheckingFile({ type: 'image', title });
+
+    try {
+      console.log('🔍 Verificando existencia del archivo:', url);
+      const exists = await check_file_exists(url);
+      console.log('✅ Resultado de verificación:', exists);
+      
+      if (exists) {
+        console.log('🖼️ Abriendo modal de imagen:', { url, title });
+        setImageModal({
+          open: true,
+          url,
+          title,
+          zoom: 1,
+          panX: 0,
+          panY: 0,
+          isDragging: false,
+          dragStart: { x: 0, y: 0 }
+        });
+        console.log('✅ Modal de imagen establecido como abierto');
+      } else {
+        alert(`❌ Error: El archivo de imagen no existe o no está disponible.\n\nArchivo: ${title}`);
+      }
+    } catch (error) {
+      console.error('❌ Error verificando archivo de imagen:', error);
+      alert(`❌ Error: No se pudo verificar la existencia del archivo de imagen.\n\nArchivo: ${title}`);
+    } finally {
+      setCheckingFile({ type: null, title: '' });
+    }
   };
 
   // Cerrar modal de imagen
   const closeImageModal = () => {
-    setImageModal({ open: false, url: '', title: '' });
+    setImageModal({
+      open: false,
+      url: '',
+      title: '',
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      isDragging: false,
+      dragStart: { x: 0, y: 0 }
+    });
   };
 
-  // Abrir modal de video
-  const openVideoModal = (url: string, title: string) => {
-    setVideoModal({ open: true, url, title });
-  };
+  // Abrir modal de video con verificación previa
+  const openVideoModal = async (url: string, title: string) => {
+    console.log('🎬 Intentando abrir modal de video:', { url, title });
+    setCheckingFile({ type: 'video', title });
 
-  // Cerrar modal de video
+    try {
+      console.log('🔍 Verificando existencia del archivo de video:', url);
+      const exists = await check_file_exists(url);
+      console.log('✅ Resultado de verificación de video:', exists);
+      
+      if (exists) {
+        console.log('🎬 Abriendo modal de video:', { url, title });
+        setVideoModal({
+          open: true,
+          url,
+          title,
+          zoom: 1,
+          panX: 0,
+          panY: 0,
+          isDragging: false,
+          dragStart: { x: 0, y: 0 }
+        });
+        console.log('✅ Modal de video establecido como abierto');
+      } else {
+        alert(`❌ Error: El archivo de video no existe o no está disponible.\n\nArchivo: ${title}`);
+      }
+    } catch (error) {
+      console.error('❌ Error verificando archivo de video:', error);
+      alert(`❌ Error: No se pudo verificar la existencia del archivo de video.\n\nArchivo: ${title}`);
+    } finally {
+      setCheckingFile({ type: null, title: '' });
+    }
+  };  // Cerrar modal de video
   const closeVideoModal = () => {
-    setVideoModal({ open: false, url: '', title: '' });
+    setVideoModal({
+      open: false,
+      url: '',
+      title: '',
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      isDragging: false,
+      dragStart: { x: 0, y: 0 }
+    });
+    setVideoError(null);
   };
 
   // Función para exportar a XLSX
@@ -355,43 +490,428 @@ export default function LprPanelPage() {
    * Los convertimos a: /api/lpr/files/media/helvecia/2025-10-19/...
    */
   const to_internal_url = (url: string | null) => {
-    if (!url) return null;
+    if (!url) {
+      console.log('⚠️ to_internal_url: URL es null/undefined');
+      return null;
+    }
+    
+    console.log('🔄 Convirtiendo URL:', url);
     
     // Si viene con http://localhost:2221/media/, extraer solo el path
     if (url.includes('http://localhost:2221/media/')) {
       const path = url.replace('http://localhost:2221/media/', '');
-      return `/api/lpr/files/media/${path}`;
+      const result = `/api/lpr/files/media/${path}`;
+      console.log('✅ URL convertida:', result);
+      return result;
     }
     
     // Si ya es un path relativo, agregarlo a la ruta de API
     if (url.startsWith('/media/')) {
-      return `/api/lpr/files${url}`;
+      const result = `/api/lpr/files${url}`;
+      console.log('✅ URL relativa convertida:', result);
+      return result;
     }
     
+    console.log('⚠️ URL no convertida, retornando original:', url);
     return url;
+  };
+
+  /**
+   * Verifica si un archivo existe físicamente antes de intentar accederlo.
+   * Realiza una petición HEAD para verificar la existencia sin descargar el archivo completo.
+   * 
+   * @param url - URL del archivo a verificar
+   * @returns Promise<boolean> - true si el archivo existe, false si no
+   */
+  const check_file_exists = async (url: string): Promise<boolean> => {
+    try {
+      console.log('🔍 HEAD request to:', url);
+      const response = await fetch(url, { method: 'HEAD' });
+      console.log('🔍 Response status:', response.status, response.ok);
+      return response.ok;
+    } catch (error) {
+      console.warn('⚠️ Error verificando existencia de archivo:', url, error);
+      return false;
+    }
+  };
+
+  // Funciones para el sistema de zoom del video
+  const handleVideoZoom = (delta: number) => {
+    setVideoModal(prev => ({
+      ...prev,
+      zoom: Math.max(0.5, Math.min(5, prev.zoom + delta))
+    }));
+  };
+
+  const handleVideoPan = (deltaX: number, deltaY: number) => {
+    setVideoModal(prev => ({
+      ...prev,
+      panX: prev.panX + deltaX,
+      panY: prev.panY + deltaY
+    }));
+  };
+
+  const resetVideoZoom = () => {
+    setVideoModal(prev => ({
+      ...prev,
+      zoom: 1,
+      panX: 0,
+      panY: 0
+    }));
+  };
+
+  const handleVideoMouseDown = (e: React.MouseEvent) => {
+    if (videoModal.zoom > 1) {
+      setVideoModal(prev => ({
+        ...prev,
+        isDragging: true,
+        dragStart: { x: e.clientX - prev.panX, y: e.clientY - prev.panY }
+      }));
+    }
+  };
+
+  const handleVideoMouseMove = (e: React.MouseEvent) => {
+    if (videoModal.isDragging) {
+      const newPanX = e.clientX - videoModal.dragStart.x;
+      const newPanY = e.clientY - videoModal.dragStart.y;
+      setVideoModal(prev => ({
+        ...prev,
+        panX: newPanX,
+        panY: newPanY
+      }));
+    }
+  };
+
+  const handleVideoMouseUp = () => {
+    setVideoModal(prev => ({
+      ...prev,
+      isDragging: false
+    }));
+  };
+
+  const handleVideoWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+    handleVideoZoom(zoomDelta);
+  };
+
+  const handleVideoDoubleClick = (e: React.MouseEvent) => {
+    if (videoModal.zoom > 1) {
+      resetVideoZoom();
+    } else {
+      // Zoom al doble click
+      setVideoModal(prev => ({
+        ...prev,
+        zoom: 2
+      }));
+    }
+  };
+
+  // Funciones para el sistema de zoom de imagen (zoom mínimo 1.0)
+  const handleImageZoom = (delta: number) => {
+    setImageModal(prev => ({
+      ...prev,
+      zoom: Math.max(1, Math.min(5, prev.zoom + delta))
+    }));
+  };
+
+  const handleImagePan = (deltaX: number, deltaY: number) => {
+    setImageModal(prev => ({
+      ...prev,
+      panX: prev.panX + deltaX,
+      panY: prev.panY + deltaY
+    }));
+  };
+
+  const resetImageZoom = () => {
+    setImageModal(prev => ({
+      ...prev,
+      zoom: 1,
+      panX: 0,
+      panY: 0
+    }));
+  };
+
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    if (imageModal.zoom > 1) {
+      setImageModal(prev => ({
+        ...prev,
+        isDragging: true,
+        dragStart: { x: e.clientX - prev.panX, y: e.clientY - prev.panY }
+      }));
+    }
+  };
+
+  const handleImageMouseMove = (e: React.MouseEvent) => {
+    if (imageModal.isDragging) {
+      const newPanX = e.clientX - imageModal.dragStart.x;
+      const newPanY = e.clientY - imageModal.dragStart.y;
+      setImageModal(prev => ({
+        ...prev,
+        panX: newPanX,
+        panY: newPanY
+      }));
+    }
+  };
+
+  const handleImageMouseUp = () => {
+    setImageModal(prev => ({
+      ...prev,
+      isDragging: false
+    }));
+  };
+
+  const handleImageWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+    handleImageZoom(zoomDelta);
+  };
+
+  const handleImageDoubleClick = (e: React.MouseEvent) => {
+    if (imageModal.zoom > 1) {
+      resetImageZoom();
+    } else {
+      // Zoom al doble click
+      setImageModal(prev => ({
+        ...prev,
+        zoom: 2
+      }));
+    }
   };
 
   return (
     <div className="w-full p-4 space-y-3">
-      {/* Modal de imagen con overlay oscuro y zoom con rueda */}
+      {/* Modal de imagen con sistema de zoom completo */}
       <Dialog open={imageModal.open} onOpenChange={closeImageModal}>
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden bg-background/95 backdrop-blur-sm border-2 relative">
-          {/* Botón X único arriba a la derecha */}
-          <Button aria-label="Cerrar" variant="ghost" size="sm" onClick={closeImageModal} className="absolute top-2 right-2 z-10 hover:bg-destructive hover:text-destructive-foreground">
-            <X className="h-5 w-5" />
-          </Button>
-          <div className="flex flex-col items-center w-full">
-            <div className="text-lg font-bold mb-2 flex items-center gap-2">📷 {imageModal.title}</div>
-            <div className="flex justify-center items-center bg-black/90 rounded-lg p-4 min-h-[60vh]">
+        <DialogOverlay className="bg-black/80 fixed inset-0 z-[9998]" />
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden bg-background border-2 relative z-[9999] shadow-2xl fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <DialogTitle className="sr-only">📷 {imageModal.title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Visualización de imagen con controles de zoom avanzados: rueda del mouse, arrastre, doble click y botones
+          </DialogDescription>
+
+          {/* Barra superior con controles */}
+          <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between bg-black/50 backdrop-blur-sm rounded-lg p-2">
+            <div className="text-lg font-bold text-white flex items-center gap-2">
+              📷 {imageModal.title}
+            </div>
+
+            {/* Controles de zoom */}
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-white/80 mr-2">
+                Zoom: {imageModal.zoom.toFixed(1)}x
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleImageZoom(-0.5)}
+                disabled={imageModal.zoom <= 1}
+                className="h-8 w-8 p-0"
+                title="Alejar"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={resetImageZoom}
+                className="h-8 px-2 text-xs"
+                title="Reset zoom"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleImageZoom(0.5)}
+                disabled={imageModal.zoom >= 5}
+                className="h-8 w-8 p-0"
+                title="Acercar"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Botón cerrar */}
+            <Button
+              aria-label="Cerrar"
+              variant="secondary"
+              size="sm"
+              onClick={closeImageModal}
+              className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Información de ayuda */}
+          <div className="absolute bottom-2 left-2 z-20 bg-black/50 backdrop-blur-sm rounded-lg p-2 text-xs text-white/80 max-w-md">
+            <div className="font-semibold mb-1">🎯 Controles de Zoom:</div>
+            <div className="space-y-0.5 text-xs">
+              <div>• <strong>Rueda mouse:</strong> Zoom in/out</div>
+              <div>• <strong>Arrastrar:</strong> Mover imagen (zoom &gt; 1x)</div>
+              <div>• <strong>Doble click:</strong> Zoom 2x / Reset</div>
+              <div>• <strong>Botones:</strong> Zoom +, Zoom -, Reset</div>
+            </div>
+          </div>
+
+          {/* Contenedor de la imagen con zoom */}
+          <div className="flex justify-center items-center min-h-[70vh] mt-12 mb-8">
+            <div
+              className="relative overflow-hidden bg-black rounded-lg border cursor-move"
+              style={{
+                width: '100%',
+                maxWidth: '800px',
+                height: '60vh',
+                maxHeight: '600px'
+              }}
+              onMouseDown={handleImageMouseDown}
+              onMouseMove={handleImageMouseMove}
+              onMouseUp={handleImageMouseUp}
+              onMouseLeave={handleImageMouseUp}
+              onWheel={handleImageWheel}
+              onDoubleClick={handleImageDoubleClick}
+            >
               {imageModal.url ? (
                 <img
                   src={imageModal.url}
                   alt={imageModal.title || 'Snapshot'}
-                  className="max-w-full max-h-[75vh] rounded-md border"
-                  onError={e => { e.currentTarget.src = '/placeholder.png'; }}
+                  className="w-full h-full object-contain transition-transform duration-200 ease-out"
+                  style={{
+                    transform: `scale(${imageModal.zoom}) translate(${imageModal.panX / imageModal.zoom}px, ${imageModal.panY / imageModal.zoom}px)`,
+                    transformOrigin: 'center center',
+                    cursor: imageModal.zoom > 1 ? (imageModal.isDragging ? 'grabbing' : 'grab') : 'default'
+                  }}
+                  onError={e => {
+                    console.error('Error cargando imagen:', e);
+                    e.currentTarget.src = '/placeholder.png';
+                  }}
                 />
               ) : (
-                <div className="text-xs text-muted-foreground">Sin imagen</div>
+                <div className="text-white text-center p-4">Sin imagen</div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de video con sistema de zoom completo */}
+      <Dialog open={videoModal.open} onOpenChange={closeVideoModal}>
+        <DialogOverlay className="bg-black/80 fixed inset-0 z-[9998]" />
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden bg-background border-2 relative z-[9999] shadow-2xl fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <DialogTitle className="sr-only">🎬 {videoModal.title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Reproductor de video con controles de zoom avanzados: rueda del mouse, arrastre, doble click y botones
+          </DialogDescription>
+
+          {/* Barra superior con controles */}
+          <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between bg-black/50 backdrop-blur-sm rounded-lg p-2">
+            <div className="text-lg font-bold text-white flex items-center gap-2">
+              🎬 {videoModal.title}
+            </div>
+
+            {/* Controles de zoom */}
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-white/80 mr-2">
+                Zoom: {videoModal.zoom.toFixed(1)}x
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleVideoZoom(-0.5)}
+                disabled={videoModal.zoom <= 0.5}
+                className="h-8 w-8 p-0"
+                title="Alejar"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={resetVideoZoom}
+                className="h-8 px-2 text-xs"
+                title="Reset zoom"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleVideoZoom(0.5)}
+                disabled={videoModal.zoom >= 5}
+                className="h-8 w-8 p-0"
+                title="Acercar"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Botón cerrar */}
+            <Button
+              aria-label="Cerrar"
+              variant="secondary"
+              size="sm"
+              onClick={closeVideoModal}
+              className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Información de ayuda */}
+          <div className="absolute bottom-2 left-2 z-20 bg-black/50 backdrop-blur-sm rounded-lg p-2 text-xs text-white/80 max-w-md">
+            <div className="font-semibold mb-1">🎯 Controles de Zoom:</div>
+            <div className="space-y-0.5 text-xs">
+              <div>• <strong>Rueda mouse:</strong> Zoom in/out</div>
+              <div>• <strong>Arrastrar:</strong> Mover video (zoom &gt; 1x)</div>
+              <div>• <strong>Doble click:</strong> Zoom 2x / Reset</div>
+              <div>• <strong>Botones:</strong> Zoom +, Zoom -, Reset</div>
+            </div>
+          </div>
+
+          {/* Contenedor del video con zoom */}
+          <div className="flex justify-center items-center min-h-[70vh] mt-12 mb-8">
+            <div
+              className="relative overflow-hidden bg-black rounded-lg border cursor-move"
+              style={{
+                width: '100%',
+                maxWidth: '800px',
+                height: '60vh',
+                maxHeight: '600px'
+              }}
+              onMouseDown={handleVideoMouseDown}
+              onMouseMove={handleVideoMouseMove}
+              onMouseUp={handleVideoMouseUp}
+              onMouseLeave={handleVideoMouseUp}
+              onWheel={handleVideoWheel}
+              onDoubleClick={handleVideoDoubleClick}
+            >
+              {videoModal.url ? (
+                videoError ? (
+                  <div className="text-white text-center p-4">
+                    Error al cargar el video: {videoError}
+                  </div>
+                ) : (
+                  <video
+                    src={videoModal.url}
+                    controls
+                    className="w-full h-full object-contain transition-transform duration-200 ease-out"
+                    style={{
+                      transform: `scale(${videoModal.zoom}) translate(${videoModal.panX / videoModal.zoom}px, ${videoModal.panY / videoModal.zoom}px)`,
+                      transformOrigin: 'center center',
+                      cursor: videoModal.zoom > 1 ? (videoModal.isDragging ? 'grabbing' : 'grab') : 'default'
+                    }}
+                    onError={e => {
+                      console.error('Error cargando video:', e);
+                      setVideoError('No se pudo cargar el video. Verifica que el archivo exista.');
+                    }}
+                    onLoadStart={() => setVideoError(null)}
+                  >
+                    Tu navegador no soporta el elemento de video.
+                  </video>
+                )
+              ) : (
+                <div className="text-white text-center p-4">Sin video</div>
               )}
             </div>
           </div>
@@ -613,22 +1133,43 @@ export default function LprPanelPage() {
                     <div className="flex items-center justify-center">
                       {event.local_files.crop_url && event.local_files.snapshot_url ? (
                         <div 
-                          className="w-[100px] h-[32px] flex items-center justify-center border border-primary/20 rounded bg-black/5 cursor-pointer hover:border-primary hover:shadow transition-all overflow-hidden"
-                          onClick={() => {
+                          className={`w-[100px] h-[32px] flex items-center justify-center border rounded bg-black/5 cursor-pointer transition-all overflow-hidden ${
+                            checkingFile.type === 'image' && checkingFile.title.includes(normalizePlate(event.plate || ''))
+                              ? 'border-yellow-400 bg-yellow-50 animate-pulse'
+                              : 'border-primary/20 hover:border-primary hover:shadow'
+                          }`}
+                          onClick={async () => {
+                            console.log('🖼️ Click en crop detectado para evento:', event.id, event.plate);
                             const url = to_internal_url(event.local_files.snapshot_url);
-                            if (url) openImageModal(url, `Snapshot - ${normalizePlate(event.plate || '')}`);
+                            console.log('🖼️ URL convertida para snapshot:', url);
+                            if (url) {
+                              await openImageModal(url, `Snapshot - ${normalizePlate(event.plate || '')}`);
+                            } else {
+                              console.error('❌ URL convertida es null/undefined');
+                            }
                           }}
-                          title="Click para ver snapshot completo"
+                          title={
+                            checkingFile.type === 'image' && checkingFile.title.includes(normalizePlate(event.plate || ''))
+                              ? 'Verificando archivo...'
+                              : 'Click para ver snapshot completo'
+                          }
                         >
-                          <img
-                            src={to_internal_url(event.local_files.crop_url) || ''}
-                            alt={`Crop ${event.plate}`}
-                            className="max-w-full max-h-full object-contain"
-                            onError={(e) => {
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) parent.innerHTML = '<div class=\"text-xs text-muted-foreground\">Sin imagen</div>';
-                            }}
-                          />
+                          {checkingFile.type === 'image' && checkingFile.title.includes(normalizePlate(event.plate || '')) ? (
+                            <div className="flex items-center gap-1">
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              <span className="text-xs">Verificando...</span>
+                            </div>
+                          ) : (
+                            <img
+                              src={to_internal_url(event.local_files.crop_url) || ''}
+                              alt={`Crop ${event.plate}`}
+                              className="max-w-full max-h-full object-contain"
+                              onError={(e) => {
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) parent.innerHTML = '<div class=\"text-xs text-muted-foreground\">Sin imagen</div>';
+                              }}
+                            />
+                          )}
                         </div>
                       ) : (
                         <div className="w-[100px] h-[32px] flex items-center justify-center border rounded bg-muted/20">
@@ -670,13 +1211,27 @@ export default function LprPanelPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
+                          onClick={async () => {
+                            console.log('🎬 Click en botón Ver Clip detectado para evento:', event.id, event.plate);
                             const url = to_internal_url(event.local_files.clip_url);
-                            if (url) openVideoModal(url, `Clip - ${normalizePlate(event.plate || '')}`);
+                            console.log('🎬 URL convertida para clip:', url);
+                            if (url) {
+                              await openVideoModal(url, `Clip - ${normalizePlate(event.plate || '')}`);
+                            } else {
+                              console.error('❌ URL convertida es null/undefined para clip');
+                            }
                           }}
+                          disabled={checkingFile.type === 'video' && checkingFile.title.includes(normalizePlate(event.plate || ''))}
                           className="w-[90px] hover:bg-primary hover:text-primary-foreground transition-colors text-xs px-2 py-1 h-6"
                         >
-                          🎬 Ver Clip
+                          {checkingFile.type === 'video' && checkingFile.title.includes(normalizePlate(event.plate || '')) ? (
+                            <div className="flex items-center gap-1">
+                              <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                              <span>Verificando...</span>
+                            </div>
+                          ) : (
+                            <>🎬 Ver Clip</>
+                          )}
                         </Button>
                       )}
                     </div>

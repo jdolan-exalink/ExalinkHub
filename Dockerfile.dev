@@ -1,0 +1,31 @@
+# Dockerfile para desarrollo del frontend Next.js con hot reload
+FROM node:20-alpine
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache libc6-compat python3 py3-pip build-base docker-cli curl git
+
+# Configurar usuario y grupo docker
+RUN addgroup -S docker || true
+RUN adduser -S nextjs -G docker || true
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de configuración de dependencias
+COPY package.json package-lock.json* ./
+
+# Instalar dependencias
+RUN npm ci
+
+# Copiar el resto del código fuente
+COPY . .
+
+# Configurar permisos
+RUN chown -R nextjs:docker /app
+USER nextjs
+
+# Exponer puerto
+EXPOSE 3000
+
+# Comando para desarrollo con hot reload
+CMD ["npm", "run", "dev"]

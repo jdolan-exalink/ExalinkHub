@@ -224,7 +224,89 @@ docker compose build frontend  # ✅ Built in 46.3s
 docker compose up -d frontend  # ✅ Container running
 ```
 
-**Estado:** ✅ Cambios aplicados y funcionando en producción
+### 8. Implementación: Configuración de logs del backend de matrículas
+
+**Fecha de implementación:** 19 de octubre de 2025  
+**Versión asociada:** v0.0.35
+
+#### Problema identificado
+Los logs del backend de matrículas se guardaban por defecto en `/app/LOG` (ruta del contenedor Docker), pero cuando se ejecutaba localmente en desarrollo, esta ruta no existía y los logs no se guardaban correctamente.
+
+#### Solución implementada
+
+**Archivo modificado:** `backend/Matriculas/listener/app.py`
+
+**Cambio principal:** Modificación de la lógica de configuración de `LOG_DIR` para usar rutas relativas al proyecto.
+
+**Código anterior:**
+```python
+LOG_DIR = os.path.abspath(os.getenv("LOG_DIR", "/app/LOG"))
+```
+
+**Código nuevo:**
+```python
+# Cambiar LOG_DIR para usar la carpeta LOG en backend/Matriculas/LOG
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Subir un nivel desde listener/
+LOG_DIR = os.path.abspath(os.getenv("LOG_DIR", os.path.join(PROJECT_ROOT, "LOG")))
+```
+
+**Resultado:**
+- **Desarrollo local:** Logs se guardan en `backend/Matriculas/LOG/`
+- **Docker:** Logs se guardan en `/app/LOG/` (mapeado a `backend/Matriculas/LOG/` localmente)
+- **Consistencia:** La carpeta `LOG` siempre existe en la ubicación correcta
+
+#### Archivos de log
+- `backend/Matriculas/LOG/listener.log`: Log principal del servicio
+- `backend/Matriculas/LOG/stats.log`: Estadísticas del sistema (JSON cada 2s)
+
+#### Testing
+Se creó y ejecutó un script de prueba que verificó que los logs se crean correctamente en `backend/Matriculas/LOG/`.
+
+**Estado:** ✅ Implementación completada y probada
+
+---
+
+### 9. Implementación: Configuración del backend de matrículas
+
+**Fecha de implementación:** 19 de octubre de 2025  
+**Versión asociada:** v0.0.35
+
+#### Problema identificado
+El backend de matrículas no estaba cargando la configuración desde el archivo correcto. El código buscaba el archivo en `/app/matriculas.conf` (ruta del contenedor Docker), pero el archivo real estaba en `backend/Matriculas/matriculas.conf`.
+
+#### Solución implementada
+
+**Archivo modificado:** `backend/Matriculas/listener/app.py`
+
+**Cambio principal:** Modificación de la lógica de configuración de `CONF_PATH` para usar rutas relativas al proyecto.
+
+**Código anterior:**
+```python
+CONF_PATH = os.path.abspath(os.getenv("CONF_PATH", "/app/matriculas.conf"))
+```
+
+**Código nuevo:**
+```python
+# Cambiar CONF_PATH para usar el archivo en backend/Matriculas/matriculas.conf
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Subir un nivel desde listener/
+CONF_PATH = os.path.abspath(os.getenv("CONF_PATH", os.path.join(PROJECT_ROOT, "matriculas.conf")))
+```
+
+**Resultado:**
+- **Desarrollo local:** Configuración cargada desde `backend/Matriculas/matriculas.conf`
+- **Docker:** Configuración cargada desde `/app/matriculas.conf` (mapeado correctamente)
+- **Consistencia:** El archivo de configuración se encuentra en la ubicación correcta
+
+#### Configuración cargada correctamente
+- **Sección [general]:** `http_port = 2221`, `retention_days = 30`
+- **Sección [server:helvecia]:** Configuración completa de MQTT, Frigate y SFTP
+
+#### Testing
+Se creó y ejecutó un script de prueba que verificó que la configuración se carga correctamente desde `backend/Matriculas/matriculas.conf`.
+
+**Estado:** ✅ Implementación completada y probada
 
 ---
 

@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, RefreshCw, X, Calendar, Download, Home, Car, Bike, Truck, Bus, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { debounce } from 'lodash';
 
 type LprEvent = {
   id: number;
@@ -36,6 +37,220 @@ type LprEvent = {
   traffic_light_status: string | null;
   false_positive: boolean;
 };
+
+// Componente de barra de filtros unificada
+function LprFilterBar({
+  value,
+  onChange,
+  onRefresh,
+  onClear,
+  page,
+  totalPages,
+  totalItems,
+  pageSize,
+  plate,
+  fromDate,
+  toDate,
+  loading = false,
+  onExport,
+}: {
+  value: { plate: string; fromDate?: Date; toDate?: Date; page: number; pageSize: number };
+  onChange: (next: { plate: string; fromDate?: Date; toDate?: Date; page: number; pageSize: number }) => void;
+  onRefresh: () => void;
+  onClear: () => void;
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  plate: string;
+  fromDate?: Date;
+  toDate?: Date;
+  loading?: boolean;
+  onExport?: () => void;
+}) {
+  const [localPlate, setLocalPlate] = useState(plate ?? "");
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showEndCalendar, setShowEndCalendar] = useState(false);
+
+  // Aplica filtros automáticamente con debounce
+  const debouncedApply = useMemo(
+    () => debounce((next) => onChange(next), 500),
+    [onChange]
+  );
+
+  function handleChange(next: Partial<{ plate: string; fromDate?: Date; toDate?: Date; page: number; pageSize: number }>) {
+    debouncedApply({
+      plate: localPlate,
+      fromDate,
+      toDate,
+      page,
+      pageSize,
+      ...next,
+    });
+  }
+
+  // Función para formatear fecha para input
+  function formatInputDate(d?: Date) {
+    if (!d) return "";
+    const pad = (n: number) => `${n}`.padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+      {/* fila principal */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Buscar */}
+        <div className="flex items-center gap-2">
+          <input
+            value={localPlate}
+            onChange={(e) => {
+              setLocalPlate(e.target.value);
+              handleChange({ plate: e.target.value, page: 1 });
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                // Aplicar inmediatamente al presionar Enter
+                onChange({
+                  plate: localPlate,
+                  fromDate,
+                  toDate,
+                  page: 1,
+                  pageSize,
+                });
+              }
+            }}
+            placeholder="Ingrese matrícula (ej: ABC123)…"
+            className="h-9 w-64 min-w-[220px] rounded-md border border-gray-300 bg-gray-50 px-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            title="Buscar por matrícula"
+          />
+          <button
+            onClick={() => handleChange({ plate: "", page: 1 })}
+            className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm hover:bg-gray-50"
+            title="Limpiar búsqueda"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Rango de fechas */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="date"
+              value={formatInputDate(fromDate)}
+              onChange={(e) => handleChange({ fromDate: e.target.value ? new Date(e.target.value) : undefined, page: 1 })}
+              className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              title="Fecha de inicio"
+            />
+          </div>
+          <span className="text-gray-400">—</span>
+          <div className="relative">
+            <input
+              type="date"
+              value={formatInputDate(toDate)}
+              onChange={(e) => handleChange({ toDate: e.target.value ? new Date(e.target.value) : undefined, page: 1 })}
+              className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              title="Fecha de fin"
+            />
+          </div>
+          <button
+            onClick={() => {
+              const now = new Date();
+              const start = new Date(now);
+              start.setHours(0, 0, 0, 0);
+              const end = new Date(now);
+              end.setHours(23, 59, 59, 999);
+              handleChange({ fromDate: start, toDate: end, page: 1 });
+            }}
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm hover:bg-gray-50"
+            title="Hoy"
+          >
+            <Home className="mr-1 inline h-4 w-4" />
+            Hoy
+          </button>
+        </div>
+
+        {/* Mostrar N / Exportar / Actualizar / Limpiar filtros */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-gray-500">Mostrar:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => handleChange({ pageSize: Number(e.target.value), page: 1 })}
+              className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm"
+              title="Seleccionar cantidad de elementos por página"
+            >
+              <option>25</option>
+              <option>50</option>
+              <option>100</option>
+            </select>
+            <span className="text-gray-500">por página</span>
+          </div>
+
+          <button
+            className="h-9 rounded-md border border-indigo-200 bg-indigo-50 px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            onClick={onExport}
+            disabled={totalItems === 0}
+          >
+            <Download className="mr-1 inline h-4 w-4" />
+            Exportar XLSX
+          </button>
+
+          {/* Actualizar dentro de la barra */}
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className="h-9 rounded-md bg-indigo-600 px-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            title="Actualizar"
+          >
+            <RefreshCw className={`mr-1 inline h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
+
+          {/* Cancelar/Limpiar filtros */}
+          <button
+            onClick={() => {
+              onClear?.();
+              setLocalPlate("");
+            }}
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm hover:bg-gray-50"
+            title="Limpiar filtros"
+          >
+            Limpiar
+          </button>
+        </div>
+
+        {/* Línea 2: estado + paginación */}
+        <div className="flex w-full items-center justify-between pt-1 text-sm text-gray-600">
+          <span>
+            Mostrando {Math.min(totalItems, (page - 1) * pageSize + 1)}–
+            {Math.min(page * pageSize, totalItems)} de {totalItems} registros
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              disabled={page <= 1}
+              onClick={() => handleChange({ page: page - 1 })}
+              className="h-8 rounded-md border border-gray-300 bg-white px-2 disabled:opacity-40"
+              title="Anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="mx-1 min-w-[60px] text-center">{page} / {Math.max(totalPages, 1)}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => handleChange({ page: page + 1 })}
+              className="h-8 rounded-md border border-gray-300 bg-white px-2 disabled:opacity-40"
+              title="Siguiente"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LprPanelPage() {
   console.log('🔄 Renderizando LprPanelPage');
@@ -211,17 +426,12 @@ export default function LprPanelPage() {
     load_events(searchTerm, start_datetime, end_datetime, 1);
   };
 
-  // Efecto para cargar eventos cuando cambian los filtros (sin currentPage para evitar loops)
+  // Efecto para cargar eventos iniciales
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1); // Resetear a página 1 cuando cambian filtros
-      const start_datetime = getDateTimeString(startDate, startTime);
-      const end_datetime = getDateTimeString(endDate, endTime);
-      load_events(searchTerm, start_datetime, end_datetime, 1);
-    }, 300); // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, startDate, endDate, startTime, endTime, itemsPerPage]); // Agregado itemsPerPage
+    const start_datetime = getDateTimeString(startDate, startTime);
+    const end_datetime = getDateTimeString(endDate, endTime);
+    load_events(searchTerm, start_datetime, end_datetime, currentPage);
+  }, []); // Solo al montar el componente
 
   // Log cuando cambian los eventos
   useEffect(() => {
@@ -919,190 +1129,55 @@ export default function LprPanelPage() {
       </Dialog>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Panel LPR - Reconocimiento de Matrículas</h1>
-          <p className="text-muted-foreground">
-            Sistema de detección y registro de matrículas vehiculares en tiempo real
-          </p>
+          <h1 className="text-3xl font-bold">Reconocimiento de Matrículas</h1>
         </div>
-        <Button 
-          onClick={() => {
-            const start_datetime = getDateTimeString(startDate, startTime);
-            const end_datetime = getDateTimeString(endDate, endTime);
-            load_events(searchTerm, start_datetime, end_datetime, currentPage);
-          }} 
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </Button>
       </div>
 
-      {/* Buscador y Filtros - Compacto y estético */}
-      <Card className="border-gray-300 shadow-sm ring-1 ring-gray-200 bg-gray-50">
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Search className="h-4 w-4" />
-            Buscar y Filtrar
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 px-4 pb-4 pt-0">
-          {/* Fila de búsqueda y controles */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <Input
-              placeholder="Ingrese matrícula (ej: ABC123)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 text-sm px-2 max-w-xs border-gray-300 bg-white focus:ring-2 focus:ring-blue-400"
-              onKeyDown={e => e.key === 'Enter' && apply_filters()}
-              title="Buscar por matrícula"
-            />
-            <span className="text-xs text-muted-foreground" title="Cantidad de eventos en la página">{events.length} / {totalEvents}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Mostrar:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => changeItemsPerPage(Number(e.target.value))}
-                className="h-8 text-sm px-2 border border-gray-300 rounded bg-white"
-                title="Seleccionar cantidad de elementos por página"
-              >
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-              </select>
-              <span className="text-xs text-muted-foreground">por página</span>
-            </div>
-            <Button onClick={resetToToday} variant="outline" size="sm" className="h-8 px-2">
-              <Home className="h-4 w-4 mr-1" />Hoy
-            </Button>
-            <Button onClick={exportToXLSX} variant="outline" size="sm" className="h-8 px-2" disabled={totalEvents === 0}>
-              <Download className="h-4 w-4 mr-1" />Exportar XLSX
-            </Button>
-            <Button onClick={apply_filters} variant="default" size="sm" className="h-8 px-3 ml-auto">
-              Aplicar filtros
-            </Button>
-            <Button onClick={resetToToday} variant="ghost" size="sm" className="h-8 px-2 text-xs ml-1" title="Limpiar filtros">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          {/* Navegación temporal */}
-          <div className="flex items-center gap-3 mt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-2"
-              onClick={navigateToPreviousDay}
-              disabled={loading}
-              title="Día anterior"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-            </Button>
-            <span className="font-medium text-sm">
-              {startDate && endDate && startDate.toDateString() === endDate.toDateString()
-                ? format(startDate, 'EEEE, dd/MM/yyyy', { locale: es })
-                : `${startDate ? format(startDate, 'dd/MM/yyyy', { locale: es }) : ''} - ${endDate ? format(endDate, 'dd/MM/yyyy', { locale: es }) : ''}`
-              }
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-2"
-              onClick={navigateToNextDay}
-              disabled={loading}
-              title="Día siguiente"
-            >
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-          {/* Filtros de fecha - compactos y en grid */}
-          <div className="grid grid-cols-3 gap-3 items-end mt-2">
-            {/* Desde */}
-            <div>
-              <label className="block text-xs font-medium mb-1">Desde</label>
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  className="w-full h-9 justify-start text-left font-normal text-sm border-gray-300 bg-white"
-                  onClick={() => setShowStartCalendar(!showStartCalendar)}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-                </Button>
-                {showStartCalendar && (
-                  <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-2" style={{ minWidth: 220 }}>
-                    <DayPicker
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => {
-                        setStartDate(date);
-                        setShowStartCalendar(false);
-                      }}
-                      locale={es}
-                      modifiersClassNames={{
-                        today: 'bg-blue-100 text-blue-800 underline',
-                        selected: 'bg-blue-600 text-white',
-                      }}
-                      className="rounded-md"
-                    />
-                  </div>
-                )}
-              </div>
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="h-8 text-sm px-2 mt-1 border-gray-300 bg-white"
-              />
-            </div>
-            {/* Hasta */}
-            <div>
-              <label className="block text-xs font-medium mb-1">Hasta</label>
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  className="w-full h-9 justify-start text-left font-normal text-sm border-gray-300 bg-white"
-                  onClick={() => setShowEndCalendar(!showEndCalendar)}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-                </Button>
-                {showEndCalendar && (
-                  <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-2" style={{ minWidth: 220 }}>
-                    <DayPicker
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => {
-                        setEndDate(date);
-                        setShowEndCalendar(false);
-                      }}
-                      locale={es}
-                      modifiersClassNames={{
-                        today: 'bg-blue-100 text-blue-800 underline',
-                        selected: 'bg-blue-600 text-white',
-                      }}
-                      className="rounded-md"
-                    />
-                  </div>
-                )}
-              </div>
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="h-8 text-sm px-2 mt-1 border-gray-300 bg-white"
-              />
-            </div>
-            {/* Botón aplicar filtros */}
-            <div className="flex flex-col gap-2 items-end">
-              <Button onClick={apply_filters} className="h-9 w-full text-sm" color="blue">
-                Aplicar filtros
-              </Button>
-              <Button onClick={resetToToday} variant="ghost" size="sm" className="h-8 px-2 text-xs" title="Limpiar filtros">
-                Limpiar
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Nueva barra de filtros unificada */}
+      <LprFilterBar
+        value={{
+          plate: searchTerm,
+          fromDate: startDate,
+          toDate: endDate,
+          page: currentPage,
+          pageSize: itemsPerPage
+        }}
+        onChange={(newFilters) => {
+          setSearchTerm(newFilters.plate);
+          setStartDate(newFilters.fromDate);
+          setEndDate(newFilters.toDate);
+          setCurrentPage(newFilters.page);
+          setItemsPerPage(newFilters.pageSize);
+
+          // Aplicar filtros inmediatamente
+          const start_datetime = newFilters.fromDate ? getDateTimeString(newFilters.fromDate, startTime) : undefined;
+          const end_datetime = newFilters.toDate ? getDateTimeString(newFilters.toDate, endTime) : undefined;
+          load_events(newFilters.plate, start_datetime, end_datetime, newFilters.page);
+        }}
+        onRefresh={() => {
+          const start_datetime = getDateTimeString(startDate, startTime);
+          const end_datetime = getDateTimeString(endDate, endTime);
+          load_events(searchTerm, start_datetime, end_datetime, currentPage);
+        }}
+        onClear={() => {
+          setSearchTerm('');
+          setStartDate(new Date());
+          setEndDate(new Date());
+          setStartTime('00:00');
+          setEndTime('23:59');
+          setCurrentPage(1);
+          load_events('', getDateTimeString(new Date(), '00:00'), getDateTimeString(new Date(), '23:59'), 1);
+        }}
+        onExport={exportToXLSX}
+        page={currentPage}
+        totalPages={Math.max(1, Math.ceil(totalEvents / itemsPerPage))}
+        totalItems={totalEvents}
+        pageSize={itemsPerPage}
+        plate={searchTerm}
+        fromDate={startDate}
+        toDate={endDate}
+        loading={loading}
+      />
 
       {/* Lista de eventos */}
       <Card>
@@ -1285,88 +1360,6 @@ export default function LprPanelPage() {
               ))}
             </div>
           )}
-          {/* Paginación siempre visible */}
-          <div className="mt-4 pt-2 border-t">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="text-xs text-muted-foreground">
-                {totalEvents > 0 ? (
-                  <>
-                    Mostrando <span className="font-semibold">{((currentPage - 1) * itemsPerPage) + 1}</span> a{' '}
-                    <span className="font-semibold">{Math.min(currentPage * itemsPerPage, totalEvents)}</span> de{' '}
-                    <span className="font-semibold">{totalEvents}</span> eventos totales
-                  </>
-                ) : (
-                  <>Sin eventos para los filtros seleccionados</>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const new_page = currentPage - 1;
-                    load_events(searchTerm, getDateTimeString(startDate, startTime), getDateTimeString(endDate, endTime), new_page);
-                  }}
-                  disabled={currentPage === 1 || loading || totalEvents === 0}
-                >
-                  ← Anterior
-                </Button>
-                <div className="flex items-center gap-1">
-                  {(() => {
-                    const total_pages = Math.max(1, Math.ceil(totalEvents / itemsPerPage));
-                    const pages_to_show: (number | string)[] = [];
-                    if (total_pages <= 7) {
-                      for (let i = 1; i <= total_pages; i++) {
-                        pages_to_show.push(i);
-                      }
-                    } else {
-                      pages_to_show.push(1);
-                      if (currentPage > 3) {
-                        pages_to_show.push('...');
-                      }
-                      for (let i = Math.max(2, currentPage - 1); i <= Math.min(total_pages - 1, currentPage + 1); i++) {
-                        pages_to_show.push(i);
-                      }
-                      if (currentPage < total_pages - 2) {
-                        pages_to_show.push('...');
-                      }
-                      pages_to_show.push(total_pages);
-                    }
-                    return pages_to_show.map((page, idx) => {
-                      if (page === '...') {
-                        return <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground">…</span>;
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            load_events(searchTerm, getDateTimeString(startDate, startTime), getDateTimeString(endDate, endTime), page as number);
-                          }}
-                          disabled={loading || totalEvents === 0}
-                          className="min-w-[32px]"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    });
-                  })()}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const new_page = currentPage + 1;
-                    load_events(searchTerm, getDateTimeString(startDate, startTime), getDateTimeString(endDate, endTime), new_page);
-                  }}
-                  disabled={currentPage >= Math.ceil(totalEvents / itemsPerPage) || loading || totalEvents === 0}
-                >
-                  Siguiente →
-                </Button>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

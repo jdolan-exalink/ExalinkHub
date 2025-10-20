@@ -18,8 +18,11 @@ from fastapi.staticfiles import StaticFiles
 
 DB_DIR = os.path.abspath(os.getenv("DB_DIR", "/app/DB"))
 MEDIA_DIR = os.path.abspath(os.getenv("MEDIA_DIR", "/app/MEDIA"))
-LOG_DIR = os.path.abspath(os.getenv("LOG_DIR", "/app/LOG"))
-CONF_PATH = os.path.abspath(os.getenv("CONF_PATH", "/app/matriculas.conf"))
+# Cambiar LOG_DIR para usar la carpeta LOG en backend/Matriculas/LOG
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Subir un nivel desde listener/
+LOG_DIR = os.path.abspath(os.getenv("LOG_DIR", os.path.join(PROJECT_ROOT, "LOG")))
+CONF_PATH = os.path.abspath(os.getenv("CONF_PATH", os.path.join(PROJECT_ROOT, "matriculas.conf")))
 
 os.makedirs(DB_DIR, exist_ok=True)
 os.makedirs(MEDIA_DIR, exist_ok=True)

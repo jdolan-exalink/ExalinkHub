@@ -11,9 +11,9 @@ const execAsync = promisify(exec);
  * Mapeo de servicios a nombres de contenedores Docker
  */
 const SERVICE_CONTAINER_MAP: Record<string, string> = {
-  'LPR (Matrículas)': 'matriculas-listener',
-  'Conteo de Personas': 'exalink-conteo-backend',
-  'Notificaciones': 'exalink-notificaciones-backend'
+  'LPR (Matrículas)': 'matriculas-listener-dev',
+  'Conteo de Personas': 'exalink-conteo-backend-dev',
+  'Notificaciones': 'exalink-notificaciones-backend-dev'
 };
 
 /**
@@ -99,15 +99,37 @@ export async function getDockerContainerStatus(serviceName: string): Promise<Doc
       return null;
     }
 
-    // Obtener información básica del contenedor
-    const inspectOutput = execSync(`docker inspect ${containerName}`, { encoding: 'utf8' });
+    // Verificar si Docker está disponible
+    if (!isDockerAvailable()) {
+      console.warn(`Docker not available for ${serviceName}, returning null status`);
+      return null;
+    }
+
+    // Obtener información básica del contenedor con timeout
+    let inspectOutput = '';
+    try {
+      const inspectResult = execSync(`docker inspect ${containerName}`, { encoding: 'utf8', timeout: 5000 });
+      inspectOutput = inspectResult;
+    } catch (inspectError: any) {
+      console.warn(`Could not inspect container ${containerName}:`, inspectError);
+
+      // Si es error de permisos, no intentar más operaciones
+      if (inspectError.message && inspectError.message.includes('permission denied')) {
+        console.warn(`Docker permission denied for ${containerName}, cannot get status`);
+        return null;
+      }
+
+      return null;
+    }
+
     const inspectData = JSON.parse(inspectOutput)[0];
 
-    // Obtener métricas de docker stats con formato por defecto
+    // Obtener métricas de docker stats con timeout
     let statsOutput = '';
     try {
       // Usar formato por defecto que es más confiable
-      statsOutput = execSync(`docker stats ${containerName} --no-stream`, { encoding: 'utf8' });
+      const statsResult = execSync(`docker stats ${containerName} --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"`, { encoding: 'utf8', timeout: 5000 });
+      statsOutput = statsResult;
       console.log(`Docker stats output for ${containerName}:`, statsOutput);
     } catch (statsError) {
       console.warn(`Could not get stats for ${containerName}, using defaults:`, statsError);
@@ -140,26 +162,30 @@ export async function getDockerContainerStatus(serviceName: string): Promise<Doc
         const lines = statsOutput.trim().split('\n');
         if (lines.length >= 2) {
           const dataLine = lines[1]; // Saltar header
-          // Formato por defecto: "CONTAINER ID   NAME   CPU %   MEM USAGE / LIMIT   MEM %   NET I/O   BLOCK I/O   PIDS"
-          // Usar regex para extraer los valores
-          const cpuMatch = dataLine.match(/(\d+\.\d+)%/);
-          if (cpuMatch) {
-            cpuPercent = parseFloat(cpuMatch[1]);
-          }
-
-          // Extraer memoria (formato: "40.61MiB / 7.654GiB")
-          const memMatch = dataLine.match(/(\d+\.\d+)MiB/);
-          if (memMatch) {
-            memoryMb = parseFloat(memMatch[1]);
-          } else {
-            // Intentar con otros formatos
-            const memKbMatch = dataLine.match(/(\d+\.\d+)kB/);
-            if (memKbMatch) {
-              memoryMb = parseFloat(memKbMatch[1]) / 1024; // Convertir KB a MB
+          // Formato: "CONTAINER   CPU %   MEM USAGE"
+          const parts = dataLine.split(/\s+/);
+          if (parts.length >= 3) {
+            // CPU percentage
+            const cpuMatch = parts[1].match(/(\d+\.\d+)%/);
+            if (cpuMatch) {
+              cpuPercent = parseFloat(cpuMatch[1]);
             }
-            const memGbMatch = dataLine.match(/(\d+\.\d+)GiB/);
-            if (memGbMatch) {
-              memoryMb = parseFloat(memGbMatch[1]) * 1024; // Convertir GB a MB
+
+            // Memory (formato: "40.61MiB / 7.654GiB")
+            const memPart = parts[2];
+            const memMatch = memPart.match(/(\d+\.\d+)MiB/);
+            if (memMatch) {
+              memoryMb = parseFloat(memMatch[1]);
+            } else {
+              // Intentar con otros formatos
+              const memKbMatch = memPart.match(/(\d+\.\d+)kB/);
+              if (memKbMatch) {
+                memoryMb = parseFloat(memKbMatch[1]) / 1024; // Convertir KB a MB
+              }
+              const memGbMatch = memPart.match(/(\d+\.\d+)GiB/);
+              if (memGbMatch) {
+                memoryMb = parseFloat(memGbMatch[1]) * 1024; // Convertir GB a MB
+              }
             }
           }
         }
@@ -237,13 +263,36 @@ export async function get_docker_container_logs(service_name: string, lines: num
     const container_name = SERVICE_CONTAINER_MAP[service_name];
     if (!container_name) {
       console.error(`No container mapping found for service: ${service_name}`);
-      return [];
+      return [`Error: No se encontró mapping de contenedor para el servicio ${service_name}`];
     }
-    // Ejecutar comando docker logs
-    const logs_output = execSync(`docker logs --tail ${lines} ${container_name}`, { encoding: 'utf8' });
+
+    // Verificar si Docker está disponible antes de intentar
+    if (!isDockerAvailable()) {
+      return [
+        `Docker no está disponible desde este contenedor.`,
+        `Para ver los logs de ${service_name}, ejecuta en el host:`,
+        `docker logs --tail ${lines} ${container_name}`
+      ];
+    }
+
+    // Ejecutar comando docker logs con timeout
+    const logs_output = execSync(`docker logs --tail ${lines} ${container_name}`, { encoding: 'utf8', timeout: 5000 });
     return logs_output.trim().split('\n');
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error getting logs for ${service_name}:`, error);
-    return [];
+
+    // Si es un error de permisos, proporcionar instrucciones útiles
+    if (error.message && error.message.includes('permission denied')) {
+      const container_name = SERVICE_CONTAINER_MAP[service_name] || 'unknown';
+      return [
+        `No se pueden acceder los logs de Docker desde este contenedor (permisos insuficientes).`,
+        `Para ver los logs de ${service_name}, ejecuta en el host:`,
+        `docker logs --tail ${lines} ${container_name}`,
+        ``,
+        `O habilita la API HTTP de Docker en el host para acceso remoto.`
+      ];
+    }
+
+    return [`Error al obtener logs: ${error.message}`];
   }
 }

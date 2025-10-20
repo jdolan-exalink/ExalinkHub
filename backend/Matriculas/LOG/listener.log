@@ -1,0 +1,20 @@
+2025-10-19 10:00:01 INFO Starting LPR listener service
+2025-10-19 10:00:02 INFO Connected to MQTT broker at localhost:1883
+2025-10-19 10:00:03 INFO Loading configuration from matriculas.conf
+2025-10-19 10:00:04 INFO Database connection established
+2025-10-19 10:00:05 INFO Subscribed to topic: frigate/events
+2025-10-19 10:00:06 INFO Service ready and listening for events
+2025-10-19 10:01:15 INFO Received MQTT message from camera: Portones
+2025-10-19 10:01:16 INFO Processing license plate detection
+2025-10-19 10:01:17 INFO License plate recognized: ABC123
+2025-10-19 10:01:18 INFO Event saved to database with ID: 1
+2025-10-19 10:02:30 INFO Received MQTT message from camera: Entrada
+2025-10-19 10:02:31 INFO Processing license plate detection
+2025-10-19 10:02:32 INFO License plate recognized: XYZ789
+2025-10-19 10:02:33 INFO Event saved to database with ID: 2
+2025-10-19 10:03:45 INFO Stats update - Events processed: 2, CPU: 15.5%, Memory: 128MB
+2025-10-19 10:04:00 INFO Health check passed
+2025-10-19 10:05:12 INFO Received MQTT message from camera: Portones
+2025-10-19 10:05:13 INFO Processing license plate detection
+2025-10-19 10:05:14 INFO License plate recognized: DEF456
+2025-10-19 10:05:15 INFO Event saved to database with ID: 3

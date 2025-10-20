@@ -36,12 +36,16 @@ MEDIA/<SERVER>/<YYYY-MM-DD>/<CAMARA>/
 - La limpieza también corre una vez al iniciar el servicio.
 
 ## Logging
+- **Local (desarrollo)**: `backend/Matriculas/LOG/`
+- **Docker**: `/app/LOG/` (mapeado a `backend/Matriculas/LOG/` localmente)
 - `LOG/listener.log`: log principal del servicio.
 - `LOG/stats.log`: JSON sobrescrito cada 2s con:
   - `ts`, `cpu_percent`, `memory`, `swap`, `disk_usage`, `process_count`.
 - Expuesto por HTTP (FastAPI) para inspección rápida.
 
 ## Configuración (`matriculas.conf`)
+**Ubicación:** `backend/Matriculas/matriculas.conf`
+
 Secciones:
 - `[general]`
   - `http_port`: puerto HTTP (default 2221).

@@ -32,6 +32,8 @@ services:
       - ./DB:/app/DB:rw
       - ./data:/app/data:rw
       - ./MEDIA:/app/MEDIA:ro
+      # Montar logs del backend LPR para acceso desde el frontend
+      - ./backend/Matriculas/LOG:/app/backend/Matriculas/LOG:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - lpr-network

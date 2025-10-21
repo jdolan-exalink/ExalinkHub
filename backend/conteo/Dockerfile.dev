@@ -2,25 +2,35 @@
 FROM python:3.11-slim
 
 # Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    tzdata \
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libsqlite3-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements e instalar dependencias
-COPY requirements.txt .
+# Copiar requirements e instalar dependencias Python
+COPY services/api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Para desarrollo, instalar dependencias de desarrollo si existen
-RUN pip install --no-cache-dir watchdog || true
+# Copiar el código fuente
+COPY . .
 
-# El código se montará como volumen, no se copia aquí
+# Crear directorios necesarios
+RUN mkdir -p /app/LOG /app/DB /app/config
+
+# Configurar PYTHONPATH
+ENV PYTHONPATH=/app
 
 # Exponer puerto
 EXPOSE 8012
 
-# Comando para desarrollo
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8012/health || exit 1
+
+# Comando de inicio
 CMD ["python", "start.py"]

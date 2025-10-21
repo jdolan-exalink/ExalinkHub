@@ -2,13 +2,14 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Server, Users, Settings2, Palette } from 'lucide-react';
+import { Server, Users, Settings2, Palette, Scan } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import ServersTab from './components/servers-tab';
 import UsersTab from './components/users-tab';
 import BackendTab from './components/backend-tab';
 import GeneralPreferencesCard from './components/general-preferences-card';
 import PanelsConfiguration from '@/components/settings/panels-configuration';
+import LPRServersConfiguration from '@/components/settings/lpr-servers-configuration';
 
 export default function SettingsPage() {
   const translate_settings = useTranslations('SettingsPage');
@@ -21,7 +22,7 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="servers" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="servers" className="flex items-center gap-2">
               <Server className="h-4 w-4" />
               {translate_settings('tab_servers')}
@@ -37,6 +38,10 @@ export default function SettingsPage() {
             <TabsTrigger value="panels" className="flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
               {translate_settings('tab_panels')}
+            </TabsTrigger>
+            <TabsTrigger value="lpr" className="flex items-center gap-2">
+              <Scan className="h-4 w-4" />
+              LPR
             </TabsTrigger>
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
@@ -108,6 +113,23 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <PanelsConfiguration />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="lpr" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scan className="h-5 w-5" />
+                  Configuración LPR (Matrículas)
+                </CardTitle>
+                <CardDescription>
+                  Gestión de servidores LPR y configuración de reconocimiento de matrículas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LPRServersConfiguration />
               </CardContent>
             </Card>
           </TabsContent>

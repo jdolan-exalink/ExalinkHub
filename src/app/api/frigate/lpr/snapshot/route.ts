@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { get_frigate_server_by_id, get_frigate_headers } from '@/lib/frigate-servers';
+import { get_frigate_server_by_id, getFrigateHeaders } from '@/lib/frigate-servers';
 
 /**
  * Proxy para snapshots de eventos LPR
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     console.log(`[LPR Snapshot] Proxy: ${serverId}/${eventId} -> ${snapshotUrl}`);
 
     // Headers para el request a Frigate
-    const headers = get_frigate_headers(server);
+    const headers = getFrigateHeaders(server);
 
     // Fetch del snapshot desde Frigate
     const response = await fetch(snapshotUrl, {

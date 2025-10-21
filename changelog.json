@@ -1,7 +1,29 @@
 {
-  "currentVersion": "0.0.34",
-  "lastUpdated": "2025-10-19T15:00:00-03:00",
+  "currentVersion": "0.0.35",
+  "lastUpdated": "2025-10-21T12:00:00-03:00",
   "versions": {
+    "0.0.35": {
+      "releaseDate": "2025-10-21",
+      "description": "Sistema completo de conteo de vehículos con gráficos por hora y configuración avanzada",
+      "changes": [
+        "Implementación completa del sistema de conteo de vehículos con gráficos por hora",
+        "Nuevo endpoint /api/vehicle-counting/hourly para datos históricos por hora",
+        "Nuevo endpoint /api/vehicle-counting/today-stats para estadísticas del día",
+        "Nuevo componente HourlyChart para visualización de datos por hora con Recharts",
+        "Sistema de configuración de servidores LPR con gestión completa de servidores",
+        "Nuevo componente LPRServersConfiguration para gestión de servidores remotos",
+        "Mejoras en panel de conteo de vehículos con datos de hora actual y tipos de vehículo",
+        "Implementación de timezone correcto en datos de conteo (UTC-3 Argentina)",
+        "Corrección de conversión de timestamps para mostrar horas locales correctas",
+        "Nuevos scripts de desarrollo y herramientas de inspección de bases de datos",
+        "Mejoras en configuración general y manejo de errores de Docker",
+        "Optimización de consultas y rendimiento en endpoints de conteo",
+        "Documentación técnica completa para el sistema de conteo de vehículos"
+      ],
+      "type": "major",
+      "breaking": false,
+      "technical_notes": "Se implementó el sistema completo de conteo de vehículos con visualización por hora, configuración avanzada de servidores LPR, y corrección crítica de timezone. El sistema ahora muestra datos en horas locales correctas (Argentina UTC-3) y proporciona estadísticas detalladas por hora del día."
+    },
     "0.0.33": {
       "releaseDate": "2025-10-19",
       "description": "Refactorización completa del sistema LPR: proxy directo al backend y lectura directa de base de datos",

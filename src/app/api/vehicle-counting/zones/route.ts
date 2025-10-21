@@ -1,36 +1,82 @@
 /**
  * API para configuración de zonas de conteo vehicular
- * GET /api/vehicle-counting/zones - Obtener todas las configuraciones de zonas
- * POST /api/vehicle-counting/zones - Crear nueva configuración de zona
+ * GET /api/vehicle-counting/zones - Obtener todas las configuraciones de zonas desde el backend de conteo
+ * POST /api/vehicle-counting/zones - Crear nueva configuración de zona (legacy - ahora usa backend de conteo)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getVehicleCountingDatabase } from '@/lib/vehicle-counting-database';
 
-const db = getVehicleCountingDatabase();
+/**
+ * URL del backend de conteo
+ */
+const CONTEO_BACKEND_URL = process.env.CONTEO_BACKEND_URL || 'http://localhost:2223';
+
+/**
+ * Transforma la respuesta del backend de conteo al formato esperado por el frontend
+ */
+function transformCountersToZones(counters: any[]): any[] {
+  return counters.map(counter => {
+    // Buscar la configuración de cámara correspondiente
+    const cameraConfig = counter.config || {};
+
+    return {
+      id: counter.id,
+      camera_name: counter.source_camera,
+      zone_in: cameraConfig.zone_in || 'IN',
+      zone_out: cameraConfig.zone_out || 'OUT',
+      enabled: true, // Los contadores activos se consideran habilitados
+      title: `${counter.source_camera} - ${counter.id}`,
+      objects: counter.objects || [],
+      type: counter.type || 'zones',
+      current_count: counter.totals?.occupancy || 0,
+      total_in: counter.totals?.in || 0,
+      total_out: counter.totals?.out || 0
+    };
+  });
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const enabled_only = searchParams.get('enabled') === 'true';
 
-    let zones;
-    if (enabled_only) {
-      zones = db.get_enabled_zone_configs();
-    } else {
-      zones = db.get_all_zone_configs();
+    // Consultar el backend de conteo
+    const response = await fetch(`${CONTEO_BACKEND_URL}/api/counters`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Error from conteo backend:', response.status, response.statusText);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Error del backend de conteo: ${response.status} ${response.statusText}`
+        },
+        { status: response.status }
+      );
     }
+
+    const data = await response.json();
+
+    // Transformar la respuesta al formato esperado por el frontend
+    const zones = transformCountersToZones(data.counters || []);
+
+    // Si se solicita solo habilitadas, filtrar (por ahora todos están habilitados)
+    const filteredZones = enabled_only ? zones.filter(zone => zone.enabled) : zones;
 
     return NextResponse.json({
       success: true,
-      data: zones
+      data: filteredZones
     });
   } catch (error) {
-    console.error('Error getting vehicle counting zones:', error);
+    console.error('Error getting vehicle counting zones from backend:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error obteniendo configuraciones de zonas vehiculares' 
+      {
+        success: false,
+        error: 'Error conectando con el backend de conteo'
       },
       { status: 500 }
     );
@@ -38,46 +84,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { camera_name, zone_in, zone_out, title } = body;
-
-    // Validar datos requeridos
-    if (!camera_name || !zone_in || !zone_out || !title) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Campos requeridos: camera_name, zone_in, zone_out, title' 
-        },
-        { status: 400 }
-      );
-    }
-
-    const zone_id = db.create_zone_config(camera_name, zone_in, zone_out, title);
-
-    if (zone_id) {
-      const created_zone = db.get_zone_config(zone_id);
-      return NextResponse.json({
-        success: true,
-        data: created_zone
-      });
-    } else {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Error creando configuración de zona vehicular' 
-        },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    console.error('Error creating vehicle counting zone:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error creando configuración de zona vehicular' 
-      },
-      { status: 500 }
-    );
-  }
+  // Este endpoint ahora es legacy - las zonas se configuran en el backend de conteo
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'Las configuraciones de zonas ahora se gestionan en el backend de conteo. Use la configuración del servidor de conteo.'
+    },
+    { status: 410 } // Gone
+  );
 }

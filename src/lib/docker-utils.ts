@@ -111,14 +111,7 @@ export async function getDockerContainerStatus(serviceName: string): Promise<Doc
       const inspectResult = execSync(`docker inspect ${containerName}`, { encoding: 'utf8', timeout: 5000 });
       inspectOutput = inspectResult;
     } catch (inspectError: any) {
-      console.warn(`Could not inspect container ${containerName}:`, inspectError);
-
-      // Si es error de permisos, no intentar más operaciones
-      if (inspectError.message && inspectError.message.includes('permission denied')) {
-        console.warn(`Docker permission denied for ${containerName}, cannot get status`);
-        return null;
-      }
-
+      console.warn(`Could not inspect container ${containerName}:`, inspectError instanceof Error ? inspectError.message : String(inspectError));
       return null;
     }
 
@@ -216,16 +209,13 @@ export async function getDockerContainerStatus(serviceName: string): Promise<Doc
 export function isDockerAvailable(): boolean {
   try {
     // Primero intentar con el comando docker directamente
-    execSync('docker --version', { stdio: 'pipe' });
+    execSync('docker --version', { stdio: 'pipe', timeout: 3000 });
+    console.log('Docker CLI is available');
     return true;
   } catch (error) {
-    // Si no funciona, intentar con la API HTTP de Docker
-    try {
-      const response = execSync('curl -s --max-time 5 http://host.docker.internal:2375/_ping', { encoding: 'utf8' });
-      return response === 'OK';
-    } catch (httpError) {
-      return false;
-    }
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.log('Docker CLI not available:', errorMsg);
+    return false;
   }
 }
 
@@ -269,8 +259,8 @@ export async function get_docker_container_logs(service_name: string, lines: num
     // Verificar si Docker está disponible antes de intentar
     if (!isDockerAvailable()) {
       return [
-        `Docker no está disponible desde este contenedor.`,
-        `Para ver los logs de ${service_name}, ejecuta en el host:`,
+        `Docker no está disponible.`,
+        `Para ver los logs de ${service_name}, inicia Docker Desktop y ejecuta:`,
         `docker logs --tail ${lines} ${container_name}`
       ];
     }
@@ -293,6 +283,6 @@ export async function get_docker_container_logs(service_name: string, lines: num
       ];
     }
 
-    return [`Error al obtener logs: ${error.message}`];
+    return [`Error al obtener logs: ${error instanceof Error ? error.message : String(error)}`];
   }
 }

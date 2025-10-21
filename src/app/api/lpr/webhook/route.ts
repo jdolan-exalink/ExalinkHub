@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLPRDatabase } from '@/lib/lpr-database';
 import { getLPRFileManager } from '@/lib/lpr-file-manager';
-import { get_active_frigate_servers, get_frigate_headers as get_frigate_headers } from '@/lib/frigate-servers';
+import { get_active_frigate_servers, getFrigateHeaders as get_frigate_headers } from '@/lib/frigate-servers';
 import type { FrigateServer as ConfiguredFrigateServer } from '@/lib/frigate-servers';
 import type { FrigateEvent } from '@/lib/types';
 

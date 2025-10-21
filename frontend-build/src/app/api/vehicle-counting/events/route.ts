@@ -1,53 +1,121 @@
 /**
  * API para eventos de transición vehicular
- * GET /api/vehicle-counting/events - Obtener eventos de transición
+ * GET /api/vehicle-counting/events - Obtener eventos desde el backend de conteo
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getVehicleCountingDatabase } from '@/lib/vehicle-counting-database';
 
-const db = getVehicleCountingDatabase();
+/**
+ * URL del backend de conteo
+ */
+const CONTEO_BACKEND_URL = process.env.CONTEO_BACKEND_URL || 'http://localhost:2223';
+
+/**
+ * Transforma los eventos del backend de conteo al formato esperado por el frontend
+ */
+function transformEventsToTransitions(events: any[]): any[] {
+  return events.map(event => ({
+    id: event.id,
+    camera_name: event.camera,
+    object_type: event.label,
+    transition_type: event.zone === 'IN' ? 'in' : 'out',
+    confidence: 0.95, // El backend no proporciona confidence por ahora
+    zone_name: event.zone,
+    timestamp: event.end_time || event.start_time,
+    // Agregar campos adicionales que espera el frontend
+    start_time: event.start_time,
+    end_time: event.end_time
+  }));
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
-    const filters = {
-      camera_name: searchParams.get('camera') || undefined,
-      zone_config_id: searchParams.get('zone_id') ? parseInt(searchParams.get('zone_id')!) : undefined,
-      transition_type: (searchParams.get('type') as 'in' | 'out') || undefined,
-      start_date: searchParams.get('start_date') || undefined,
-      end_date: searchParams.get('end_date') || undefined,
-      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 100
-    };
 
-    // Si no se especifican fechas, obtener eventos del día actual
-    if (!filters.start_date && !filters.end_date) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      filters.start_date = today.toISOString();
-      
-      const end_of_day = new Date();
-      end_of_day.setHours(23, 59, 59, 999);
-      filters.end_date = end_of_day.toISOString();
+    // Construir parámetros para el backend de conteo
+    const backendParams = new URLSearchParams();
+
+    // Mapeo de parámetros del frontend al backend
+    if (searchParams.get('camera')) {
+      backendParams.append('camera', searchParams.get('camera')!);
     }
 
-    const events = db.get_transition_events(filters);
+    if (searchParams.get('zone_id')) {
+      // El backend usa 'zone', no 'zone_id'
+      // Por ahora, asumimos que zone_id corresponde a zona IN/OUT
+      // TODO: Mejorar este mapeo cuando tengamos la configuración de zonas
+    }
+
+    if (searchParams.get('type')) {
+      // El frontend usa 'type' (in/out), el backend usa 'zone' (IN/OUT)
+      const transitionType = searchParams.get('type');
+      if (transitionType === 'in') {
+        backendParams.append('zone', 'IN');
+      } else if (transitionType === 'out') {
+        backendParams.append('zone', 'OUT');
+      }
+    }
+
+    if (searchParams.get('start_date')) {
+      backendParams.append('start_date', searchParams.get('start_date')!);
+    }
+
+    if (searchParams.get('end_date')) {
+      backendParams.append('end_date', searchParams.get('end_date')!);
+    }
+
+    const limit = searchParams.get('limit') || '50';
+    backendParams.append('limit', limit);
+
+    // Si no se especifican fechas, obtener eventos recientes (últimas 24 horas)
+    if (!searchParams.get('start_date') && !searchParams.get('end_date')) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      backendParams.append('start_date', yesterday.toISOString().split('T')[0]);
+    }
+
+    // Consultar eventos del backend de conteo
+    const eventsUrl = `${CONTEO_BACKEND_URL}/api/events?${backendParams.toString()}`;
+    console.log('Consultando eventos del backend:', eventsUrl);
+
+    const response = await fetch(eventsUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Error from conteo backend:', response.status, response.statusText);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Error del backend de conteo: ${response.status} ${response.statusText}`
+        },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    const events = data.events || [];
+
+    // Transformar eventos al formato del frontend
+    const transitions = transformEventsToTransitions(events);
 
     return NextResponse.json({
       success: true,
       data: {
-        events: events,
-        filters: filters,
-        total: events.length
+        events: transitions,
+        total: data.count || transitions.length,
+        filters: Object.fromEntries(searchParams.entries())
       }
     });
   } catch (error) {
-    console.error('Error getting vehicle counting events:', error);
+    console.error('Error getting vehicle counting events from backend:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error obteniendo eventos de transición vehicular' 
+      {
+        success: false,
+        error: 'Error conectando con el backend de conteo'
       },
       { status: 500 }
     );

@@ -8,35 +8,14 @@
  * En desarrollo: usa localhost:2221 o variable de entorno
  */
 export async function getLPRBackendURL(): Promise<string> {
-  // Primero intentar obtener de configuración de base de datos
-  try {
-    const configDb = (await import('@/lib/config-database')).default;
-    const db = new configDb();
-    const lprConfig = db.getBackendConfigByService('LPR (Matrículas)');
-
-    if (lprConfig && lprConfig.config) {
-      const config = JSON.parse(lprConfig.config);
-      if (config.api_url) {
-        return config.api_url;
-      }
-      if (config.api_host && config.api_port) {
-        return `http://${config.api_host}:${config.api_port}`;
-      }
-    }
-  } catch (error) {
-    console.warn('⚠️ Error obteniendo configuración LPR de DB:', error);
+  // Forzar uso del nombre del servicio en Docker para evitar problemas de resolución
+  // El servicio matriculas-listener está en la misma red que el frontend
+  if (process.env.NODE_ENV === 'production' || process.env.DOCKER_CONTAINER === 'true') {
+    return 'http://matriculas-listener:2221';
   }
 
-  // Fallback: usar variable de entorno o valores por defecto
-  const envUrl = process.env.LPR_BACKEND_URL;
-  if (envUrl) {
-    return envUrl;
-  }
-
-  // En Docker, usar nombre del servicio
-  // En desarrollo local, usar localhost
-  const isDocker = process.env.DOCKER_CONTAINER === 'true' || process.env.NODE_ENV === 'production';
-  return isDocker ? 'http://lpr-backend:2221' : 'http://localhost:2221';
+  // En desarrollo, usar localhost
+  return process.env.LPR_BACKEND_URL || 'http://localhost:2221';
 }
 
 /**

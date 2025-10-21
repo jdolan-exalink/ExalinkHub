@@ -51,39 +51,44 @@ print_status "Ejecutando desde directorio: $SCRIPT_DIR"
 if [ ! -f "docker-compose.yml" ]; then
     print_error "No se encuentra docker-compose.yml. Asegúrate de ejecutar desde el directorio raíz del proyecto."
     print_error "Directorio actual: $(pwd)"
-    print_error "Archivos en directorio: $(ls -la)"
+    print_error "Archivos en directorio: $(ls -la 2>/dev/null || echo 'No se puede listar directorio')"
     exit 1
 fi
 
-# Verificar que los directorios necesarios existen
+print_status "✓ Archivo docker-compose.yml encontrado"
+
+# Verificar que los directorios necesarios existen (opcional)
+print_status "Verificando estructura del proyecto..."
 if [ ! -d "backend/Conteo/services/api" ]; then
-    print_error "No se encuentra backend/Conteo/services/api"
-    print_error "Estructura del proyecto incompleta. Verifica que todos los archivos estén presentes."
-    exit 1
+    print_warning "No se encuentra backend/Conteo/services/api - verificando otros archivos..."
+    if [ ! -d "backend" ] || [ ! -d "src" ] || [ ! -f "docker-compose.yml" ]; then
+        print_error "Estructura del proyecto incompleta. Verifica que todos los archivos estén presentes."
+        print_error "Directorio actual: $(pwd)"
+        print_error "Archivos encontrados: $(ls -la 2>/dev/null | head -10)"
+        exit 1
+    else
+        print_warning "Continuando sin verificación completa de directorios..."
+    fi
+else
+    print_status "✓ Estructura del proyecto verificada correctamente"
 fi
 
 print_status "[1/4] Sincronizando código fuente..."
-if [ -f "./sync-frontend.sh" ]; then
+if [ -f "./sync-frontend.sh" ] && [ -d "frontend-build" ] && [ -d "src" ]; then
     if ! ./sync-frontend.sh; then
-        print_error "Error al sincronizar código fuente"
-        exit 1
-    fi
-elif [ -f "./sync-frontend.bat" ]; then
-    # En Windows, intentar ejecutar el batch
-    if ! ./sync-frontend.bat; then
-        print_warning "No se pudo ejecutar sync-frontend.bat, continuando..."
+        print_warning "Error al sincronizar código fuente, pero continuando con el despliegue..."
     fi
 else
-    print_warning "No se encontró script de sincronización, continuando..."
+    print_warning "Script de sincronización o directorios requeridos no encontrados, omitiendo sincronización..."
 fi
 
 print_status "[2/4] Deteniendo servicios existentes..."
 $DOCKER_COMPOSE_CMD down
 
 print_status "[3/4] Construyendo y levantando servicios..."
-if $DOCKER_COMPOSE_CMD up -d --build; then
+if ! $DOCKER_COMPOSE_CMD up -d --build; then
     print_error "Error al construir/levantar los servicios"
-    print_error "Revisa los logs con: docker compose logs"
+    print_error "Revisa los logs con: $DOCKER_COMPOSE_CMD logs"
     exit 1
 fi
 
@@ -102,10 +107,10 @@ echo "• Conteo API:  http://localhost:2223"
 echo "• Notif API:   http://localhost:2224"
 echo
 echo "Comandos útiles:"
-echo "• Ver logs:    docker compose logs -f"
-echo "• Detener:     docker compose down"
-echo "• Reiniciar:   docker compose restart"
-echo "• Ver estado:  docker compose ps"
+echo "• Ver logs:    $DOCKER_COMPOSE_CMD logs -f"
+echo "• Detener:     $DOCKER_COMPOSE_CMD down"
+echo "• Reiniciar:   $DOCKER_COMPOSE_CMD restart"
+echo "• Ver estado:  $DOCKER_COMPOSE_CMD ps"
 echo
 
 # Verificar estado final
@@ -113,5 +118,5 @@ print_status "Verificando estado final de los servicios..."
 if $DOCKER_COMPOSE_CMD ps | grep -q "Up\|running\|healthy"; then
     print_status "✓ Servicios funcionando correctamente"
 else
-    print_warning "⚠ Algunos servicios pueden estar iniciándose. Revisa con: docker compose ps"
+    print_warning "⚠ Algunos servicios pueden estar iniciándose. Revisa con: $DOCKER_COMPOSE_CMD ps"
 fi

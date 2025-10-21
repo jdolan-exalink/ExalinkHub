@@ -8,8 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * URL del backend de conteo
+ * En Docker usa el nombre del servicio, localmente usa localhost
  */
-const CONTEO_BACKEND_URL = process.env.CONTEO_BACKEND_URL || 'http://localhost:2223';
+const CONTEO_BACKEND_URL = process.env.CONTEO_BACKEND_URL || 
+  (process.env.NODE_ENV === 'production' ? 'http://conteo-backend:8000' : 'http://localhost:2223');
 
 /**
  * Transforma la respuesta del backend de conteo al formato esperado por el frontend

@@ -27,6 +27,7 @@ import {
   ArrowDownLeft
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import HourlyChart from './hourly-chart';
 
 interface VehicleZoneConfig {
   id: number;
@@ -54,6 +55,30 @@ interface VehicleTransitionEvent {
   timestamp: string;
 }
 
+interface HourlyData {
+  hour: number;
+  in: number;
+  out: number;
+  total: number;
+}
+
+interface VehicleType {
+  label: string;
+  count: number;
+  icon: string;
+  color: string;
+  in: number;
+  out: number;
+}
+
+interface TodayStats {
+  total_in: number;
+  total_out: number;
+  balance: number;
+  total_events: number;
+  vehicle_types: VehicleType[];
+}
+
 export function VehicleCountingPanel() {
   const [loading, setLoading] = useState(true);
   const [zones, setZones] = useState<VehicleZoneConfig[]>([]);
@@ -67,6 +92,16 @@ export function VehicleCountingPanel() {
   const [selectedCamera, setSelectedCamera] = useState<string>('all');
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('today');
+  const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
+  const [hourlyLoading, setHourlyLoading] = useState(false);
+  const [currentHourVehicleTypes, setCurrentHourVehicleTypes] = useState<VehicleType[]>([]);
+  const [todayStats, setTodayStats] = useState<TodayStats>({
+    total_in: 0,
+    total_out: 0,
+    balance: 0,
+    total_events: 0,
+    vehicle_types: []
+  });
 
   /**
    * Carga las configuraciones de zonas habilitadas
@@ -125,6 +160,62 @@ export function VehicleCountingPanel() {
   }, [selectedCamera, selectedZone, selectedPeriod]);
 
   /**
+   * Carga las estadísticas del día actual
+   */
+  const loadTodayStats = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+
+      if (selectedCamera !== 'all') {
+        params.append('camera', selectedCamera);
+      }
+
+      // Agregar el período seleccionado
+      params.append('period', selectedPeriod);
+
+      const response = await fetch(`/api/vehicle-counting/today-stats?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTodayStats(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading today stats:', error);
+    }
+  }, [selectedCamera, selectedPeriod]);
+
+  /**
+   * Carga los datos del gráfico por hora
+   */
+  const loadHourlyData = useCallback(async () => {
+    try {
+      setHourlyLoading(true);
+      const params = new URLSearchParams();
+
+      if (selectedCamera !== 'all') {
+        params.append('camera', selectedCamera);
+      }
+
+      // Agregar el período seleccionado
+      params.append('period', selectedPeriod);
+
+      const response = await fetch(`/api/vehicle-counting/hourly?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setHourlyData(data.data.hourly || []);
+          setCurrentHourVehicleTypes(data.data.current_hour_vehicle_types || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading hourly data:', error);
+    } finally {
+      setHourlyLoading(false);
+    }
+  }, [selectedCamera, selectedPeriod]);
+
+  /**
    * Carga los eventos recientes
    */
   const loadRecentEvents = useCallback(async () => {
@@ -151,7 +242,7 @@ export function VehicleCountingPanel() {
     } catch (error) {
       console.error('Error loading recent events:', error);
     }
-  }, [selectedCamera, selectedZone]);
+  }, [selectedCamera, selectedZone, selectedPeriod]);
 
   /**
    * Actualiza todos los datos
@@ -161,10 +252,12 @@ export function VehicleCountingPanel() {
     await Promise.all([
       loadZoneConfigs(),
       loadCurrentStats(),
-      loadRecentEvents()
+      loadRecentEvents(),
+      loadTodayStats(),
+      loadHourlyData()
     ]);
     setLoading(false);
-  }, [loadZoneConfigs, loadCurrentStats, loadRecentEvents]);
+  }, [loadZoneConfigs, loadCurrentStats, loadRecentEvents, loadTodayStats, loadHourlyData]);
 
   /**
    * Obtiene las cámaras únicas de las zonas configuradas
@@ -280,10 +373,12 @@ export function VehicleCountingPanel() {
     const interval = setInterval(() => {
       loadCurrentStats();
       loadRecentEvents();
+      loadTodayStats();
+      loadHourlyData();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [loadCurrentStats, loadRecentEvents]);
+  }, [loadCurrentStats, loadRecentEvents, loadTodayStats, loadHourlyData]);
 
   if (loading) {
     return (
@@ -351,53 +446,85 @@ export function VehicleCountingPanel() {
         </Select>
       </div>
 
-      {/* Tarjetas de estadísticas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Entradas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{currentStats.total_in}</div>
-            <p className="text-xs text-muted-foreground">Vehículos que ingresaron</p>
-          </CardContent>
-        </Card>
+      {/* Tarjetas de estadísticas del día actual */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold mb-4">
+            Estadísticas de {selectedPeriod === 'today' ? 'Hoy' : 
+                           selectedPeriod === 'yesterday' ? 'Ayer' : 
+                           selectedPeriod === 'week' ? 'Esta Semana' : 
+                           selectedPeriod === 'month' ? 'Este Mes' : 'Hoy'}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Entradas</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{todayStats.total_in}</div>
+                <p className="text-xs text-muted-foreground">
+                  Vehículos que ingresaron {selectedPeriod === 'today' ? 'hoy' : 
+                                         selectedPeriod === 'yesterday' ? 'ayer' : 
+                                         selectedPeriod === 'week' ? 'esta semana' : 
+                                         selectedPeriod === 'month' ? 'este mes' : 'hoy'}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Salidas</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{currentStats.total_out}</div>
-            <p className="text-xs text-muted-foreground">Vehículos que salieron</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Salidas</CardTitle>
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{todayStats.total_out}</div>
+                <p className="text-xs text-muted-foreground">
+                  Vehículos que salieron {selectedPeriod === 'today' ? 'hoy' : 
+                                        selectedPeriod === 'yesterday' ? 'ayer' : 
+                                        selectedPeriod === 'week' ? 'esta semana' : 
+                                        selectedPeriod === 'month' ? 'este mes' : 'hoy'}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance Actual</CardTitle>
-            <Activity className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${currentStats.current_count >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {currentStats.current_count >= 0 ? '+' : ''}{currentStats.current_count}
-            </div>
-            <p className="text-xs text-muted-foreground">Diferencia IN - OUT</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Balance</CardTitle>
+                <Activity className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${todayStats.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                  {todayStats.balance >= 0 ? '+' : ''}{todayStats.balance}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Diferencia IN - OUT d{selectedPeriod === 'today' ? 'el día' : 
+                                     selectedPeriod === 'yesterday' ? 'e ayer' : 
+                                     selectedPeriod === 'week' ? 'e la semana' : 
+                                     selectedPeriod === 'month' ? 'el mes' : 'el día'}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Eventos</CardTitle>
-            <Car className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentStats.total_in + currentStats.total_out}</div>
-            <p className="text-xs text-muted-foreground">Transiciones detectadas</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total</CardTitle>
+                <Car className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{todayStats.total_events}</div>
+                <p className="text-xs text-muted-foreground">
+                  Transiciones detectadas {selectedPeriod === 'today' ? 'hoy' : 
+                                         selectedPeriod === 'yesterday' ? 'ayer' : 
+                                         selectedPeriod === 'week' ? 'esta semana' : 
+                                         selectedPeriod === 'month' ? 'este mes' : 'hoy'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Eliminado: Panel de tipos de vehículos detectados */}
       </div>
 
       {/* Pestañas con detalles */}
@@ -413,14 +540,60 @@ export function VehicleCountingPanel() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Estadísticas por Tipo de Vehículo
+                Actividad por Horas (24 Horas)
               </CardTitle>
               <CardDescription>
-                Distribución de entradas y salidas por tipo de vehículo
+                Entradas y salidas detectadas por hora durante {selectedPeriod === 'today' ? 'todo el día' : 
+                                                             selectedPeriod === 'yesterday' ? 'todo el día de ayer' : 
+                                                             selectedPeriod === 'week' ? 'toda la semana' : 
+                                                             selectedPeriod === 'month' ? 'todo el mes' : 'todo el día'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {renderVehicleTypeStats()}
+              <HourlyChart data={hourlyData} vehicleTypes={currentHourVehicleTypes} loading={hourlyLoading} />
+            </CardContent>
+          </Card>
+
+          {/* Estadísticas compactas abajo del gráfico */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">
+                Resumen por Tipo de Vehículo ({selectedPeriod === 'today' ? 'Día Completo' : 
+                                              selectedPeriod === 'yesterday' ? 'Día de Ayer' : 
+                                              selectedPeriod === 'week' ? 'Semana Completa' : 
+                                              selectedPeriod === 'month' ? 'Mes Completo' : 'Día Completo'})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {todayStats.vehicle_types.length > 0 ? (
+                  todayStats.vehicle_types.map((vehicle) => (
+                    <div key={vehicle.label} className="text-center">
+                      <div className="text-2xl mb-1">{vehicle.icon}</div>
+                      <div className="text-sm font-medium capitalize">
+                        {vehicle.label === 'auto' ? 'Autos' :
+                         vehicle.label === 'moto' ? 'Motos' :
+                         vehicle.label === 'bicicleta' ? 'Bicicletas' :
+                         vehicle.label === 'autobús' || vehicle.label === 'bus' ? 'Buses' :
+                         vehicle.label === 'personas' ? 'Personas' : vehicle.label}
+                      </div>
+                      <div className="text-lg font-bold text-primary">
+                        {vehicle.count}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        +{vehicle.in} -{vehicle.out}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center text-muted-foreground py-4">
+                    No hay detecciones de vehículos {selectedPeriod === 'today' ? 'hoy' : 
+                                                 selectedPeriod === 'yesterday' ? 'ayer' : 
+                                                 selectedPeriod === 'week' ? 'esta semana' : 
+                                                 selectedPeriod === 'month' ? 'este mes' : 'hoy'}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

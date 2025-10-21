@@ -146,8 +146,8 @@ export default function BackendTab() {
     loadBackendConfig();
     updateServiceStatus();
     fetchFrigateServers();
-    // Actualizar estado de servicios cada 30 segundos (reducido de 5 para evitar sobrecarga)
-    const interval = setInterval(updateServiceStatus, 60000);
+    // Actualizar estado de servicios cada 5 segundos para obtener métricas en tiempo real
+    const interval = setInterval(updateServiceStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 

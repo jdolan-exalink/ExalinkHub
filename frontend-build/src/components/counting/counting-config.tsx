@@ -156,7 +156,7 @@ export function CountingConfig({ embedded = false }: counting_config_props) {
       const backend_urls = [
         'http://localhost:2223/config',
         'http://127.0.0.1:2223/config',
-        'http://host.docker.internal:2223/config'
+        'http://counting-backend:2223/config'
       ];
 
       let response: Response | null = null;
@@ -419,7 +419,7 @@ export function CountingConfig({ embedded = false }: counting_config_props) {
       const backend_urls = [
         'http://localhost:2223/config',
         'http://127.0.0.1:2223/config',
-        'http://host.docker.internal:2223/config'
+        'http://counting-backend:2223/config'
       ];
 
       let response: Response | null = null;
@@ -490,7 +490,7 @@ export function CountingConfig({ embedded = false }: counting_config_props) {
       const backend_urls = [
         'http://localhost:2223/health',
         'http://127.0.0.1:2223/health',
-        'http://host.docker.internal:2223/health'
+        'http://counting-backend:2223/health'
       ];
 
       let response: Response | null = null;
@@ -571,7 +571,7 @@ export function CountingConfig({ embedded = false }: counting_config_props) {
       const backend_urls = [
         'http://localhost:2223/status',
         'http://127.0.0.1:2223/status',
-        'http://host.docker.internal:2223/status'
+        'http://counting-backend:2223/status'
       ];
 
       let response: Response | null = null;

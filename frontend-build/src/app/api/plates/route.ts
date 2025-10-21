@@ -7,10 +7,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getLPRBackendURL, getLPRMediaProxyURL } from '@/lib/lpr-backend-config';
 
 /**
  * GET /api/plates
- * Proxy hacia el backend LPR en localhost:2221/events
+ * Proxy hacia el backend LPR usando configuración dinámica
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100')));
 
     // Construir URL del backend LPR (matriculas-listener)
-    let backendUrl = `http://localhost:2221/events?limit=${limit}`;
+    const lprBaseUrl = await getLPRBackendURL();
+    let backendUrl = `${lprBaseUrl}/events?limit=${limit}`;
 
     // Aplicar filtros si están presentes
     const camera = searchParams.get('camera');
@@ -116,15 +118,15 @@ export async function GET(request: NextRequest) {
       const localFiles: any = {};
 
       if (event.snapshot_path) {
-        localFiles.snapshot_url = event.snapshot_path;
+        localFiles.snapshot_url = getLPRMediaProxyURL(event.snapshot_path);
       }
 
       if (event.clip_path) {
-        localFiles.clip_url = event.clip_path;
+        localFiles.clip_url = getLPRMediaProxyURL(event.clip_path);
       }
 
       if (event.plate_crop_path) {
-        localFiles.crop_url = event.plate_crop_path;
+        localFiles.crop_url = getLPRMediaProxyURL(event.plate_crop_path);
       }
 
       const has_clip = !!event.clip_path;

@@ -1,5 +1,14 @@
 # Despliegue Multi-Plataforma - ExalinkHub
 
+## ✅ Compatibilidad con Docker Compose
+
+Los scripts automáticamente detectan y usan la versión correcta de Docker Compose:
+
+- **Docker Compose v2+** (integrado en Docker): `docker compose`
+- **Docker Compose v1** (standalone): `docker-compose`
+
+No necesitas preocuparte por la versión - los scripts lo detectan automáticamente.
+
 ## 🚀 Despliegue Rápido
 
 ### Linux / macOS

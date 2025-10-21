@@ -25,13 +25,21 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Verificar que Docker esté corriendo
-if ! docker info > /dev/null 2>&1; then
-    print_error "Docker no está corriendo. Por favor inicia Docker."
-    exit 1
-fi
+# Función para detectar y usar el comando correcto de docker compose
+detect_docker_compose() {
+    if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+        echo "docker compose"
+    elif command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    else
+        echo "ERROR: No se encontró docker compose ni docker-compose" >&2
+        exit 1
+    fi
+}
 
-print_status "Docker está disponible"
+# Obtener el comando correcto
+DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+echo "🐳 Usando comando: $DOCKER_COMPOSE_CMD"
 
 # IMPORTANTE: Cambiar al directorio del script para asegurar paths correctos
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -61,10 +69,10 @@ else
 fi
 
 print_status "[2/4] Deteniendo servicios existentes..."
-docker compose down
+$DOCKER_COMPOSE_CMD down
 
 print_status "[3/4] Construyendo y levantando servicios..."
-if ! docker compose up -d --build; then
+if $DOCKER_COMPOSE_CMD up -d --build; then
     print_error "Error al construir/levantar los servicios"
     print_error "Revisa los logs con: docker compose logs"
     exit 1
@@ -93,7 +101,7 @@ echo
 
 # Verificar estado final
 print_status "Verificando estado final de los servicios..."
-if docker compose ps | grep -q "Up\|running\|healthy"; then
+if $DOCKER_COMPOSE_CMD ps | grep -q "Up\|running\|healthy"; then
     print_status "✓ Servicios funcionando correctamente"
 else
     print_warning "⚠ Algunos servicios pueden estar iniciándose. Revisa con: docker compose ps"

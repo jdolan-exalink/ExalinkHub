@@ -1,1 +1,1 @@
-{"timestamp": "2025-10-21T14:51:14Z", "uptime_seconds": 161, "cpu_percent": 0.3, "memory": 63.4, "memory_mb": 63.4, "running": true, "status": "running", "events_processed": 20, "last_event": "2025-10-21T14:50:57Z"}
+{"timestamp": "2025-10-21T15:00:13Z", "uptime_seconds": 700, "cpu_percent": 0.1, "memory": 63.4, "memory_mb": 63.4, "running": true, "status": "running", "events_processed": 71, "last_event": "2025-10-21T14:59:41Z"}

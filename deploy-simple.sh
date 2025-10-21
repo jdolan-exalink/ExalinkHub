@@ -11,6 +11,18 @@ cd "$SCRIPT_DIR"
 
 echo "📁 Ejecutando desde: $SCRIPT_DIR"
 
+# Detectar comando docker compose
+if command -v docker &> /dev/null && docker compose version &> /dev/null 2>&1; then
+    DOCKER_CMD="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_CMD="docker-compose"
+else
+    echo "❌ Error: No se encontró docker compose ni docker-compose"
+    exit 1
+fi
+
+echo "🐳 Usando comando: $DOCKER_CMD"
+
 # Verificar archivos necesarios
 if [ ! -f "docker-compose.yml" ]; then
     echo "❌ Error: docker-compose.yml no encontrado"
@@ -27,7 +39,7 @@ echo "🐳 Docker OK"
 
 # Ejecutar despliegue
 echo "🏗️  Construyendo y levantando servicios..."
-if docker compose up -d --build; then
+if $DOCKER_CMD up -d --build; then
     echo "✅ Despliegue completado!"
     echo ""
     echo "🌐 Servicios disponibles:"

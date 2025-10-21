@@ -36,6 +36,12 @@ cd /ruta/al/proyecto/ExalinkHub
 docker compose up -d --build
 ```
 
+### 🔧 Compatibilidad Docker Compose
+
+Los scripts automáticamente detectan y usan la versión correcta:
+- **Docker Compose v2+**: `docker compose` (integrado)
+- **Docker Compose v1**: `docker-compose` (standalone)
+
 ### 🔧 Solución al Error de Paths
 
 Si encuentras: `ERROR: build path /opt/ExalinkHub/backend/Conteo/services/api either does not exist...`

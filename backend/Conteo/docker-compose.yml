@@ -1,0 +1,18 @@
+services:
+  api:
+    build: { context: ./services/api, args: { APP_VERSION: "${APP_VERSION}" } }
+    image: conteo-api
+    container_name: conteo_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      LOG_DIR: "/app/LOG"
+    ports: [ "2222:8000" ]
+    volumes:
+      - ./DB:/app/DB
+      - ./conteo.conf:/app/conteo.conf:ro
+      - ./LOG:/app/LOG
+    networks: [ net ]
+
+networks:
+  net: { driver: bridge }

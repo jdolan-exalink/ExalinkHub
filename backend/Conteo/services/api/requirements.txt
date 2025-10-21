@@ -1,0 +1,7 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+paho-mqtt==2.1.0
+SQLAlchemy==2.0.32
+python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
+psutil==5.9.8

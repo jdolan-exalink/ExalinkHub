@@ -88,8 +88,12 @@ services:
       - "${CONTEO_PORT:-2223}:8012"
     # Montar código fuente y configuración
     volumes:
+      # Mount the source code for development
       - ./backend/conteo:/app:cached
       - ./backend/conteo/config:/app/config:rw
+      # Ensure the database folder is explicitly mounted so /app/DB exists inside the container
+      # Use host bind for local dev and named volume as fallback
+      - ./backend/conteo/DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:
@@ -186,14 +190,14 @@ volumes:
     driver: local
     labels:
       - "com.exalink.volume=lpr-redis-data"
-  config-db:
-    driver: local
-    labels:
-      - "com.exalink.volume=config-db"
   counting-db:
     driver: local
     labels:
       - "com.exalink.volume=counting-db"
+  config-db:
+    driver: local
+    labels:
+      - "com.exalink.volume=config-db"
 
 networks:
   lpr-network:

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * URL del backend de conteo
  */
-const CONTEO_BACKEND_URL = process.env.CONTEO_BACKEND_URL || 'http://localhost:2223';
+const CONTEO_BACKEND_URL = process.env.NEXT_PUBLIC_CONTEO_BASE_URL || process.env.CONTEO_BACKEND_URL || 'http://localhost:2223';
 
 /**
  * Transforma los datos del backend de conteo al formato esperado por el frontend

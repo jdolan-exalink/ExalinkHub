@@ -27,6 +27,7 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_CONTEO_BASE_URL=http://exalink-conteo-backend-dev:8012
     volumes:
       - ./DB:/app/DB:rw
       - ./data:/app/data:rw

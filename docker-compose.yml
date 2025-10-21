@@ -76,7 +76,7 @@ services:
 
   conteo-backend:
     build:
-      context: ./backend/conteo
+      context: ./backend/conteo/services/api
       dockerfile: Dockerfile
     image: exalink/conteo-backend:latest
     container_name: exalink-conteo-backend

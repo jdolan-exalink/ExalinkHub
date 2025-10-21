@@ -7,7 +7,42 @@ Siempre que se realice una nueva versión, cambio relevante o despliegue, este R
 
 Sistema de monitoreo LPR, conteo y notificaciones. Instalación y despliegue rápido:
 
-## 🚀 Instalación rápida
+## 🚀 Despliegue Multi-Plataforma
+
+### ✅ Scripts de Despliegue Recomendados
+
+Para evitar errores de paths en diferentes entornos, usa los scripts de despliegue:
+
+**Linux / macOS:**
+```bash
+# Hacer ejecutable (solo primera vez)
+chmod +x deploy-linux.sh
+
+# Desplegar completo
+./deploy-linux.sh
+```
+
+**Windows:**
+```batch
+deploy.bat
+```
+
+**Si los scripts fallan:**
+```bash
+# Asegurarse de estar en el directorio correcto
+cd /ruta/al/proyecto/ExalinkHub
+
+# Ejecutar manualmente
+docker compose up -d --build
+```
+
+### 🔧 Solución al Error de Paths
+
+Si encuentras: `ERROR: build path /opt/ExalinkHub/backend/Conteo/services/api either does not exist...`
+
+**Causa:** Docker Compose ejecutándose desde directorio incorrecto o dentro de contenedor.
+
+**Solución:** Los scripts automáticamente cambian al directorio correcto antes de ejecutar Docker.
 
 ### 🆕 Cambios v0.0.23
 - Corrección de formato ENV en Dockerfile para evitar warnings.

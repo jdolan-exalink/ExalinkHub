@@ -10679,3 +10679,103 @@ events_processed=7   last_event=2025-10-21T01:12:10Z
 
 📊 Total events: 62   🕐 Last: 2025-10-21T14:45:45Z
 ==================================================
+2025-10-21 14:46:20,730 INFO ✅ COUNT [Cementerio] moto (motorcycle) IN zone=IN counters=[cementerio] id=17610579...
+2025-10-21 14:46:20,741 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:46:22,296 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610579...
+2025-10-21 14:46:22,308 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:46:32,072 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610579...
+2025-10-21 14:46:32,083 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:46:58,016 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:46:58,027 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:46:58,729 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:46:58,742 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:03,848 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:03,860 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:10,784 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: vehicle_counting.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   26   ⬆️  OUT:  42   (balance: -16)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  26   ⬆️  OUT:  42   👤 Occupancy: -16
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 50
+  🏍️ moto: 18
+
+📊 Total events: 68   🕐 Last: 2025-10-21T14:47:03Z
+==================================================
+2025-10-21 14:47:19,918 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:47:19,928 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:21,969 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:21,981 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:24,050 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:24,061 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:25,506 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:25,516 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:25,835 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:47:25,845 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:27,542 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:47:27,552 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:28,582 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:28,594 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:29,304 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:47:29,314 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:31,457 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:31,469 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:33,041 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:47:33,052 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:34,704 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610580...
+2025-10-21 14:47:34,714 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:35,761 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:35,773 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:47:49,694 INFO ✅ COUNT [Cementerio] moto (motorcycle) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:47:49,705 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:48:02,472 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:48:02,484 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 14:48:07,533 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: vehicle_counting.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   34   ⬆️  OUT:  48   (balance: -14)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  34   ⬆️  OUT:  48   👤 Occupancy: -14
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 63
+  🏍️ moto: 19
+
+📊 Total events: 82   🕐 Last: 2025-10-21T14:48:02Z
+==================================================
+2025-10-21 14:48:15,352 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610580...
+2025-10-21 14:48:15,362 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta

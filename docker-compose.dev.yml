@@ -1,8 +1,50 @@
-# Docker Compose para desarrollo - Servicios backend únicamente
-# El frontend corre directamente con npm run dev para hot reload rápido
-# Uso: docker-compose -f docker-compose.dev.yml up
+
+# =============================
+# ExalinkHub - docker-compose.dev.yml (DESARROLLO)
+# ---------------------------------------------
+# Uso: docker compose -f docker-compose.dev.yml up -d
+#
+# - Expone puertos para acceso externo (localhost:9002, 2221, 2223, 2224)
+# - Todos los volúmenes usan rutas relativas multiplataforma (./...)
+# - Funciona en Windows y Linux, en cualquier carpeta
+# - Frontend accesible en http://localhost:9002
+# - Permite hot reload si el frontend lo soporta
+# - Los servicios pueden ser accedidos desde el host
+# =============================
+
 
 services:
+  # Frontend para desarrollo (opcional, expone 0.0.0.0:9002)
+  frontend:
+    build:
+      context: ./frontend-build
+      dockerfile: Dockerfile
+    image: exalink/frontend:dev
+    container_name: exalink-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "9002:3000"  # Acceso externo en 0.0.0.0:9002
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - ./DB:/app/DB:rw
+      - ./data:/app/data:rw
+      - ./MEDIA:/app/MEDIA:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - lpr-network
+    depends_on:
+      - matriculas-listener
+      - conteo-backend
+      - notificaciones-backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.exalink.service=frontend-dev"
 
   # Backend LPR con código montado
   matriculas-listener:
@@ -19,8 +61,8 @@ services:
       - LOG_DIR=/app/LOG
       - CONF_PATH=/app/matriculas.conf
       - PYTHONPATH=/app
+    # Montar código fuente para desarrollo
     volumes:
-      # Montar código fuente para desarrollo
       - ./backend/Matriculas/listener:/app:cached
       - ./backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
       # Montar datos persistentes
@@ -44,10 +86,9 @@ services:
       - PYTHONPATH=/app
     ports:
       - "${CONTEO_PORT:-2223}:8012"
+    # Montar código fuente y configuración
     volumes:
-      # Montar código fuente
       - ./backend/conteo:/app:cached
-      # Montar configuración
       - ./backend/conteo/config:/app/config:rw
     networks:
       - lpr-network
@@ -71,10 +112,9 @@ services:
       - PYTHONPATH=/app
     ports:
       - "${NOTIFICACIONES_PORT:-2224}:8022"
+    # Montar código fuente y configuración
     volumes:
-      # Montar código fuente
       - ./backend/notificaciones:/app:cached
-      # Montar configuración
       - ./backend/notificaciones/config:/app/config:rw
     networks:
       - lpr-network
@@ -112,17 +152,10 @@ services:
     ports:
       - "${LPR_HTTPS_PORT:-2443}:443"
       - "${LPR_HTTP_PORT:-2280}:80"
+    # Configuración Nginx
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - lpr-network
-      - public
-    depends_on:
-      - matriculas-listener
-    profiles:
-      - proxy
-    labels:
-      - "com.exalink.service=lpr-proxy-dev"
+
 
   # Monitor (opcional para desarrollo)
   lpr-monitor:

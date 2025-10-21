@@ -1,3 +1,14 @@
+# =============================
+# ExalinkHub - docker-compose.yml (PRODUCCIÓN)
+# ---------------------------------------------
+# Uso: docker compose up -d
+#
+# - Todos los servicios se comunican por red interna Docker (no expone puertos innecesarios)
+# - Volúmenes usan rutas relativas multiplataforma (${PWD})
+# - Funciona en Windows y Linux, en cualquier carpeta
+# - Frontend accesible en el puerto 9002 (http://localhost:9002)
+# - Para desarrollo, usar docker-compose.dev.yml
+# =============================
 services:
   matriculas-listener:
     build:
@@ -13,11 +24,12 @@ services:
       - MEDIA_DIR=/app/MEDIA
       - LOG_DIR=/app/LOG
       - CONF_PATH=/app/matriculas.conf
+    # Volúmenes de datos y configuración
     volumes:
-      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB
-      - ${PWD:-/opt/ExalinkHub}/MEDIA:/app/MEDIA
-      - ${PWD:-/opt/ExalinkHub}/LOG:/app/LOG
-      - ${PWD:-/opt/ExalinkHub}/backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
+      - ./DB:/app/DB
+      - ./MEDIA:/app/MEDIA
+      - ./LOG:/app/LOG
+      - ./backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
     networks:
       - lpr-network
     labels:
@@ -47,8 +59,9 @@ services:
     ports:
       - "${LPR_HTTPS_PORT:-2443}:443"
       - "${LPR_HTTP_PORT:-2280}:80"
+    # Configuración Nginx
     volumes:
-      - ${PWD:-/opt/ExalinkHub}/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - lpr-network
       - public
@@ -65,8 +78,9 @@ services:
     restart: unless-stopped
     command:
       - '--path.rootfs=/host'
+    # Node exporter
     volumes:
-      - '/:/host:ro,rslave'
+      - /:/host:ro,rslave
     networks:
       - lpr-network
     profiles:
@@ -86,13 +100,14 @@ services:
     environment:
       - TZ=UTC
       - CONF_PATH=/app/config/conteo.conf
-      - PROJECT_ROOT=${PWD:-/opt/ExalinkHub}
+      - PROJECT_ROOT=/opt/ExalinkHub
     ports:
       - "${CONTEO_PORT:-2223}:8000"
+    # Volúmenes de conteo
     volumes:
-      - ${PWD:-/opt/ExalinkHub}/backend/Conteo/config:/app/config:rw
-      - ${PWD:-/opt/ExalinkHub}/backend/Conteo/LOG:/app/LOG:rw
-      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB:rw
+      - ./backend/Conteo/config:/app/config:rw
+      - ./backend/Conteo/LOG:/app/LOG:rw
+      - ./DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:
@@ -114,9 +129,10 @@ services:
       - TZ=UTC
     ports:
       - "${NOTIFICACIONES_PORT:-2224}:8022"
+    # Volúmenes de notificaciones
     volumes:
-      - ${PWD:-/opt/ExalinkHub}/backend/notificaciones/config:/app/config:rw
-      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB:rw
+      - ./backend/notificaciones/config:/app/config:rw
+      - ./DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:
@@ -139,10 +155,11 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+    # Volúmenes del frontend
     volumes:
-      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB:rw
-      - ${PWD:-/opt/ExalinkHub}/data:/app/data:rw
-      - ${PWD:-/opt/ExalinkHub}/MEDIA:/app/MEDIA:ro
+      - ./DB:/app/DB:rw
+      - ./data:/app/data:rw
+      - ./MEDIA:/app/MEDIA:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - lpr-network

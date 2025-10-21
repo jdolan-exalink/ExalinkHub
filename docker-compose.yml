@@ -87,6 +87,7 @@ services:
       - "${CONTEO_PORT:-2223}:8012"
     volumes:
       - ./backend/conteo/config:/app/config:rw
+      - ./DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:
@@ -110,6 +111,7 @@ services:
       - "${NOTIFICACIONES_PORT:-2224}:8022"
     volumes:
       - ./backend/notificaciones/config:/app/config:rw
+      - ./DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:

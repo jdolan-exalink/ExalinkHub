@@ -1,0 +1,3459 @@
+2025-10-21 00:33:23,117 ERROR [ejemplo] subscribe error: Invalid subscription filter.
+2025-10-21 00:33:27,427 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:33:36,983 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:33:46,993 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:33:57,000 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:34:05,855 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:34:15,861 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:34:25,879 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:34:34,936 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:34:44,981 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:34:54,998 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:35:03,976 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:35:13,990 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:35:24,003 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:35:32,970 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:35:42,977 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:35:52,986 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:36:02,569 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:36:12,576 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:36:22,583 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:36:31,083 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:36:41,095 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:36:51,103 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:37:36,251 ERROR [ejemplo] subscribe error: Invalid subscription filter.
+2025-10-21 00:37:39,467 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:37:49,504 ERROR [autopista] mqtt reconnect in 5s: timed out
+2025-10-21 00:39:56,543 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:39:57,199 ERROR [ejemplo] subscribe error: Invalid subscription filter.
+2025-10-21 00:40:11,559 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:40:25,544 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:40:40,546 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:40:43,901 ERROR [ejemplo] mqtt reconnect in 5s: _make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+2025-10-21 00:40:47,963 ERROR [ejemplo] subscribe error: Invalid subscription filter.
+2025-10-21 00:40:54,527 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=DISCONNECTED None:None topic=None  last_error=_make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:41:09,529 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=DISCONNECTED None:None topic=None  last_error=_make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:41:23,470 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////data/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=DISCONNECTED None:None topic=None  last_error=_make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:55:40,882 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:55:41,619 ERROR [ejemplo] subscribe error for topic='frigate/events      # override de topic (por servidor)': Invalid subscription filter.
+2025-10-21 00:55:54,721 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:56:09,742 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:56:23,729 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:56:38,751 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:56:52,658 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:57:07,673 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:57:21,532 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:57:36,534 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:57:50,450 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:58:05,507 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:58:19,321 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:58:34,387 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events      # override de topic (por servidor)
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:58:45,610 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 00:58:46,342 INFO [ejemplo] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 00:59:43,433 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=138   last_event=2025-10-21T00:59:39Z
+============================================
+2025-10-21 01:00:41,222 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=250   last_event=2025-10-21T01:00:38Z
+============================================
+2025-10-21 01:01:38,931 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=373   last_event=2025-10-21T01:01:37Z
+============================================
+2025-10-21 01:02:36,666 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[ejemplo] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=547   last_event=2025-10-21T01:02:36Z
+============================================
+2025-10-21 01:03:14,510 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 01:03:15,266 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:03:16,049 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:16,467 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:16,471 INFO [Panchoropulo] moto (motorcycle) type=end NO_ZONES
+2025-10-21 01:03:18,255 INFO [CEF28] auto (car) type=end NO_ZONES
+2025-10-21 01:03:29,229 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:03:31,840 INFO [Ingreso_Sur] auto (car) type=new NO_ZONES
+2025-10-21 01:03:32,112 INFO [Ingreso_Sur] auto (car) type=update NO_ZONES
+2025-10-21 01:03:32,201 INFO [Ingreso_Sur] auto (car) type=update NO_ZONES
+2025-10-21 01:03:33,597 INFO [Ingreso_Sur] auto (car) type=end NO_ZONES
+2025-10-21 01:03:49,313 INFO [Escuela] moto (motorcycle) type=new zones=['OUT']
+2025-10-21 01:03:49,684 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:49,835 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:50,080 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:03:50,351 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:50,515 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:50,922 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:51,232 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:51,331 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:51,648 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:51,764 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:51,985 INFO [Escuela] moto (motorcycle) type=update zones=['OUT']
+2025-10-21 01:03:52,173 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:03:52,623 INFO [Escuela] moto (motorcycle) type=end zones=['OUT']
+2025-10-21 01:03:53,193 INFO [Costanera] moto (motorcycle) type=new NO_ZONES
+2025-10-21 01:03:53,568 INFO [Costanera] moto (motorcycle) type=update NO_ZONES
+2025-10-21 01:03:53,846 INFO [Costanera] moto (motorcycle) type=update NO_ZONES
+2025-10-21 01:03:53,974 INFO [Costanera] moto (motorcycle) type=update NO_ZONES
+2025-10-21 01:03:54,394 INFO [CEF28] auto (car) type=new NO_ZONES
+2025-10-21 01:03:54,405 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:53,717 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:54,086 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:54,446 INFO [Costanera] moto (motorcycle) type=end NO_ZONES
+2025-10-21 01:03:54,842 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:55,255 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:55,662 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:56,062 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:56,478 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:03:58,908 INFO [CEF28] auto (car) type=end NO_ZONES
+2025-10-21 01:04:01,124 INFO [Moscatello] auto (car) type=new NO_ZONES
+2025-10-21 01:04:01,490 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:01,904 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:02,324 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:02,738 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:03,138 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:03,584 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:05,683 INFO [Moscatello] auto (car) type=end NO_ZONES
+2025-10-21 01:04:07,394 INFO [CEF28] auto (car) type=new NO_ZONES
+2025-10-21 01:04:07,759 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:07,762 INFO [Escuela422] personas (person) type=new NO_ZONES
+2025-10-21 01:04:07,953 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:08,123 INFO [Escuela422] personas (person) type=update NO_ZONES
+2025-10-21 01:04:08,540 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:08,953 INFO [Escuela422] personas (person) type=end NO_ZONES
+2025-10-21 01:04:10,264 INFO [CEF28] auto (car) type=end NO_ZONES
+2025-10-21 01:04:12,129 INFO [CEF28] auto (car) type=new NO_ZONES
+2025-10-21 01:04:12,247 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=55   last_event=2025-10-21T01:04:12Z
+============================================
+2025-10-21 01:04:12,501 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:12,822 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:12,864 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:13,067 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:13,651 INFO [Terminal] autobús (bus) type=end NO_ZONES
+2025-10-21 01:04:13,655 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:14,025 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:14,028 INFO [Moscatello] auto (car) type=new NO_ZONES
+2025-10-21 01:04:14,039 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:14,042 INFO [Terminal] autobús (bus) type=new NO_ZONES
+2025-10-21 01:04:14,053 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:14,136 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:14,357 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:04:15,059 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:15,457 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:15,887 INFO [CEF28] auto (car) type=end NO_ZONES
+2025-10-21 01:04:16,246 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:16,250 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:04:16,253 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:16,649 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:17,740 INFO [Terminal] autobús (bus) type=end NO_ZONES
+2025-10-21 01:04:18,594 INFO [Moscatello] auto (car) type=end NO_ZONES
+2025-10-21 01:04:19,010 INFO [Terminal] autobús (bus) type=new NO_ZONES
+2025-10-21 01:04:19,023 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:04:22,784 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:04:24,283 INFO [Moscatello] auto (car) type=new NO_ZONES
+2025-10-21 01:04:24,653 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:25,060 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:25,480 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:25,893 INFO [Moscatello] auto (car) type=update NO_ZONES
+2025-10-21 01:04:27,997 INFO [Moscatello] auto (car) type=end NO_ZONES
+2025-10-21 01:04:35,798 INFO [Terminal] autobús (bus) type=update NO_ZONES
+2025-10-21 01:04:36,422 INFO [CEF28] auto (car) type=new NO_ZONES
+2025-10-21 01:04:36,786 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:37,048 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:37,189 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:37,331 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:37,549 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:37,957 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:38,367 INFO [CEF28] auto (car) type=update NO_ZONES
+2025-10-21 01:04:39,839 INFO [CEF28] auto (car) type=end NO_ZONES
+2025-10-21 01:05:36,349 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 01:05:37,002 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:05:43,419 INFO [Cementerio] auto (car) type=new id=17610087... NO_ZONES
+2025-10-21 01:05:49,744 INFO [Cementerio] auto (car) type=new id=17610087... NO_ZONES
+2025-10-21 01:06:18,511 INFO [Cementerio] moto (motorcycle) type=new id=17610087... NO_ZONES
+2025-10-21 01:06:18,773 INFO [Cementerio] auto (car) type=new id=17610087... NO_ZONES
+2025-10-21 01:06:33,993 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=4   last_event=2025-10-21T01:06:18Z
+============================================
+2025-10-21 01:06:36,490 INFO [Cementerio] moto (motorcycle) type=new id=17610087... NO_ZONES
+2025-10-21 01:06:47,270 INFO [Cementerio] auto (car) type=new id=17610088... NO_ZONES
+2025-10-21 01:07:31,749 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=6   last_event=2025-10-21T01:06:47Z
+============================================
+2025-10-21 01:08:29,552 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=6   last_event=2025-10-21T01:06:47Z
+============================================
+2025-10-21 01:09:10,569 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 01:09:11,494 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:10:08,222 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=0   last_event=-
+============================================
+2025-10-21 01:10:13,781 INFO [Cementerio] auto (car) type=new id=17610090... NO_ZONES
+2025-10-21 01:10:31,193 INFO [Cementerio] moto (motorcycle) type=new id=17610090... NO_ZONES
+2025-10-21 01:10:47,497 INFO [Cementerio] moto (motorcycle) type=new id=17610090... zones=['LPR_cementerio']
+2025-10-21 01:11:00,138 INFO [Cementerio] moto (motorcycle) type=new id=17610090... zones=['LPR_cementerio']
+2025-10-21 01:11:05,443 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=4   last_event=2025-10-21T01:11:00Z
+-- Objects Detected --
+  auto: 1
+  moto: 3
+============================================
+2025-10-21 01:11:21,699 INFO [Cementerio] auto (car) type=new id=17610090... NO_ZONES
+2025-10-21 01:12:03,604 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=5   last_event=2025-10-21T01:11:21Z
+-- Objects Detected --
+  auto: 2
+  moto: 3
+============================================
+2025-10-21 01:12:07,440 INFO [Cementerio] moto (motorcycle) type=new id=17610091... zones=['LPR_cementerio']
+2025-10-21 01:12:10,166 INFO [Cementerio] auto (car) type=new id=17610091... NO_ZONES
+2025-10-21 01:13:01,415 INFO ================ APP STATUS ================
+Mode: multi    DB: sqlite:////app/DB/Conteo.db
+-- Servers --
+[helvecia] enabled=True status=CONNECTED 10.147.18.148:1883 topic=frigate/events
+-- Counts --
+events_processed=7   last_event=2025-10-21T01:12:10Z
+-- Objects Detected --
+  auto: 3
+  moto: 4
+============================================
+2025-10-21 01:13:33,917 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:13:34,860 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:14:29,054 INFO [Cementerio] auto (car) type=new id=17610092... NO_ZONES
+2025-10-21 01:14:32,389 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T01:14:29Z
+==================================================
+2025-10-21 01:14:33,350 INFO [Cementerio] auto (car) type=new id=17610092... NO_ZONES
+2025-10-21 01:14:48,438 INFO [Cementerio] auto (car) type=new id=17610092... NO_ZONES
+2025-10-21 01:15:29,263 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 3
+
+📊 Total events: 3   🕐 Last: 2025-10-21T01:14:48Z
+==================================================
+2025-10-21 01:15:37,054 INFO [Cementerio] auto (car) type=new id=17610093... NO_ZONES
+2025-10-21 01:16:07,821 INFO [Cementerio] auto (car) type=new id=17610093... NO_ZONES
+2025-10-21 01:16:27,030 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+
+📊 Total events: 5   🕐 Last: 2025-10-21T01:16:07Z
+==================================================
+2025-10-21 01:17:24,711 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+
+📊 Total events: 5   🕐 Last: 2025-10-21T01:16:07Z
+==================================================
+2025-10-21 01:18:22,312 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+
+📊 Total events: 5   🕐 Last: 2025-10-21T01:16:07Z
+==================================================
+2025-10-21 01:19:03,689 INFO [Cementerio] moto (motorcycle) type=new id=17610095... zones=['LPR_cementerio']
+2025-10-21 01:19:12,630 INFO [Cementerio] auto (car) type=new id=17610095... NO_ZONES
+2025-10-21 01:19:13,117 INFO [Cementerio] auto (car) type=new id=17610095... NO_ZONES
+2025-10-21 01:19:17,047 INFO [Cementerio] auto (car) type=new id=17610095... NO_ZONES
+2025-10-21 01:19:20,040 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+  🏍️ moto: 1
+
+📊 Total events: 9   🕐 Last: 2025-10-21T01:19:17Z
+==================================================
+2025-10-21 01:19:36,386 INFO [Cementerio] moto (motorcycle) type=new id=17610095... NO_ZONES
+2025-10-21 01:20:17,702 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+  🏍️ moto: 2
+
+📊 Total events: 10   🕐 Last: 2025-10-21T01:19:36Z
+==================================================
+2025-10-21 01:20:33,887 INFO [Cementerio] auto (car) type=new id=17610096... NO_ZONES
+2025-10-21 01:20:34,403 INFO [Cementerio] auto (car) type=new id=17610096... NO_ZONES
+2025-10-21 01:20:40,581 INFO [Cementerio] auto (car) type=new id=17610096... NO_ZONES
+2025-10-21 01:20:41,478 INFO [Cementerio] moto (motorcycle) type=new id=17610096... NO_ZONES
+2025-10-21 01:20:41,490 INFO [Cementerio] auto (car) type=new id=17610096... NO_ZONES
+2025-10-21 01:20:42,868 INFO [Cementerio] auto (car) type=new id=17610096... NO_ZONES
+2025-10-21 01:20:52,065 INFO [Cementerio] auto (car) type=new id=17610096... NO_ZONES
+2025-10-21 01:21:15,351 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 14
+  🏍️ moto: 3
+
+📊 Total events: 17   🕐 Last: 2025-10-21T01:20:52Z
+==================================================
+2025-10-21 01:22:13,011 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 14
+  🏍️ moto: 3
+
+📊 Total events: 17   🕐 Last: 2025-10-21T01:20:52Z
+==================================================
+2025-10-21 01:22:34,375 INFO [Cementerio] auto (car) type=new id=17610097... NO_ZONES
+2025-10-21 01:23:10,697 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 15
+  🏍️ moto: 3
+
+📊 Total events: 18   🕐 Last: 2025-10-21T01:22:34Z
+==================================================
+2025-10-21 01:24:08,350 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 15
+  🏍️ moto: 3
+
+📊 Total events: 18   🕐 Last: 2025-10-21T01:22:34Z
+==================================================
+2025-10-21 01:24:58,135 INFO [Cementerio] auto (car) type=new id=17610098... NO_ZONES
+2025-10-21 01:25:05,990 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 16
+  🏍️ moto: 3
+
+📊 Total events: 19   🕐 Last: 2025-10-21T01:24:58Z
+==================================================
+2025-10-21 01:26:03,613 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 16
+  🏍️ moto: 3
+
+📊 Total events: 19   🕐 Last: 2025-10-21T01:24:58Z
+==================================================
+2025-10-21 01:26:14,595 ERROR [helvecia] mqtt reconnect in 5s: _make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+2025-10-21 01:26:20,322 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:26:24,171 INFO [Cementerio] auto (car) type=new id=17610099... NO_ZONES
+2025-10-21 01:27:01,252 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 17
+  🏍️ moto: 3
+
+📊 Total events: 20   🕐 Last: 2025-10-21T01:26:24Z
+==================================================
+2025-10-21 01:27:58,866 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 17
+  🏍️ moto: 3
+
+📊 Total events: 20   🕐 Last: 2025-10-21T01:26:24Z
+==================================================
+2025-10-21 01:28:07,061 INFO [Cementerio] auto (car) type=new id=17610100... NO_ZONES
+2025-10-21 01:28:56,475 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   0   (balanced)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 18
+  🏍️ moto: 3
+
+📊 Total events: 21   🕐 Last: 2025-10-21T01:28:07Z
+==================================================
+2025-10-21 01:29:38,188 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:29:38,936 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:30:35,809 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:31:33,403 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:32:30,914 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:33:20,571 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT id=17610103...
+2025-10-21 01:33:28,539 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   1   (balance: -1)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T01:33:20Z
+==================================================
+2025-10-21 01:34:25,378 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    0   ⬆️  OUT:   1   (balance: -1)
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T01:33:20Z
+==================================================
+2025-10-21 01:42:38,375 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:42:39,311 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:43:35,902 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:44:33,428 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:44:39,853 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610110...
+2025-10-21 01:44:40,205 INFO 📤 Publish client connected to [helvecia] 10.147.18.148:1883
+2025-10-21 01:44:40,206 ERROR 📤 Error publishing to MQTT: Publish topic cannot contain wildcards.
+2025-10-21 01:45:19,502 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610111...
+2025-10-21 01:45:19,513 ERROR 📤 Error publishing to MQTT: Publish topic cannot contain wildcards.
+2025-10-21 01:45:30,934 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    1   ⬆️  OUT:   1   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   1   ⬆️  OUT:   1   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+
+📊 Total events: 2   🕐 Last: 2025-10-21T01:45:19Z
+==================================================
+2025-10-21 01:45:59,718 INFO ✅ COUNT [Cementerio] moto (motorcycle) OUT zone=OUT counters=[cementerio] id=17610111...
+2025-10-21 01:45:59,729 ERROR 📤 Error publishing to MQTT: Publish topic cannot contain wildcards.
+2025-10-21 01:46:12,196 INFO ✅ COUNT [Cementerio] moto (motorcycle) OUT zone=OUT counters=[cementerio] id=17610111...
+2025-10-21 01:46:12,207 ERROR 📤 Error publishing to MQTT: Publish topic cannot contain wildcards.
+2025-10-21 01:46:15,728 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610111...
+2025-10-21 01:46:15,738 ERROR 📤 Error publishing to MQTT: Publish topic cannot contain wildcards.
+2025-10-21 01:46:18,620 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610111...
+2025-10-21 01:46:18,629 ERROR 📤 Error publishing to MQTT: Publish topic cannot contain wildcards.
+2025-10-21 01:46:31,312 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:46:31,954 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:47:28,792 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:48:26,261 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:58:17,112 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 01:58:17,745 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 01:59:12,884 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610119...
+2025-10-21 01:59:13,213 INFO 📤 Publish client connected to [helvecia] 10.147.18.148:1883
+2025-10-21 01:59:13,214 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 01:59:14,416 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    1   ⬆️  OUT:   0   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   1   ⬆️  OUT:   0   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T01:59:12Z
+==================================================
+2025-10-21 02:00:11,807 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    1   ⬆️  OUT:   0   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   1   ⬆️  OUT:   0   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T01:59:12Z
+==================================================
+2025-10-21 02:04:28,137 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 02:04:28,792 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:04:41,816 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 02:04:42,457 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:04:58,968 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 02:04:59,620 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:04:59,990 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610122...
+2025-10-21 02:05:00,311 INFO 📤 Publish client connected to [helvecia] 10.147.18.148:1883
+2025-10-21 02:05:00,311 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:08,085 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610123...
+2025-10-21 02:05:08,095 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:09,579 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610123...
+2025-10-21 02:05:09,592 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:12,312 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610123...
+2025-10-21 02:05:12,323 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:14,096 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610123...
+2025-10-21 02:05:14,108 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:14,486 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610123...
+2025-10-21 02:05:14,498 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:15,706 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610123...
+2025-10-21 02:05:15,718 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:16,068 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610123...
+2025-10-21 02:05:16,079 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:05:56,343 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   6   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   6   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:05:16Z
+==================================================
+2025-10-21 02:06:53,642 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   6   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   6   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:05:16Z
+==================================================
+2025-10-21 02:07:51,052 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   6   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   6   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:05:16Z
+==================================================
+2025-10-21 02:08:48,414 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   6   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   6   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:05:16Z
+==================================================
+2025-10-21 02:09:45,764 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   6   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   6   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 8
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:05:16Z
+==================================================
+2025-10-21 02:09:47,989 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610125...
+2025-10-21 02:09:48,001 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:10:43,099 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   7   (balance: -5)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   7   👤 Occupancy:  -5
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 9
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:09:47Z
+==================================================
+2025-10-21 02:11:40,355 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   7   (balance: -5)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   7   👤 Occupancy:  -5
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 9
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:09:47Z
+==================================================
+2025-10-21 02:12:37,669 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   7   (balance: -5)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   7   👤 Occupancy:  -5
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 9
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:09:47Z
+==================================================
+2025-10-21 02:12:46,912 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610127...
+2025-10-21 02:12:46,922 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:13:35,022 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    3   ⬆️  OUT:   7   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   3   ⬆️  OUT:   7   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 10
+
+📊 Total events: 10   🕐 Last: 2025-10-21T02:12:46Z
+==================================================
+2025-10-21 02:14:32,315 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    3   ⬆️  OUT:   7   (balance: -4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   3   ⬆️  OUT:   7   👤 Occupancy:  -4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 10
+
+📊 Total events: 10   🕐 Last: 2025-10-21T02:12:46Z
+==================================================
+2025-10-21 02:14:56,056 ERROR [helvecia] mqtt reconnect in 5s: _make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+2025-10-21 02:15:01,751 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:15:03,911 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610129...
+2025-10-21 02:15:03,921 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:15:06,480 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610129...
+2025-10-21 02:15:06,492 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:15:29,601 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   7   (balance: -2)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   7   👤 Occupancy:  -2
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 12
+
+📊 Total events: 12   🕐 Last: 2025-10-21T02:15:06Z
+==================================================
+2025-10-21 02:15:30,197 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610129...
+2025-10-21 02:15:30,208 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:15:49,696 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610129...
+2025-10-21 02:15:49,707 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:16:26,912 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    6   ⬆️  OUT:   8   (balance: -2)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   6   ⬆️  OUT:   8   👤 Occupancy:  -2
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 14
+
+📊 Total events: 14   🕐 Last: 2025-10-21T02:15:49Z
+==================================================
+2025-10-21 02:17:24,134 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    6   ⬆️  OUT:   8   (balance: -2)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   6   ⬆️  OUT:   8   👤 Occupancy:  -2
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 14
+
+📊 Total events: 14   🕐 Last: 2025-10-21T02:15:49Z
+==================================================
+2025-10-21 02:24:27,233 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 02:24:27,978 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:25:00,418 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 02:25:01,150 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:25:57,714 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  (no data yet)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  (no objects detected yet)
+
+📊 Total events: 0   🕐 Last: -
+==================================================
+2025-10-21 02:26:06,675 INFO ✅ COUNT [Cementerio] moto (motorcycle) IN zone=IN counters=[cementerio] id=17610135...
+2025-10-21 02:26:07,058 INFO 📤 Publish client connected to [helvecia] 10.147.18.148:1883
+2025-10-21 02:26:07,058 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:26:54,968 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    1   ⬆️  OUT:   0   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   1   ⬆️  OUT:   0   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🏍️ moto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T02:26:06Z
+==================================================
+2025-10-21 02:27:52,236 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    1   ⬆️  OUT:   0   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   1   ⬆️  OUT:   0   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🏍️ moto: 1
+
+📊 Total events: 1   🕐 Last: 2025-10-21T02:26:06Z
+==================================================
+2025-10-21 02:28:10,879 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610136...
+2025-10-21 02:28:10,891 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:28:49,514 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    1   ⬆️  OUT:   1   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   1   ⬆️  OUT:   1   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 1
+  🏍️ moto: 1
+
+📊 Total events: 2   🕐 Last: 2025-10-21T02:28:10Z
+==================================================
+2025-10-21 02:29:36,738 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610137...
+2025-10-21 02:29:36,749 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:29:46,794 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   1   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   1   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+  🏍️ moto: 1
+
+📊 Total events: 3   🕐 Last: 2025-10-21T02:29:36Z
+==================================================
+2025-10-21 02:30:25,536 INFO ✅ COUNT [Cementerio] moto (motorcycle) OUT zone=OUT counters=[cementerio] id=17610138...
+2025-10-21 02:30:25,548 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:30:44,026 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   2   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   2   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+  🏍️ moto: 2
+
+📊 Total events: 4   🕐 Last: 2025-10-21T02:30:25Z
+==================================================
+2025-10-21 02:31:41,250 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   2   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   2   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+  🏍️ moto: 2
+
+📊 Total events: 4   🕐 Last: 2025-10-21T02:30:25Z
+==================================================
+2025-10-21 02:32:38,466 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   2   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   2   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+  🏍️ moto: 2
+
+📊 Total events: 4   🕐 Last: 2025-10-21T02:30:25Z
+==================================================
+2025-10-21 02:32:47,908 ERROR [helvecia] mqtt reconnect in 5s: _make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+2025-10-21 02:32:53,695 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:33:35,720 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   2   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   2   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+  🏍️ moto: 2
+
+📊 Total events: 4   🕐 Last: 2025-10-21T02:30:25Z
+==================================================
+2025-10-21 02:34:32,963 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   2   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   2   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 2
+  🏍️ moto: 2
+
+📊 Total events: 4   🕐 Last: 2025-10-21T02:30:25Z
+==================================================
+2025-10-21 02:34:50,582 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610140...
+2025-10-21 02:34:50,594 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:35:30,201 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   3   (balance: -1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   3   👤 Occupancy:  -1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 3
+  🏍️ moto: 2
+
+📊 Total events: 5   🕐 Last: 2025-10-21T02:34:50Z
+==================================================
+2025-10-21 02:36:27,414 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   3   (balance: -1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   3   👤 Occupancy:  -1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 3
+  🏍️ moto: 2
+
+📊 Total events: 5   🕐 Last: 2025-10-21T02:34:50Z
+==================================================
+2025-10-21 02:37:24,617 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    2   ⬆️  OUT:   3   (balance: -1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   2   ⬆️  OUT:   3   👤 Occupancy:  -1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 3
+  🏍️ moto: 2
+
+📊 Total events: 5   🕐 Last: 2025-10-21T02:34:50Z
+==================================================
+2025-10-21 02:37:52,774 INFO ✅ COUNT [Cementerio] moto (motorcycle) OUT zone=OUT counters=[cementerio] id=17610142...
+2025-10-21 02:37:52,784 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:37:53,775 INFO ✅ COUNT [Cementerio] moto (motorcycle) IN zone=IN counters=[cementerio] id=17610142...
+2025-10-21 02:37:53,788 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:38:21,811 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    3   ⬆️  OUT:   4   (balance: -1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   3   ⬆️  OUT:   4   👤 Occupancy:  -1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 3
+  🏍️ moto: 4
+
+📊 Total events: 7   🕐 Last: 2025-10-21T02:37:53Z
+==================================================
+2025-10-21 02:39:19,037 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    3   ⬆️  OUT:   4   (balance: -1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   3   ⬆️  OUT:   4   👤 Occupancy:  -1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 3
+  🏍️ moto: 4
+
+📊 Total events: 7   🕐 Last: 2025-10-21T02:37:53Z
+==================================================
+2025-10-21 02:39:53,964 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610143...
+2025-10-21 02:39:53,974 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:40:16,261 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    4   ⬆️  OUT:   4   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   4   ⬆️  OUT:   4   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 4
+  🏍️ moto: 4
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:39:53Z
+==================================================
+2025-10-21 02:41:13,449 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    4   ⬆️  OUT:   4   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   4   ⬆️  OUT:   4   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 4
+  🏍️ moto: 4
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:39:53Z
+==================================================
+2025-10-21 02:42:10,607 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    4   ⬆️  OUT:   4   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   4   ⬆️  OUT:   4   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 4
+  🏍️ moto: 4
+
+📊 Total events: 8   🕐 Last: 2025-10-21T02:39:53Z
+==================================================
+2025-10-21 02:42:51,054 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610145...
+2025-10-21 02:42:51,067 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:43:07,767 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:43:55,491 ERROR [helvecia] mqtt reconnect in 5s: _make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+2025-10-21 02:44:04,131 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:44:04,959 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:44:14,188 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:44:24,287 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:44:32,949 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:44:43,029 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:44:53,058 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:01,690 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:02,155 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:45:11,759 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:21,878 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:30,529 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:40,645 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:50,788 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:45:59,331 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:45:59,494 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:46:09,644 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:46:19,801 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:46:28,421 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:46:38,580 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:46:48,648 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:46:56,505 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:46:57,339 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:47:07,378 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:47:17,410 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:47:26,006 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:47:36,047 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:47:46,084 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:47:53,701 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:47:54,703 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:48:04,729 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:48:14,752 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:48:23,369 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:48:33,390 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:48:43,446 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:48:50,869 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:48:52,076 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:02,139 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:12,186 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:20,821 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:30,970 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:40,983 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:48,041 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+❌ [helvecia] 10.147.18.148:1883
+   ⚠️  timed out
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:49:49,604 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:49:59,658 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:50:09,184 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:50:18,464 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:50:28,708 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:50:37,381 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:50:42,459 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:50:45,177 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    5   ⬆️  OUT:   4   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   5   ⬆️  OUT:   4   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 5
+  🏍️ moto: 4
+
+📊 Total events: 9   🕐 Last: 2025-10-21T02:42:51Z
+==================================================
+2025-10-21 02:50:50,844 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610150...
+2025-10-21 02:50:50,857 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:51:42,335 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    6   ⬆️  OUT:   4   (balance: +2)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   6   ⬆️  OUT:   4   👤 Occupancy:   2
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 6
+  🏍️ moto: 4
+
+📊 Total events: 10   🕐 Last: 2025-10-21T02:50:50Z
+==================================================
+2025-10-21 02:52:04,143 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610151...
+2025-10-21 02:52:04,157 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:52:05,782 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610151...
+2025-10-21 02:52:05,795 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:52:06,667 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610151...
+2025-10-21 02:52:06,678 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:52:07,498 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610151...
+2025-10-21 02:52:07,510 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:52:08,384 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610151...
+2025-10-21 02:52:08,395 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 02:52:39,514 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:53:36,664 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:54:33,824 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:54:55,246 ERROR [helvecia] mqtt reconnect in 5s: _make_client.<locals>._on_disconnect() takes from 3 to 4 positional arguments but 5 were given
+2025-10-21 02:55:03,833 ERROR [helvecia] mqtt reconnect in 5s: timed out
+2025-10-21 02:55:08,913 INFO [helvecia] connected 10.147.18.148:1883 topic=frigate/events OK
+2025-10-21 02:55:30,952 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:56:28,077 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:57:25,189 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:58:22,317 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 02:59:19,436 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:00:16,527 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:01:13,694 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:02:10,813 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:03:07,889 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:04:04,976 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:05:02,093 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:05:59,166 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   7   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   7   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 11
+  🏍️ moto: 4
+
+📊 Total events: 15   🕐 Last: 2025-10-21T02:52:08Z
+==================================================
+2025-10-21 03:06:23,055 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610159...
+2025-10-21 03:06:23,066 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:06:56,230 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   8   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   8   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 12
+  🏍️ moto: 4
+
+📊 Total events: 16   🕐 Last: 2025-10-21T03:06:23Z
+==================================================
+2025-10-21 03:07:53,310 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    8   ⬆️  OUT:   8   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   8   ⬆️  OUT:   8   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 12
+  🏍️ moto: 4
+
+📊 Total events: 16   🕐 Last: 2025-10-21T03:06:23Z
+==================================================
+2025-10-21 03:08:16,236 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610160...
+2025-10-21 03:08:16,245 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:08:50,375 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    9   ⬆️  OUT:   8   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   9   ⬆️  OUT:   8   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 13
+  🏍️ moto: 4
+
+📊 Total events: 17   🕐 Last: 2025-10-21T03:08:16Z
+==================================================
+2025-10-21 03:09:47,397 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:    9   ⬆️  OUT:   8   (balance: +1)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:   9   ⬆️  OUT:   8   👤 Occupancy:   1
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 13
+  🏍️ moto: 4
+
+📊 Total events: 17   🕐 Last: 2025-10-21T03:08:16Z
+==================================================
+2025-10-21 03:09:52,811 INFO ✅ COUNT [Cementerio] moto (motorcycle) OUT zone=OUT counters=[cementerio] id=17610161...
+2025-10-21 03:09:52,822 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:09:53,369 INFO ✅ COUNT [Cementerio] moto (motorcycle) IN zone=IN counters=[cementerio] id=17610161...
+2025-10-21 03:09:53,380 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:09:55,276 INFO ✅ COUNT [Cementerio] moto (motorcycle) OUT zone=OUT counters=[cementerio] id=17610161...
+2025-10-21 03:09:55,288 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:10:44,488 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   10   ⬆️  OUT:  10   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  10   ⬆️  OUT:  10   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 13
+  🏍️ moto: 7
+
+📊 Total events: 20   🕐 Last: 2025-10-21T03:09:54Z
+==================================================
+2025-10-21 03:11:41,580 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   10   ⬆️  OUT:  10   (balanced)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  10   ⬆️  OUT:  10   👤 Occupancy:   0
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 13
+  🏍️ moto: 7
+
+📊 Total events: 20   🕐 Last: 2025-10-21T03:09:54Z
+==================================================
+2025-10-21 03:11:43,031 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610163...
+2025-10-21 03:11:43,043 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:11:44,553 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610163...
+2025-10-21 03:11:44,564 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:11:44,731 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610163...
+2025-10-21 03:11:44,742 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:11:45,146 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610163...
+2025-10-21 03:11:45,156 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:12:26,817 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610163...
+2025-10-21 03:12:26,826 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:12:28,396 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610163...
+2025-10-21 03:12:28,407 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:12:28,885 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610163...
+2025-10-21 03:12:28,898 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:12:38,591 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   15   ⬆️  OUT:  12   (balance: +3)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  15   ⬆️  OUT:  12   👤 Occupancy:   3
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 20
+  🏍️ moto: 7
+
+📊 Total events: 27   🕐 Last: 2025-10-21T03:12:28Z
+==================================================
+2025-10-21 03:13:35,634 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   15   ⬆️  OUT:  12   (balance: +3)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  15   ⬆️  OUT:  12   👤 Occupancy:   3
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 20
+  🏍️ moto: 7
+
+📊 Total events: 27   🕐 Last: 2025-10-21T03:12:28Z
+==================================================
+2025-10-21 03:13:56,358 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610164...
+2025-10-21 03:13:56,371 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:14:32,822 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   16   ⬆️  OUT:  12   (balance: +4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  16   ⬆️  OUT:  12   👤 Occupancy:   4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 21
+  🏍️ moto: 7
+
+📊 Total events: 28   🕐 Last: 2025-10-21T03:13:56Z
+==================================================
+2025-10-21 03:15:29,885 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   16   ⬆️  OUT:  12   (balance: +4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  16   ⬆️  OUT:  12   👤 Occupancy:   4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 21
+  🏍️ moto: 7
+
+📊 Total events: 28   🕐 Last: 2025-10-21T03:13:56Z
+==================================================
+2025-10-21 03:15:41,014 INFO ✅ COUNT [Cementerio] auto (car) OUT zone=OUT counters=[cementerio] id=17610165...
+2025-10-21 03:15:41,026 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:15:43,471 INFO ✅ COUNT [Cementerio] auto (car) IN zone=IN counters=[cementerio] id=17610165...
+2025-10-21 03:15:43,485 ERROR 📤 Invalid topic (contains wildcards): exacount            # exacount/<counter_id>/.../cementerio/delta
+2025-10-21 03:16:26,919 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   17   ⬆️  OUT:  13   (balance: +4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  17   ⬆️  OUT:  13   👤 Occupancy:   4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 23
+  🏍️ moto: 7
+
+📊 Total events: 30   🕐 Last: 2025-10-21T03:15:43Z
+==================================================
+2025-10-21 03:17:24,010 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   17   ⬆️  OUT:  13   (balance: +4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  17   ⬆️  OUT:  13   👤 Occupancy:   4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 23
+  🏍️ moto: 7
+
+📊 Total events: 30   🕐 Last: 2025-10-21T03:15:43Z
+==================================================
+2025-10-21 03:18:21,024 INFO 
+==================================================
+📊 APP STATUS
+==================================================
+🔧 Mode: multi                       # single | multi    💾 DB: Conteo.db
+
+🌐 SERVERS
+--------------------------------------------------
+✅ [helvecia] 10.147.18.148:1883
+
+📹 CAMERAS (IN/OUT)
+--------------------------------------------------
+  🎥 Cementerio
+     ⬇️  IN:   17   ⬆️  OUT:  13   (balance: +4)
+
+🎯 COUNTERS
+--------------------------------------------------
+  📍 cementerio
+     ⬇️  IN:  17   ⬆️  OUT:  13   👤 Occupancy:   4
+  📍 escuela
+     ⬇️  IN:   0   ⬆️  OUT:   0   👤 Occupancy:   0
+
+📈 OBJECTS DETECTED
+--------------------------------------------------
+  🚗 auto: 23
+  🏍️ moto: 7
+
+📊 Total events: 30   🕐 Last: 2025-10-21T03:15:43Z
+==================================================

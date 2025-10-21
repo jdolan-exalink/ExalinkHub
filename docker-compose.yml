@@ -90,7 +90,7 @@ services:
 
   conteo-backend:
     build:
-      context: ./backend/Conteo/services/api
+      context: ./backend/conteo/services/api
       dockerfile: Dockerfile
       args:
         BUILDKIT_INLINE_CACHE: 1
@@ -105,8 +105,8 @@ services:
       - "${CONTEO_PORT:-2223}:8000"
     # Volúmenes de conteo
     volumes:
-      - ./backend/Conteo/config:/app/config:rw
-      - ./backend/Conteo/LOG:/app/LOG:rw
+      - ./backend/conteo/config:/app/config:rw
+      - ./backend/conteo/LOG:/app/LOG:rw
       - ./DB:/app/DB:rw
     networks:
       - lpr-network

@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getLPRBackendURL } from '@/lib/lpr-backend-config';
 
 /**
  * Determina el content-type a partir del tipo de archivo
@@ -55,7 +56,8 @@ export async function GET(
     console.log(`🎬 Solicitando ${fileType} para evento ${eventId}`);
 
     // Consultar el backend LPR para obtener la información del evento
-    const backendUrl = `http://localhost:2221/api/events/${eventId}`;
+    const lprBaseUrl = await getLPRBackendURL();
+    const backendUrl = `${lprBaseUrl}/api/events/${eventId}`;
 
     // Agregar autenticación Basic Auth
     const authUser = process.env.LPR_API_USER || 'admin';

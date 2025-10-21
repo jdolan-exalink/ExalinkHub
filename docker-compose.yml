@@ -76,17 +76,19 @@ services:
 
   conteo-backend:
     build:
-      context: ./backend/conteo/services/api
+      context: ./backend/Conteo/services/api
       dockerfile: Dockerfile
     image: exalink/conteo-backend:latest
     container_name: exalink-conteo-backend
     restart: unless-stopped
     environment:
       - TZ=UTC
+      - CONF_PATH=/app/config/conteo.conf
     ports:
-      - "${CONTEO_PORT:-2223}:8012"
+      - "${CONTEO_PORT:-2223}:8000"
     volumes:
-      - ./backend/conteo/config:/app/config:rw
+      - ./backend/Conteo/config:/app/config:rw
+      - ./backend/Conteo/LOG:/app/LOG:rw
       - ./DB:/app/DB:rw
     networks:
       - lpr-network

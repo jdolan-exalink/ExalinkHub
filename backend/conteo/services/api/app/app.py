@@ -178,7 +178,7 @@ fh.setFormatter(logging.Formatter(fmt='%(asctime)s %(levelname)s %(message)s'))
 app_log.addHandler(fh)
 
 stats_logger = logging.getLogger("stats")
-sfh = logging.FileHandler(os.path.join(LOG_DIR,"stats.log"))
+sfh = logging.FileHandler(os.path.join(LOG_DIR,"stats.log"), mode='w')  # Write mode to overwrite file
 # Write pure JSON lines with no prefix
 sfh.setFormatter(logging.Formatter(fmt='%(message)s'))
 stats_logger.addHandler(sfh)
@@ -272,6 +272,7 @@ def keep_retention():
 
 def stats_loop():
     proc = psutil.Process(os.getpid())
+    stats_file = os.path.join(LOG_DIR, "stats.log")
     while True:
         try:
             cpu = psutil.cpu_percent(interval=1)
@@ -289,7 +290,9 @@ def stats_loop():
                 "events_processed": int(EVENTS_PROCESSED),
                 "last_event": datetime.utcfromtimestamp(LAST_EVENT_TS).strftime('%Y-%m-%dT%H:%M:%SZ') if LAST_EVENT_TS else None,
             }
-            stats_logger.info(json.dumps(payload))
+            # Write only the latest stats (overwrite file)
+            with open(stats_file, 'w', encoding='utf-8') as f:
+                f.write(json.dumps(payload) + '\n')
         except Exception as e:
             app_log.error(f"stats error: {e}")
         time.sleep(9)

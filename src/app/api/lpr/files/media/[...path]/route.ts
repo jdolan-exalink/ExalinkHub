@@ -2,11 +2,12 @@
  * API proxy para archivos multimedia del backend LPR
  * GET /api/lpr/files/media/[...path]
  * 
- * Este endpoint hace proxy a http://localhost:2221/media/[...path]
+ * Este endpoint hace proxy a la URL configurada del backend LPR /media/[...path]
  * permitiendo acceder a snapshots, clips y crops desde el frontend.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getLPRBackendURL } from '@/lib/lpr-backend-config';
 
 export async function GET(
   request: NextRequest,
@@ -15,9 +16,10 @@ export async function GET(
   try {
     const { path: filePath } = await context.params;
     
-    // Construir URL del backend LPR
+    // Construir URL del backend LPR usando configuración dinámica
     const backend_path = filePath.join('/');
-    const backend_url = `http://host.docker.internal:2221/media/${backend_path}`;
+    const lpr_base_url = await getLPRBackendURL();
+    const backend_url = `${lpr_base_url}/media/${backend_path}`;
     
     console.log(`📡 Proxy LPR media: ${backend_url}`);
 

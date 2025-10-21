@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { getLPRMediaProxyURL } from '@/lib/lpr-backend-config';
 
 /**
  * GET /api/lpr/readings
@@ -226,9 +227,9 @@ export async function GET(request: NextRequest) {
           server_name: 'matriculas-db',
           confidence: confidence_final,
           local_files: {
-            snapshot_url: row.snapshot_path ? `http://localhost:2221/media/${row.snapshot_path}` : null,
-            clip_url: row.clip_path ? `http://localhost:2221/media/${row.clip_path}` : null,
-            crop_url: row.plate_crop_path ? `http://localhost:2221/media/${row.plate_crop_path}` : null
+            snapshot_url: row.snapshot_path ? getLPRMediaProxyURL(row.snapshot_path) : null,
+            clip_url: row.clip_path ? getLPRMediaProxyURL(row.clip_path) : null,
+            crop_url: row.plate_crop_path ? getLPRMediaProxyURL(row.plate_crop_path) : null
           },
           zone: zone,
           vehicle_type: vehicle_type,

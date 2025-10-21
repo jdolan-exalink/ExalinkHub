@@ -53,7 +53,7 @@ services:
       - lpr-network
       - public
     depends_on:
-      - lpr-backend
+      - matriculas-listener
     profiles:
       - proxy
     labels:

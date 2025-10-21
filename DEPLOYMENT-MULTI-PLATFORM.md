@@ -81,18 +81,36 @@ curl http://localhost:2223/api/info
 ## 🐛 Troubleshooting
 
 ### Error de paths en Linux
-Si el error persiste en Linux, ejecuta:
+Si el error persiste en Linux, el problema es que estás ejecutando desde un directorio montado en lugar del directorio real del proyecto:
+
+**❌ Incorrecto - Ejecutando desde directorio montado:**
 ```bash
-# Verificar directorio actual
-pwd
+cd /opt/ExalinkHub  # ← Esto es un mount point
+./deploy-linux.sh   # ❌ Fallará con error de paths
+```
 
-# Cambiar manualmente al directorio del proyecto
+**✅ Correcto - Ejecutando desde directorio real del proyecto:**
+```bash
+# Navega al directorio donde están los archivos reales del proyecto
+cd /home/user/ExalinkHub  # ← Directorio real del proyecto
+./deploy-linux.sh         # ✅ Funcionará correctamente
+```
+
+**Verificar directorio correcto:**
+```bash
+# Debes estar en un directorio que contenga:
+ls -la
+# Debe mostrar: docker-compose.yml, backend/, src/, etc.
+
+# Si no estás en el directorio correcto:
+pwd  # Muestra dónde estás actualmente
 cd /ruta/correcta/al/proyecto/ExalinkHub
+```
 
-# Verificar que docker-compose.yml existe
-ls -la docker-compose.yml
-
-# Ejecutar con path absoluto
+**Solución alternativa manual:**
+```bash
+# Cambiar al directorio correcto y ejecutar
+cd /ruta/correcta/al/proyecto/ExalinkHub
 docker compose -f $(pwd)/docker-compose.yml up -d --build
 ```
 

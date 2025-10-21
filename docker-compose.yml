@@ -14,10 +14,10 @@ services:
       - LOG_DIR=/app/LOG
       - CONF_PATH=/app/matriculas.conf
     volumes:
-      - ./DB:/app/DB
-      - ./MEDIA:/app/MEDIA
-      - ./LOG:/app/LOG
-      - ./backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
+      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB
+      - ${PWD:-/opt/ExalinkHub}/MEDIA:/app/MEDIA
+      - ${PWD:-/opt/ExalinkHub}/LOG:/app/LOG
+      - ${PWD:-/opt/ExalinkHub}/backend/Matriculas/matriculas.conf:/app/matriculas.conf:ro
     networks:
       - lpr-network
     labels:
@@ -48,7 +48,7 @@ services:
       - "${LPR_HTTPS_PORT:-2443}:443"
       - "${LPR_HTTP_PORT:-2280}:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${PWD:-/opt/ExalinkHub}/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - lpr-network
       - public
@@ -86,12 +86,13 @@ services:
     environment:
       - TZ=UTC
       - CONF_PATH=/app/config/conteo.conf
+      - PROJECT_ROOT=${PWD:-/opt/ExalinkHub}
     ports:
       - "${CONTEO_PORT:-2223}:8000"
     volumes:
-      - ./backend/Conteo/config:/app/config:rw
-      - ./backend/Conteo/LOG:/app/LOG:rw
-      - ./DB:/app/DB:rw
+      - ${PWD:-/opt/ExalinkHub}/backend/Conteo/config:/app/config:rw
+      - ${PWD:-/opt/ExalinkHub}/backend/Conteo/LOG:/app/LOG:rw
+      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:
@@ -114,8 +115,8 @@ services:
     ports:
       - "${NOTIFICACIONES_PORT:-2224}:8022"
     volumes:
-      - ./backend/notificaciones/config:/app/config:rw
-      - ./DB:/app/DB:rw
+      - ${PWD:-/opt/ExalinkHub}/backend/notificaciones/config:/app/config:rw
+      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB:rw
     networks:
       - lpr-network
     healthcheck:
@@ -139,9 +140,9 @@ services:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
-      - ./DB:/app/DB:rw
-      - ./data:/app/data:rw
-      - ./MEDIA:/app/MEDIA:ro
+      - ${PWD:-/opt/ExalinkHub}/DB:/app/DB:rw
+      - ${PWD:-/opt/ExalinkHub}/data:/app/data:rw
+      - ${PWD:-/opt/ExalinkHub}/MEDIA:/app/MEDIA:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - lpr-network

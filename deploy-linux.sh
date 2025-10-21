@@ -50,6 +50,15 @@ print_status "Ejecutando desde directorio: $SCRIPT_DIR"
 # Verificar que estamos en el directorio correcto
 if [ ! -f "docker-compose.yml" ]; then
     print_error "No se encuentra docker-compose.yml. Asegúrate de ejecutar desde el directorio raíz del proyecto."
+    print_error "Directorio actual: $(pwd)"
+    print_error "Archivos en directorio: $(ls -la)"
+    exit 1
+fi
+
+# Verificar que los directorios necesarios existen
+if [ ! -d "backend/Conteo/services/api" ]; then
+    print_error "No se encuentra backend/Conteo/services/api"
+    print_error "Estructura del proyecto incompleta. Verifica que todos los archivos estén presentes."
     exit 1
 fi
 

@@ -1,12 +1,13 @@
 import sqlite3
 
 # Revisar la base de datos del backend de conteo
-conn = sqlite3.connect('backend/Conteo/DB/Conteo.db')
+# Usar ruta en minúsculas: backend/conteo/DB/Conteo.db
+conn = sqlite3.connect('backend/conteo/DB/Conteo.db')
 cursor = conn.cursor()
 
 cursor.execute('SELECT name FROM sqlite_master WHERE type="table"')
 tables = cursor.fetchall()
-print('Tablas en backend/Conteo/DB/Conteo.db:')
+print('Tablas en backend/conteo/DB/Conteo.db:')
 for table in tables:
     table_name = table[0]
     print(f'  {table_name}')

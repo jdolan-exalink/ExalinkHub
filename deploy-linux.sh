@@ -59,8 +59,8 @@ print_status "✓ Archivo docker-compose.yml encontrado"
 
 # Verificar que los directorios necesarios existen (opcional)
 print_status "Verificando estructura del proyecto..."
-if [ ! -d "backend/Conteo/services/api" ]; then
-    print_warning "No se encuentra backend/Conteo/services/api - verificando otros archivos..."
+if [ ! -d "backend/conteo/services/api" ]; then
+    print_warning "No se encuentra backend/conteo/services/api - verificando otros archivos..."
     if [ ! -d "backend" ] || [ ! -d "src" ] || [ ! -f "docker-compose.yml" ]; then
         print_error "Estructura del proyecto incompleta. Verifica que todos los archivos estén presentes."
         print_error "Directorio actual: $(pwd)"

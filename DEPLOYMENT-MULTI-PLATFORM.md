@@ -39,7 +39,7 @@ docker compose up -d --build
 
 Si encuentras el error:
 ```
-ERROR: build path /opt/ExalinkHub/backend/Conteo/services/api either does not exist, is not accessible, or is not a valid URL.
+ERROR: build path /opt/ExalinkHub/backend/conteo/services/api either does not exist, is not accessible, or is not a valid URL.
 ```
 
 **Causa:** El comando `docker compose` se está ejecutando desde dentro de un contenedor Docker o desde un directorio incorrecto.

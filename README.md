@@ -44,7 +44,7 @@ Los scripts automáticamente detectan y usan la versión correcta:
 
 ### 🔧 Solución al Error de Paths
 
-Si encuentras: `ERROR: build path /opt/ExalinkHub/backend/Conteo/services/api either does not exist...`
+Si encuentras: `ERROR: build path /opt/ExalinkHub/backend/conteo/services/api either does not exist...`
 
 **Causa:** Docker Compose ejecutándose desde directorio incorrecto o dentro de contenedor.
 

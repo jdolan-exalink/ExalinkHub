@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Establecer cookie con el token
     response.cookies.set('auth_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Permitir cookies por HTTP en todos los entornos
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 // 24 horas
     });

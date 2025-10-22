@@ -7,9 +7,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+// sqlite3 y sqlite se importan mediante require para evitar incompatibilidades con esModuleInterop
+const sqlite3 = require('sqlite3').verbose();
+const { open } = require('sqlite');
 import { getLPRMediaProxyURL } from '@/lib/lpr-backend-config';
+import { getLPRFileManager } from '@/lib/lpr-file-manager';
+import * as path from 'path';
 
 /**
  * GET /api/lpr/readings
@@ -115,6 +118,48 @@ export async function GET(request: NextRequest) {
       const normalize_plate = (plate: string): string => {
         if (!plate) return '';
         return plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      };
+
+      // Instancia del file manager para convertir paths locales
+      const fileManager = getLPRFileManager();
+
+      /**
+       * Construye la URL accesible desde el frontend para un path almacenado en la DB.
+       * - Si es una ruta absoluta local (ej: C:\... o /app/data/...), devuelve la URL local creada por LPRFileManager
+       * - Si es una URL que contiene '/media/', extrae la parte posterior a '/media/' y devuelve el endpoint proxy /api/lpr/files/media/{path}
+       * - Si es un path relativo, asume que es relativo al backend media y devuelve el proxy
+       */
+      const build_media_url = (storedPath: any, fileType: 'snapshot' | 'clip' | 'crop'):
+        string | null => {
+        if (!storedPath) return null;
+        let p = String(storedPath);
+
+        // Normalizar separadores (Windows)
+        p = p.replace(/\\/g, '/');
+
+        // Ruta absoluta local -> servir desde /api/lpr/files/{type}/{relative}
+        try {
+          if (path.isAbsolute(p)) {
+            return fileManager.getLocalFileUrl(p, fileType);
+          }
+        } catch (e) {
+          // En entornos donde path.isAbsolute no se comporte como se espera, continuar con heurística
+        }
+
+        // Si contiene '/media/', extraer lo que viene después y usar proxy
+        const mediaIndex = p.indexOf('/media/');
+        if (mediaIndex >= 0) {
+          const relative = p.slice(mediaIndex + '/media/'.length);
+          return getLPRMediaProxyURL(relative);
+        }
+
+        // Si es una URL completa (http://...) pero no contiene /media/, devolverla tal cual
+        if (p.startsWith('http://') || p.startsWith('https://')) {
+          return p;
+        }
+
+        // Path relativo -> usar proxy asumiendo que es relativo al /media/ del backend
+        return getLPRMediaProxyURL(p);
       };
 
       // Transformar respuesta al formato esperado por el frontend
@@ -227,9 +272,9 @@ export async function GET(request: NextRequest) {
           server_name: 'matriculas-db',
           confidence: confidence_final,
           local_files: {
-            snapshot_url: row.snapshot_path ? getLPRMediaProxyURL(row.snapshot_path) : null,
-            clip_url: row.clip_path ? getLPRMediaProxyURL(row.clip_path) : null,
-            crop_url: row.plate_crop_path ? getLPRMediaProxyURL(row.plate_crop_path) : null
+            snapshot_url: build_media_url(row.snapshot_path, 'snapshot'),
+            clip_url: build_media_url(row.clip_path, 'clip'),
+            crop_url: build_media_url(row.plate_crop_path || row.crop_path, 'crop')
           },
           zone: zone,
           vehicle_type: vehicle_type,

@@ -704,26 +704,48 @@ export default function LprPanelPage() {
       console.log('⚠️ to_internal_url: URL es null/undefined');
       return null;
     }
-    
+
     console.log('🔄 Convirtiendo URL:', url);
-    
-    // Si viene con http://localhost:2221/media/, extraer solo el path
-    if (url.includes('http://localhost:2221/media/')) {
-      const path = url.replace('http://localhost:2221/media/', '');
-      const result = `/api/lpr/files/media/${path}`;
-      console.log('✅ URL convertida:', result);
-      return result;
+
+    try {
+      // Normalizar separadores
+      const normalized = url.replace(/\\/g, '/');
+
+      // Detectar cualquier host que apunte al puerto 2221 y contenga '/media/' (ej: http://localhost:2221/media/, http://matriculas-listener:2221/media/)
+      const mediaMatch = normalized.match(/https?:\/\/[^/]+:2221\/media\/(.+)/i);
+      if (mediaMatch && mediaMatch[1]) {
+        const pathPart = mediaMatch[1];
+        const result = `/api/lpr/files/media/${pathPart}`;
+        console.log('✅ URL convertida desde host: ', result);
+        return result;
+      }
+
+      // Si empieza con /media/ (ruta relativa), usar proxy
+      if (normalized.startsWith('/media/')) {
+        const result = `/api/lpr/files/media/${normalized.replace(/^\/media\//, '')}`;
+        console.log('✅ URL relativa convertida:', result);
+        return result;
+      }
+
+      // Si es ya el proxy interno, devolver tal cual
+      if (normalized.startsWith('/api/lpr/files/')) {
+        return normalized;
+      }
+
+      // Si es una URL http(s) a otro host sin /media/, retornarla (p. ej. URLs externas)
+      if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+        console.log('⚠️ URL externa sin /media/, retornando original:', normalized);
+        return normalized;
+      }
+
+      // Por defecto, asumir path relativo dentro de media
+      const fallback = `/api/lpr/files/media/${normalized}`;
+      console.log('ℹ️ Fallback a proxy media:', fallback);
+      return fallback;
+    } catch (err) {
+      console.warn('⚠️ Error en to_internal_url:', err);
+      return url;
     }
-    
-    // Si ya es un path relativo, agregarlo a la ruta de API
-    if (url.startsWith('/media/')) {
-      const result = `/api/lpr/files${url}`;
-      console.log('✅ URL relativa convertida:', result);
-      return result;
-    }
-    
-    console.log('⚠️ URL no convertida, retornando original:', url);
-    return url;
   };
 
   /**

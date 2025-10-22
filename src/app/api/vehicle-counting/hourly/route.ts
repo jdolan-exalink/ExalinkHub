@@ -8,12 +8,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import ini from 'ini';
 import { getConfigDatabase } from '@/lib/config-database';
 
 /**
  * Ruta de la base de datos de conteo
  */
-const CONTEO_DB_PATH = path.join(process.cwd(), 'backend', 'Conteo', 'DB', 'Conteo.db');
+/**
+ * Obtiene la ruta de la base de datos de conteo desde conteo.conf
+ * Prioridad:
+ *   1. process.env.CONTEO_DB_PATH
+ *   2. [app] storage en backend/conteo/conteo.conf
+ *   3. Path por defecto
+ */
+function getConteoDbPath(): string {
+  if (process.env.CONTEO_DB_PATH) return process.env.CONTEO_DB_PATH;
+  const confPath = path.join(process.cwd(), 'backend', 'conteo', 'conteo.conf');
+  if (fs.existsSync(confPath)) {
+    const conf = ini.parse(fs.readFileSync(confPath, 'utf-8'));
+    if (conf.app && typeof conf.app.storage === 'string') {
+      // Extraer path de storage (puede ser sqlite:///...)
+      const match = conf.app.storage.match(/sqlite:\/\/(.*)/);
+      if (match && match[1]) {
+        // Quitar barras iniciales extra si existen
+        let dbPath = match[1].replace(/^\/+/, '');
+        // Si es ruta absoluta, devolver tal cual; si es relativa, resolver desde backend/conteo
+        if (!path.isAbsolute(dbPath)) {
+          dbPath = path.join(process.cwd(), 'backend', 'conteo', dbPath);
+        }
+        return dbPath;
+      }
+    }
+  }
+  // Fallback por defecto
+  return path.join(process.cwd(), 'backend', 'Conteo', 'DB', 'Conteo.db');
+}
+
+const CONTEO_DB_PATH = getConteoDbPath();
 
 /**
  * Transforma los datos de la base de datos al formato esperado por el gráfico

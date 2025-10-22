@@ -20,12 +20,34 @@ app.get('/api/counters', (req, res) => {
       {
         id: 1,
         source_camera: "Portones",
-        direction: "in"
+        direction: "in",
+        config: {
+          zone_in: "Entrada",
+          zone_out: "Salida"
+        },
+        objects: ["car", "motorcycle", "truck"],
+        type: "zones",
+        totals: {
+          occupancy: 5,
+          in: 23,
+          out: 18
+        }
       },
       {
         id: 2,
         source_camera: "Portones",
-        direction: "out"
+        direction: "out",
+        config: {
+          zone_in: "Entrada",
+          zone_out: "Salida"
+        },
+        objects: ["car", "motorcycle", "truck"],
+        type: "zones",
+        totals: {
+          occupancy: 3,
+          in: 18,
+          out: 21
+        }
       }
     ]
   });

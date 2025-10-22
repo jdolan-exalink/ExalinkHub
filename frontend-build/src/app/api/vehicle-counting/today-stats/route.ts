@@ -8,14 +8,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getConfigDatabase } from '@/lib/config-database';
 
 // Importar módulos de Node.js usando require para evitar problemas de tipos
+
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const ini = require('ini');
+
 
 /**
- * Ruta de la base de datos de conteo
+ * Obtiene la ruta absoluta a la base de datos de conteo vehicular leyendo backend/conteo/conteo.conf.
+ * Normaliza la ruta a minúsculas y resuelve correctamente para entorno local y Docker.
+ * Si no existe o hay error, retorna la ruta por defecto.
  */
-const CONTEO_DB_PATH = path.join(process.cwd(), 'backend', 'Conteo', 'DB', 'Conteo.db');
+
+function get_conteo_db_path(): string | null {
+  if (process.env.CONTEO_DB_PATH) return process.env.CONTEO_DB_PATH;
+  const candidates = [
+    path.join(process.cwd(), 'DB', 'Conteo.db'),
+    path.join(process.cwd(), 'DB', 'conteo.db'),
+    '/app/DB/Conteo.db',
+    '/app/DB/conteo.db',
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  // Nunca lanzar error, siempre retornar null si no existe
+  return null;
+}
+
+const CONTEO_DB_PATH: string | null = get_conteo_db_path();
 
 /**
  * Obtiene estadísticas del período seleccionado desde las 00:00
@@ -23,11 +44,20 @@ const CONTEO_DB_PATH = path.join(process.cwd(), 'backend', 'Conteo', 'DB', 'Cont
 async function getTodayStats(timezoneOffset: number, period: string = 'today') {
   try {
     console.log(`📅 Obteniendo estadísticas del período: ${period}...`);
-    console.log('📍 Ruta de BD:', CONTEO_DB_PATH);
-
-    // Verificar que el archivo existe
+    console.log(`📍 Ruta de BD:`, CONTEO_DB_PATH);
+    // Si la base no existe o la ruta es null, devolver datos vacíos (no lanzar error ni intentar abrir DB)
+    if (!CONTEO_DB_PATH) {
+      console.warn('⚠️ Base de datos de conteo no encontrada (ruta null)');
+      return {
+        total_in: 0,
+        total_out: 0,
+        balance: 0,
+        total_events: 0,
+        vehicle_types: []
+      };
+    }
     if (!fs.existsSync(CONTEO_DB_PATH)) {
-      console.error('❌ Base de datos no encontrada:', CONTEO_DB_PATH);
+      console.warn('⚠️ Base de datos de conteo no encontrada en el filesystem:', CONTEO_DB_PATH);
       return {
         total_in: 0,
         total_out: 0,

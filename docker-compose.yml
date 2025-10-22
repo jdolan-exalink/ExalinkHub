@@ -155,6 +155,8 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      # Comunicación interna Docker para conteo vehicular (compatible Windows/Linux/Mac)
+      - NEXT_PUBLIC_CONTEO_BASE_URL=http://conteo-backend:8000
     # Volúmenes del frontend
     volumes:
       - ./DB:/app/DB:rw

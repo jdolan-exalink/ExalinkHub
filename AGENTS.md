@@ -1813,3 +1813,164 @@ curl "http://localhost:9002/api/lpr/readings?plate=XYZ"
 
 **Estado:** ✅ Implementación completada y funcionando en producción
 
+---
+
+### 8. Implementación: Endpoint /health para backend de conteo vehicular
+
+**Fecha de implementación:** 22 de octubre de 2025  
+**Versión asociada:** v0.0.36
+
+#### Problema identificado
+
+El frontend mostraba errores de conexión con el backend de conteo vehicular:
+```
+Error getting vehicle counting stats from backend: TypeError: fetch failed
+  [cause]: [AggregateError: ] { code: 'ECONNREFUSED' }
+```
+
+**Causas raíz:**
+1. El backend de conteo no tenía implementado el endpoint `/health` que Docker usa para healthcheck
+2. Los logs mostraban: `127.0.0.1:42660 - "GET /health HTTP/1.1" 404 Not Found`
+3. El contenedor aparecía como `(health: starting)` indefinidamente
+4. Los endpoints de vehicle-counting en el frontend usaban URL hardcodeada en tiempo de build
+
+#### Solución implementada
+
+**Cambio 1: Agregar endpoint `/health` al backend de conteo**
+
+**Archivo modificado:** `backend/conteo/services/api/app/app.py`
+
+```python
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint para Docker healthcheck.
+    Retorna status 200 si el servicio está funcionando correctamente.
+    """
+    return {
+        "status": "ok",
+        "service": "conteo-backend",
+        "mode": MODE,
+        "uptime_seconds": int(time.time() - START_TIME),
+        "events_processed": EVENTS_PROCESSED,
+        "counters": len(COUNTER_TOTALS),
+        "cameras": len(CAMERA_MAP)
+    }
+```
+
+**Respuesta del endpoint:**
+```json
+{
+  "status": "ok",
+  "service": "conteo-backend",
+  "mode": "multi",
+  "uptime_seconds": 42,
+  "events_processed": 5,
+  "counters": 2,
+  "cameras": 4
+}
+```
+
+**Cambio 2: Corregir detección de URL del backend en endpoints del frontend**
+
+**Problema:** Los endpoints usaban URL hardcodeada que se evaluaba en tiempo de build:
+```typescript
+const CONTEO_BACKEND_URL = process.env.NEXT_PUBLIC_CONTEO_BASE_URL || 'http://localhost:2223';
+```
+
+**Solución:** Mover la evaluación de la URL dentro de la función `GET()` para que se evalúe en runtime:
+
+**Archivos modificados:**
+- `src/app/api/vehicle-counting/stats/route.ts`
+- `src/app/api/vehicle-counting/events/route.ts`
+
+**Código implementado:**
+```typescript
+/**
+ * Obtiene la URL del backend de conteo vehicular según el entorno.
+ * - Si está definida NEXT_PUBLIC_CONTEO_BASE_URL o CONTEO_BACKEND_URL, la usa.
+ * - Si está en producción (Docker), usa http://conteo-backend:8000
+ * - Si está en desarrollo/local, usa http://localhost:2223
+ */
+function get_conteo_backend_url() {
+  if (process.env.NEXT_PUBLIC_CONTEO_BASE_URL) return process.env.NEXT_PUBLIC_CONTEO_BASE_URL;
+  if (process.env.CONTEO_BACKEND_URL) return process.env.CONTEO_BACKEND_URL;
+  if (process.env.NODE_ENV === 'production') {
+    return 'http://conteo-backend:8000';
+  }
+  return 'http://localhost:2223';
+}
+
+export async function GET(request: NextRequest) {
+  // Evaluar URL en runtime, no en build time
+  const conteo_backend_url = get_conteo_backend_url();
+  const response = await fetch(`${conteo_backend_url}/api/counters`, { ... });
+  // ...
+}
+```
+
+#### Resultados
+
+**Healthcheck funcionando:**
+```bash
+$ docker ps --filter "name=conteo"
+NAMES                    STATUS
+exalink-conteo-backend   Up 30 seconds (healthy)  # ✅ Estado healthy
+```
+
+**Conectividad verificada:**
+```bash
+$ docker exec exalink-frontend wget -q -O - http://conteo-backend:8000/health
+{"status":"ok","service":"conteo-backend",...}  # ✅ Respuesta exitosa
+```
+
+**Logs del frontend:**
+```
+Consultando eventos del backend: http://conteo-backend:8000/api/events?limit=20&start_date=2025-10-21
+# ✅ Conexión exitosa, no más errores ECONNREFUSED
+```
+
+**Endpoint funcionando:**
+```json
+GET http://localhost:9002/api/vehicle-counting/stats
+{
+  "success": true,
+  "data": {
+    "current": {
+      "total_in": 10,
+      "total_out": 17,
+      "current_count": -7,
+      "by_type": {
+        "auto": { "in": 3, "out": 6 },
+        "moto": { "in": 3, "out": 6 },
+        "personas": { "in": 3, "out": 6 }
+      }
+    }
+  }
+}
+```
+
+#### Archivos modificados
+
+- `backend/conteo/services/api/app/app.py` - Agregado endpoint `/health`
+- `src/app/api/vehicle-counting/stats/route.ts` - Corregida detección de URL backend
+- `src/app/api/vehicle-counting/events/route.ts` - Corregida detección de URL backend
+
+#### Despliegue aplicado
+
+```bash
+# Sincronización frontend
+.\sync-frontend.bat  # ✅ Completada
+
+# Reconstrucción de imágenes
+docker compose build conteo-backend  # ✅ Built in 0.8s
+docker compose build frontend        # ✅ Built in 111.0s
+
+# Reinicio de servicios
+docker compose up -d conteo-backend  # ✅ Started
+docker compose up -d frontend        # ✅ Started
+```
+
+**Estado:** ✅ Implementación completada y funcionando correctamente
+
+

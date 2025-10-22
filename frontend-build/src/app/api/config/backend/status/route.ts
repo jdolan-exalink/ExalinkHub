@@ -210,6 +210,52 @@ export async function GET() {
         }
       }
 
+      // Leer datos del servicio de conteo vehicular desde backend/conteo/LOG/
+      if (service_name === 'Conteo de Personas') {
+        try {
+          console.log(`[STATUS API] Attempting to read conteo stats.log for ${service_name}`);
+          const conteo_stats_snapshot = read_conteo_stats_log_snapshot();
+          console.log(`[STATUS API] Conteo stats snapshot result:`, conteo_stats_snapshot);
+          if (conteo_stats_snapshot) {
+            console.log(`[STATUS API] Applying conteo stats snapshot to ${service_name}`);
+            if (typeof conteo_stats_snapshot.cpu_percent === 'number') {
+              metrics.cpu_percent = conteo_stats_snapshot.cpu_percent;
+              metrics.cpu_formatted = `${conteo_stats_snapshot.cpu_percent.toFixed(2)}%`;
+              console.log(`[STATUS API] Updated CPU for conteo: ${metrics.cpu_percent}%`);
+            }
+            if (typeof conteo_stats_snapshot.memory === 'number') {
+              metrics.memory_mb = conteo_stats_snapshot.memory;
+              metrics.memory_formatted = format_memory(conteo_stats_snapshot.memory);
+              console.log(`[STATUS API] Updated Memory for conteo: ${metrics.memory_mb} MB`);
+            }
+            if (typeof conteo_stats_snapshot.uptime_seconds === 'number') {
+              metrics.uptime = conteo_stats_snapshot.uptime_seconds;
+              metrics.uptime_formatted = format_uptime(conteo_stats_snapshot.uptime_seconds);
+              console.log(`[STATUS API] Updated Uptime for conteo: ${metrics.uptime} seconds`);
+            }
+            if (conteo_stats_snapshot.running !== undefined) {
+              metrics.status = conteo_stats_snapshot.running ? 'running' : 'stopped';
+              console.log(`[STATUS API] Updated Status for conteo: ${metrics.status}`);
+            }
+            if (typeof conteo_stats_snapshot.events_processed === 'number') {
+              metrics.processed = conteo_stats_snapshot.events_processed;
+              console.log(`[STATUS API] Updated Processed for conteo: ${metrics.processed}`);
+            }
+          }
+        } catch (conteoStatsErr) {
+          console.warn(`[STATUS API] Failed to read conteo stats.log for ${service_name}:`, conteoStatsErr);
+        }
+
+        try {
+          const conteo_file_logs = read_conteo_log_tail(200);
+          if (conteo_file_logs && conteo_file_logs.length > 0) {
+            logs = conteo_file_logs;
+          }
+        } catch (conteoLogErr) {
+          console.warn('No se pudo leer LOG/conteo.log para conteo:', conteoLogErr);
+        }
+      }
+
       try {
         if (service_name === 'LPR (Matrículas)') {
           const lpr_stats = await get_lpr_stats();
@@ -382,6 +428,49 @@ function read_stats_log_snapshot(): null | { cpu_percent?: number; memory?: numb
 }
 
 /**
+ * Lee el snapshot de métricas desde `backend/conteo/LOG/stats.log`.
+ * Devuelve cpu_percent, memory (MB), uptime_seconds y running cuando están disponibles.
+ */
+function read_conteo_stats_log_snapshot(): null | { cpu_percent?: number; memory?: number; uptime_seconds?: number; running?: boolean; status?: string; events_processed?: number; last_event?: string } {
+  console.log('[CONTEO STATS LOG] read_conteo_stats_log_snapshot() called');
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const stats_path = path.join(process.cwd(), 'backend', 'conteo', 'LOG', 'stats.log');
+    console.log(`[CONTEO STATS LOG] Looking for file at: ${stats_path}`);
+    if (!fs.existsSync(stats_path)) {
+      console.log(`[CONTEO STATS LOG] File not found: ${stats_path}`);
+      return null;
+    }
+    const content = fs.readFileSync(stats_path, 'utf8').trim();
+    if (!content) {
+      console.log('[CONTEO STATS LOG] File is empty');
+      return null;
+    }
+
+    console.log(`[CONTEO STATS LOG] Raw content: ${content}`);
+    const data = JSON.parse(content);
+
+    // Handle different formats of stats.log
+    const result = {
+      cpu_percent: typeof data.cpu_percent === 'number' ? data.cpu_percent : undefined,
+      memory: typeof data.memory === 'number' ? data.memory : (typeof data.memory_mb === 'number' ? data.memory_mb : undefined),
+      uptime_seconds: typeof data.uptime_seconds === 'number' ? data.uptime_seconds : undefined,
+      running: data.running === true || data.status === 'running',
+      status: data.status,
+      events_processed: typeof data.events_processed === 'number' ? data.events_processed : undefined,
+      last_event: data.last_event
+    };
+
+    console.log(`[CONTEO STATS LOG] Parsed data:`, result);
+    return result;
+  } catch (e) {
+    console.error('[CONTEO STATS LOG] Error reading conteo stats.log:', e);
+    return null;
+  }
+}
+
+/**
  * Devuelve el tail de `backend/Matriculas/LOG/listener.log` con un máximo de N líneas.
  * @param lines cantidad de líneas a leer (default 200)
  */
@@ -397,6 +486,28 @@ function read_listener_log_tail(lines: number = 200): string[] {
     const start = Math.max(0, all_lines.length - lines);
     return all_lines.slice(start).filter(Boolean);
   } catch (e) {
+    console.error('[LISTENER LOG] Error reading listener.log:', e);
+    return [];
+  }
+}
+
+/**
+ * Devuelve el tail de `backend/conteo/LOG/conteo.log` con un máximo de N líneas.
+ * @param lines cantidad de líneas a leer (default 200)
+ */
+function read_conteo_log_tail(lines: number = 200): string[] {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const log_path = path.join(process.cwd(), 'backend', 'conteo', 'LOG', 'conteo.log');
+    if (!fs.existsSync(log_path)) return [];
+    const content = fs.readFileSync(log_path, 'utf8');
+    if (!content) return [];
+    const all_lines = content.split('\n');
+    const start = Math.max(0, all_lines.length - lines);
+    return all_lines.slice(start).filter(Boolean);
+  } catch (e) {
+    console.error('[CONTEO LOG] Error reading conteo.log:', e);
     return [];
   }
 }

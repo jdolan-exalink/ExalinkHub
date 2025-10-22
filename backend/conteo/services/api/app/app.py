@@ -46,7 +46,19 @@ CAMERA_LIST=[c.strip() for c in os.getenv("CAMERA_LIST", cfg_get("cameras","sele
 TITLE=os.getenv("UI_TITLE", "Todas" if MODE=="multi" else CAMERA)
 
 OBJECTS=[o.strip() for o in os.getenv("OBJECTS", cfg_get("objects","labels","auto,moto,bicicleta,autobús,personas")).split(",") if o.strip()]
-DB_URL=os.getenv("DB_URL", cfg_get("app","storage","sqlite:////data/Conteo.db"))
+import pathlib
+# --- Resolución multiplataforma de la ruta de la base de datos ---
+def get_default_db_url():
+    # 1. Si existe carpeta DB/ en el proyecto, usarla (desarrollo local)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(script_dir, "..", "..", "..", ".."))
+    db_local_path = os.path.join(project_root, "DB", "conteo.db")
+    if os.path.exists(os.path.join(project_root, "DB")):
+        return f"sqlite:///{db_local_path}"
+    # 2. Si está en Docker, usar /app/DB/conteo.db
+    return "sqlite:////app/DB/conteo.db"
+
+DB_URL = os.getenv("DB_URL", cfg_get("app", "storage", get_default_db_url()))
 RETENTION_DAYS=int(os.getenv("RETENTION_DAYS", str(cfg_getint("app","retention_days",0))))
 
 # Ensure sqlite target directory exists if using absolute sqlite path and touch file
@@ -326,9 +338,21 @@ def _make_client(srv:dict):
         except Exception:
             pass
     client.on_connect=_on_connect
-    def _on_disconnect(client, userdata, rc, properties=None):
+    def _on_disconnect(client, userdata, rc=None, properties=None, *args, **kwargs):
+        """
+        Handle MQTT disconnects.
+
+        MQTT v5 may pass additional positional arguments to the callback. Accept
+        flexible arguments to remain compatible with multiple paho-mqtt versions.
+        """
         try:
-            sid=srv.get('id'); st=SERVERS_STATE.setdefault(sid,{})
+            # rc might be provided as the third arg or in args if signature differs
+            if rc is None and args:
+                try:
+                    rc = int(args[0])
+                except Exception:
+                    rc = None
+            sid = srv.get('id'); st = SERVERS_STATE.setdefault(sid, {})
             st.update({"connected": False, "last_error": f"disconnect rc={rc}"})
             app_log.warning(f"[{sid}] disconnected rc={rc}")
         except Exception:
@@ -666,6 +690,22 @@ threading.Thread(target=stats_loop, daemon=True).start()
 threading.Thread(target=status_loop, daemon=True).start()
 
 app=FastAPI(title=f"Contador - {TITLE}")
+
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint para Docker healthcheck.
+    Retorna status 200 si el servicio está funcionando correctamente.
+    """
+    return {
+        "status": "ok",
+        "service": "conteo-backend",
+        "mode": MODE,
+        "uptime_seconds": int(time.time() - START_TIME),
+        "events_processed": EVENTS_PROCESSED,
+        "counters": len(COUNTER_TOTALS),
+        "cameras": len(CAMERA_MAP)
+    }
 
 @app.get("/api/info")
 def api_info():

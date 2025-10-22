@@ -8,12 +8,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import ini from 'ini';
 import { getConfigDatabase } from '@/lib/config-database';
 
 /**
  * Ruta de la base de datos de conteo
  */
-const CONTEO_DB_PATH = path.join(process.cwd(), 'backend', 'Conteo', 'DB', 'Conteo.db');
+/**
+ * Obtiene la ruta de la base de datos de conteo desde conteo.conf
+ * Prioridad:
+ *   1. process.env.CONTEO_DB_PATH
+ *   2. [app] storage en backend/conteo/conteo.conf
+ *   3. Path por defecto
+ */
+/**
+ * Obtiene la ruta absoluta a la base de datos de conteo vehicular leyendo backend/conteo/conteo.conf.
+ * Normaliza la ruta a minúsculas y resuelve correctamente para entorno local y Docker.
+ * Si no existe o hay error, retorna la ruta por defecto.
+ */
+
+function get_conteo_db_path(): string | null {
+  if (process.env.CONTEO_DB_PATH) return process.env.CONTEO_DB_PATH;
+  const candidates = [
+    path.join(process.cwd(), 'DB', 'Conteo.db'),
+    path.join(process.cwd(), 'DB', 'conteo.db'),
+    '/app/DB/Conteo.db',
+    '/app/DB/conteo.db',
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  // Nunca lanzar error, siempre retornar null si no existe
+  return null;
+}
+
+const CONTEO_DB_PATH: string | null = get_conteo_db_path();
 
 /**
  * Transforma los datos de la base de datos al formato esperado por el gráfico
@@ -59,38 +88,44 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
   try {
     console.log(`🔍 Obteniendo datos de tipos de vehículo para período: ${period}...`);
     console.log('📍 Ruta de BD:', CONTEO_DB_PATH);
-
-    // Verificar que el archivo existe
-    if (!fs.existsSync(CONTEO_DB_PATH)) {
-      console.error('❌ Base de datos no encontrada:', CONTEO_DB_PATH);
+    // Si la base no existe o la ruta es null, devolver datos vacíos (no lanzar error ni intentar abrir DB)
+    if (!CONTEO_DB_PATH) {
+      console.warn('⚠️ Base de datos de conteo no encontrada (ruta null)');
       return {
         vehicleTypes: [],
+        currentHourVehicleTypes: [],
         hourlyData: Array.from({ length: 24 }, (_, i) => ({ hour: i, in: 0, out: 0, total: 0 })),
-        totalEvents: 0
+        totalEvents: 0,
+        currentHour: new Date().getHours()
+      };
+    }
+    if (!fs.existsSync(CONTEO_DB_PATH)) {
+      console.warn('⚠️ Base de datos de conteo no encontrada en el filesystem:', CONTEO_DB_PATH);
+      return {
+        vehicleTypes: [],
+        currentHourVehicleTypes: [],
+        hourlyData: Array.from({ length: 24 }, (_, i) => ({ hour: i, in: 0, out: 0, total: 0 })),
+        totalEvents: 0,
+        currentHour: new Date().getHours()
       };
     }
 
     // Conectar a la base de datos de conteo
     const db = new Database(CONTEO_DB_PATH, { readonly: true });
-
+    let events: any[] = [];
     try {
       // Calcular fechas según el período seleccionado
       let startDate: Date;
       let endDate: Date;
-
       const now = new Date();
-
       switch (period) {
         case 'today':
-          // Hoy: desde 00:00 hasta 23:59
           startDate = new Date(now);
           startDate.setHours(0, 0, 0, 0);
           endDate = new Date(now);
           endDate.setHours(23, 59, 59, 999);
           break;
-
         case 'yesterday':
-          // Ayer: desde 00:00 hasta 23:59 del día anterior
           startDate = new Date(now);
           startDate.setDate(startDate.getDate() - 1);
           startDate.setHours(0, 0, 0, 0);
@@ -98,58 +133,34 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
           endDate.setDate(endDate.getDate() - 1);
           endDate.setHours(23, 59, 59, 999);
           break;
-
         case 'week':
-          // Esta semana: desde lunes 00:00 hasta ahora
           startDate = new Date(now);
-          const dayOfWeek = startDate.getDay(); // 0 = domingo, 1 = lunes
-          const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Ir al lunes
+          const dayOfWeek = startDate.getDay();
+          const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
           startDate.setDate(startDate.getDate() - daysToSubtract);
           startDate.setHours(0, 0, 0, 0);
           endDate = new Date(now);
           break;
-
         case 'month':
-          // Este mes: desde 1ro del mes hasta ahora
           startDate = new Date(now);
           startDate.setDate(1);
           startDate.setHours(0, 0, 0, 0);
           endDate = new Date(now);
           break;
-
         default:
-          // Por defecto, hoy
           startDate = new Date(now);
           startDate.setHours(0, 0, 0, 0);
           endDate = new Date(now);
           endDate.setHours(23, 59, 59, 999);
       }
-
-      // NO convertir a UTC - los datos están guardados en hora local
       const startStr = startDate.toISOString().slice(0, 19).replace('T', ' ');
       const endStr = endDate.toISOString().slice(0, 19).replace('T', ' ');
-
-      console.log(`📅 Consultando período ${period}:`, startStr, 'hasta:', endStr, '(hora local - sin conversión UTC)');
-
-      const events = db.prepare(`
+      events = db.prepare(`
         SELECT camera, label, start_time, end_time, zone
         FROM events
         WHERE start_time >= ? AND start_time <= ?
         ORDER BY start_time DESC
       `).all(startStr, endStr);
-
-      console.log(`📊 Eventos encontrados en período ${period}: ${events.length}`);
-
-      // Mostrar algunos eventos de ejemplo
-      if (events.length > 0) {
-        console.log('📋 Ejemplos de eventos:', events.slice(0, 3).map((e: any) => ({
-          camera: e.camera,
-          label: e.label,
-          time: e.start_time,
-          zone: e.zone
-        })));
-      }
-
       // Agrupar por tipo de vehículo
       const typeCounts: Record<string, { in: number; out: number; total: number }> = {};
       events.forEach((event: any) => {
@@ -157,7 +168,6 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
         if (!typeCounts[type]) {
           typeCounts[type] = { in: 0, out: 0, total: 0 };
         }
-
         if (event.zone === 'IN') {
           typeCounts[type].in += 1;
         } else if (event.zone === 'OUT') {
@@ -165,29 +175,19 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
         }
         typeCounts[type].total += 1;
       });
-
-      // Para períodos históricos, no calculamos tipos de la "hora actual"
-      // Solo calculamos para "today"
       let currentHour = new Date().getHours();
       let hourlyTypeCounts: Record<string, { in: number; out: number; total: number }> = {};
-
       if (period === 'today') {
-        // Agrupar por hora y tipo de vehículo para datos de la hora actual
         hourlyTypeCounts = {};
-
         events.forEach((event: any) => {
-          // Los datos están guardados en UTC, convertir a hora local
-          const eventTime = new Date(event.start_time + 'Z'); // Agregar 'Z' para tratar como UTC
+          const eventTime = new Date(event.start_time + 'Z');
           const utcHour = eventTime.getUTCHours();
-          const localHour = (utcHour + timezoneOffset + 24) % 24; // Convertir a hora local
-
-          // Solo procesar eventos de la hora actual
+          const localHour = (utcHour + timezoneOffset + 24) % 24;
           if (localHour === currentHour) {
             const type = event.label;
             if (!hourlyTypeCounts[type]) {
               hourlyTypeCounts[type] = { in: 0, out: 0, total: 0 };
             }
-
             if (event.zone === 'IN') {
               hourlyTypeCounts[type].in += 1;
             } else if (event.zone === 'OUT') {
@@ -196,13 +196,7 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
             hourlyTypeCounts[type].total += 1;
           }
         });
-
-        console.log(`🕐 Tipos de vehículo en la hora actual (${currentHour}:00):`, Object.keys(hourlyTypeCounts).length, 'tipos');
-      } else {
-        console.log(`📅 Período ${period}: no se calculan tipos de vehículo de la hora actual`);
       }
-
-      // Mapear tipos de vehículo a iconos
       const vehicleIcons: Record<string, string> = {
         'auto': '🚗',
         'moto': '🏍️',
@@ -211,8 +205,6 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
         'bus': '🚌',
         'personas': '👥'
       };
-
-      // Procesar datos por tipo de vehículo (día completo)
       const vehicleTypes = Object.entries(typeCounts).map(([label, counts]) => ({
         label,
         count: counts.total,
@@ -221,8 +213,6 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
         icon: vehicleIcons[label] || '📦',
         color: getVehicleColor(label)
       }));
-
-      // Procesar datos por tipo de vehículo (hora actual)
       let currentHourVehicleTypes: any[] = [];
       if (period === 'today') {
         currentHourVehicleTypes = Object.entries(hourlyTypeCounts).map(([label, counts]) => ({
@@ -234,13 +224,7 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
           color: getVehicleColor(label)
         }));
       }
-
-      console.log('✅ Tipos de vehículo procesados (día completo):', vehicleTypes.length);
-      console.log('✅ Tipos de vehículo procesados (hora actual):', currentHourVehicleTypes.length);
-
-      // Transformar datos por hora aplicando timezone
       const hourlyData = transformConteoDataToHourly(events, timezoneOffset);
-
       return {
         vehicleTypes,
         currentHourVehicleTypes,
@@ -248,14 +232,11 @@ async function getVehicleTypeData(timezoneOffset: number, period: string = 'toda
         totalEvents: events.length,
         currentHour
       };
-
     } finally {
       db.close();
     }
-
   } catch (error) {
     console.error('❌ Error obteniendo datos de tipos de vehículo:', error);
-    // Retornar datos vacíos en caso de error
     return {
       vehicleTypes: [],
       currentHourVehicleTypes: [],

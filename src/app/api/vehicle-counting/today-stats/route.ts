@@ -20,33 +20,21 @@ const ini = require('ini');
  * Normaliza la ruta a minúsculas y resuelve correctamente para entorno local y Docker.
  * Si no existe o hay error, retorna la ruta por defecto.
  */
-function get_conteo_db_path(): string {
+
+// Reemplazo seguro multiplataforma: nunca lanzar error
+function get_conteo_db_path(): string | null {
   if (process.env.CONTEO_DB_PATH) return process.env.CONTEO_DB_PATH;
-  const conf_path = path.join(process.cwd(), 'backend', 'conteo', 'conteo.conf');
-  if (fs.existsSync(conf_path)) {
-    const conf = ini.parse(fs.readFileSync(conf_path, 'utf-8'));
-    if (conf.app && typeof conf.app.storage === 'string') {
-      // Extraer path de storage (puede ser sqlite:///...)
-      const match = conf.app.storage.match(/sqlite:\/\/(.*)/);
-      if (match && match[1]) {
-        // Quitar barras iniciales extra si existen
-        let db_path = match[1].replace(/^\/+/, '');
-        // Normalizar a minúsculas y reemplazar backslash por slash
-        db_path = db_path.replace(/\\/g, '/').toLowerCase();
-        // Si es ruta relativa, resolver desde backend/conteo
-        if (!path.isAbsolute(db_path)) {
-          db_path = path.join(process.cwd(), 'backend', 'conteo', db_path);
-        }
-        // Si la ruta contiene /app/backend/conteo, reemplazar por ruta local
-        if (db_path.includes('/app/backend/conteo')) {
-          db_path = db_path.replace('/app/backend/conteo', path.join(process.cwd(), 'backend', 'conteo'));
-        }
-        return db_path;
-      }
-    }
+  const candidates = [
+    path.join(process.cwd(), 'DB', 'Conteo.db'),
+    path.join(process.cwd(), 'DB', 'conteo.db'),
+    '/app/DB/Conteo.db',
+    '/app/DB/conteo.db',
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
   }
-  // Fallback por defecto (minúsculas)
-  return path.join(process.cwd(), 'backend', 'conteo', 'db', 'conteo.db');
+  // Nunca lanzar error, siempre retornar null si no existe
+  return null;
 }
 
 const CONTEO_DB_PATH = get_conteo_db_path();
@@ -57,11 +45,20 @@ const CONTEO_DB_PATH = get_conteo_db_path();
 async function getTodayStats(timezoneOffset: number, period: string = 'today') {
   try {
     console.log(`📅 Obteniendo estadísticas del período: ${period}...`);
-    console.log('📍 Ruta de BD:', CONTEO_DB_PATH);
-
-    // Verificar que el archivo existe
+    console.log(`📍 Ruta de BD:`, CONTEO_DB_PATH);
+    // Si la base no existe o la ruta es null, devolver datos vacíos (no lanzar error ni intentar abrir DB)
+    if (!CONTEO_DB_PATH) {
+      console.warn('⚠️ Base de datos de conteo no encontrada (ruta null)');
+      return {
+        total_in: 0,
+        total_out: 0,
+        balance: 0,
+        total_events: 0,
+        vehicle_types: []
+      };
+    }
     if (!fs.existsSync(CONTEO_DB_PATH)) {
-      console.error('❌ Base de datos no encontrada:', CONTEO_DB_PATH);
+      console.warn('⚠️ Base de datos de conteo no encontrada en el filesystem:', CONTEO_DB_PATH);
       return {
         total_in: 0,
         total_out: 0,

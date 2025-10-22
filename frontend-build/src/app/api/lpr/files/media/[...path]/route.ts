@@ -24,10 +24,37 @@ export async function GET(
     console.log(`📡 Proxy LPR media: ${backend_url}`);
 
     // Hacer petición al backend LPR
+    // Intentar obtener credenciales desde la configuración de backend si existe
+    let auth_header = null;
+    try {
+      const ConfigDatabase = (await import('@/lib/config-database')).default;
+      const cfg_db = new ConfigDatabase();
+  const backend_cfg = cfg_db.getBackendConfigByService('LPR (Matrículas)');
+      if (backend_cfg && backend_cfg.config) {
+        try {
+          const parsed = JSON.parse(backend_cfg.config);
+          const user = parsed.api_user || process.env.LPR_API_USER || 'admin';
+          const pass = parsed.api_password || process.env.LPR_API_PASSWORD || 'exalink2024';
+          auth_header = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+        } catch (e) {
+          // Si config no es JSON, ignorar y usar env vars
+        }
+      }
+    } catch (cfgErr) {
+      // Si falla leer DB de configuración, usar variables de entorno o fallback
+      // console.warn('No se pudo leer backend_config, usando env vars', cfgErr);
+    }
+
+    if (!auth_header) {
+      const user = process.env.LPR_API_USER || 'admin';
+      const pass = process.env.LPR_API_PASSWORD || 'exalink2024';
+      auth_header = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+    }
+
     const response = await fetch(backend_url, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${Buffer.from('admin:exalink2024').toString('base64')}`
+        'Authorization': auth_header
       },
       signal: AbortSignal.timeout(30000) // 30 segundos timeout
     });

@@ -5,10 +5,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+
 /**
- * URL del backend de conteo
+ * Obtiene la URL del backend de conteo vehicular según el entorno.
+ * - Si está definida NEXT_PUBLIC_CONTEO_BASE_URL o CONTEO_BACKEND_URL, la usa.
+ * - Si está en producción (Docker), usa http://conteo-backend:8000
+ * - Si está en desarrollo/local, usa http://localhost:2223
  */
-const CONTEO_BACKEND_URL = process.env.NEXT_PUBLIC_CONTEO_BASE_URL || process.env.CONTEO_BACKEND_URL || 'http://localhost:2223';
+function get_conteo_backend_url() {
+  if (process.env.NEXT_PUBLIC_CONTEO_BASE_URL) return process.env.NEXT_PUBLIC_CONTEO_BASE_URL;
+  if (process.env.CONTEO_BACKEND_URL) return process.env.CONTEO_BACKEND_URL;
+  // Detectar entorno: production = Docker, development = local
+  if (process.env.NODE_ENV === 'production') {
+    return 'http://conteo-backend:8000';
+  }
+  return 'http://localhost:2223';
+}
 
 /**
  * Transforma los datos del backend de conteo al formato esperado por el frontend
@@ -54,7 +66,8 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'today';
 
     // Consultar contadores del backend de conteo
-    const countersResponse = await fetch(`${CONTEO_BACKEND_URL}/api/counters`, {
+    const conteo_backend_url = get_conteo_backend_url();
+    const countersResponse = await fetch(`${conteo_backend_url}/api/counters`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

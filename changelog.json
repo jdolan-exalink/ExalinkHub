@@ -1,7 +1,21 @@
 {
-  "currentVersion": "0.0.35",
-  "lastUpdated": "2025-10-21T12:00:00-03:00",
+  "currentVersion": "0.0.38",
+  "lastUpdated": "2025-10-22T00:00:00-03:00",
   "versions": {
+    "0.0.38": {
+      "releaseDate": "2025-10-22",
+      "description": "Compatibilidad multiplataforma y robustez total en endpoints de conteo vehicular",
+      "changes": [
+        "Endpoints de conteo vehicular (hourly, today-stats) ahora nunca fallan si falta la base de datos",
+        "Lógica multiplataforma para rutas de DB: compatible con Linux, Mac, Windows y Docker",
+        "El build del frontend nunca falla por ausencia de base de datos de conteo",
+        "Refactor y limpieza de código legacy de paths en endpoints de conteo",
+        "Documentación y despliegue sincronizados para v0.0.38"
+      ],
+      "type": "minor",
+      "breaking": false,
+      "technical_notes": "Se sincronizó la lógica multiplataforma y robusta de paths de base de datos en todos los endpoints de conteo vehicular. El sistema es ahora seguro para builds y despliegues en cualquier entorno, y nunca lanza errores si falta la base de datos."
+    },
     "0.0.35": {
       "releaseDate": "2025-10-21",
       "description": "Sistema completo de conteo de vehículos con gráficos por hora y configuración avanzada",

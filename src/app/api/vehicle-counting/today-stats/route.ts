@@ -8,14 +8,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getConfigDatabase } from '@/lib/config-database';
 
 // Importar módulos de Node.js usando require para evitar problemas de tipos
+
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const ini = require('ini');
+
 
 /**
- * Ruta de la base de datos de conteo
+ * Obtiene la ruta absoluta a la base de datos de conteo vehicular leyendo backend/conteo/conteo.conf.
+ * Normaliza la ruta a minúsculas y resuelve correctamente para entorno local y Docker.
+ * Si no existe o hay error, retorna la ruta por defecto.
  */
-const CONTEO_DB_PATH = path.join(process.cwd(), 'backend', 'Conteo', 'DB', 'Conteo.db');
+function get_conteo_db_path(): string {
+  if (process.env.CONTEO_DB_PATH) return process.env.CONTEO_DB_PATH;
+  const conf_path = path.join(process.cwd(), 'backend', 'conteo', 'conteo.conf');
+  if (fs.existsSync(conf_path)) {
+    const conf = ini.parse(fs.readFileSync(conf_path, 'utf-8'));
+    if (conf.app && typeof conf.app.storage === 'string') {
+      // Extraer path de storage (puede ser sqlite:///...)
+      const match = conf.app.storage.match(/sqlite:\/\/(.*)/);
+      if (match && match[1]) {
+        // Quitar barras iniciales extra si existen
+        let db_path = match[1].replace(/^\/+/, '');
+        // Normalizar a minúsculas y reemplazar backslash por slash
+        db_path = db_path.replace(/\\/g, '/').toLowerCase();
+        // Si es ruta relativa, resolver desde backend/conteo
+        if (!path.isAbsolute(db_path)) {
+          db_path = path.join(process.cwd(), 'backend', 'conteo', db_path);
+        }
+        // Si la ruta contiene /app/backend/conteo, reemplazar por ruta local
+        if (db_path.includes('/app/backend/conteo')) {
+          db_path = db_path.replace('/app/backend/conteo', path.join(process.cwd(), 'backend', 'conteo'));
+        }
+        return db_path;
+      }
+    }
+  }
+  // Fallback por defecto (minúsculas)
+  return path.join(process.cwd(), 'backend', 'conteo', 'db', 'conteo.db');
+}
+
+const CONTEO_DB_PATH = get_conteo_db_path();
 
 /**
  * Obtiene estadísticas del período seleccionado desde las 00:00
